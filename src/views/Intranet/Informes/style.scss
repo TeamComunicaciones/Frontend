@@ -1,0 +1,138 @@
+// Variables de color
+$color-primary: #DF1115;
+$color-dark: #000000;
+$color-light: #ffffff;
+$color-secondary: #ced4da;
+$color-hover: #b60e11;
+
+// Fuente general
+$font-primary: 'Open Sans', sans-serif;
+$font-secondary: 'Comfortaa', cursive;
+
+.container {
+  background-color: $color-light;
+  color: $color-dark;
+  font-family: $font-primary;
+
+  h1 {
+    color: $color-dark;
+    font-family: $font-secondary;
+  }
+
+  .form-label {
+    font-weight: 600;
+  }
+
+  .form-control,
+  .form-select {
+    border-radius: 0.5rem;
+    border: 1px solid $color-secondary;
+    font-size: 1rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  // Sección de patchnotes
+  .patchnote-box {
+    background-color: $color-light;
+    border: 1px solid $color-secondary;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    font-family: $font-primary;
+
+    h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: $color-primary;
+      margin-bottom: 1rem;
+      font-family: $font-secondary;
+    }
+
+    ul {
+      padding-left: 1.25rem;
+      margin-bottom: 0;
+
+      li {
+        margin-bottom: 0.75rem;
+        line-height: 1.6;
+      }
+    }
+  }
+
+  // Botones de acción
+  .btn-danger {
+    background-color: $color-primary;
+    border-color: $color-primary;
+    font-weight: 600;
+    font-family: $font-primary;
+    transition: background-color 0.3s ease;
+
+    &:hover {
+      background-color: $color-hover;
+      border-color: $color-hover;
+    }
+  }
+}
+
+// Mejoras específicas para formularios
+.form-control,
+.form-select {
+  border-radius: 0.5rem;
+  border: 1px solid $color-secondary;
+  font-size: 1rem;
+  padding: 0.5rem 0.75rem;
+}
+
+// Modal y botones adicionales
+.btn {
+  font-family: $font-primary;
+  font-weight: 600;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  border-color: #007bff;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  border-color: #ffc107;
+}
+
+.btn-danger {
+  background-color: $color-primary;
+  border-color: $color-primary;
+}
+
+.btn-outline-dark {
+  border-color: $color-dark;
+  color: $color-dark;
+
+  &:hover {
+    background-color: $color-dark;
+    color: $color-light;
+  }
+}
+
+// Efectos Hover en la tabla
+.table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.table-striped {
+  tr:nth-child(odd) {
+    background-color: #f8f9fa;
+  }
+}
+
+.table-hover {
+  tr:hover {
+    background-color: #f1f1f1;
+  }
+}
+
+.text-center {
+  text-align: center;
+}

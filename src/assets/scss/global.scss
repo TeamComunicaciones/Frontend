@@ -1,0 +1,24 @@
+/* src/assets/scss/global.scss */
+
+@use 'fonts';
+@use 'login';
+@use 'home';
+@use 'prices';
+
+html {
+  font-size: 16px; /* 1rem = 16px */
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background-color: #f8f9fa;
+  margin: 0;
+  padding: 0;
+}
+img{
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 0 auto;
+}
+/* Otros estilos globales */

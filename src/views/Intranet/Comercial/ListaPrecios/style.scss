@@ -1,0 +1,163 @@
+/* Fuente general */
+body, input, select, textarea {
+  font-family: 'Open Sans', sans-serif;
+}
+
+/* Fuentes específicas para títulos y subtítulos */
+h2, h3, h4, h5, .modal-title, .form-label, .text-center {
+  font-family: 'Comfortaa', cursive;
+  font-weight: 700; /* Negrita para títulos */
+}
+
+/* Fondo y texto principal */
+body {
+  background-color: #fff;
+  color: #000;
+}
+
+/* Estilo para los botones */
+.btn-danger {
+  background-color: #DF1115;
+  border-color: #DF1115;
+}
+
+.btn-danger:hover {
+  background-color: #C10D11;
+  border-color: #C10D11;
+}
+
+/* Estilo de las tarjetas */
+.card {
+  border-radius: 8px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Espaciado de las tarjetas */
+.m-3, .p-4 {
+  padding: 20px;
+  margin: 15px;
+}
+
+/* Tabla */
+.table-striped {
+  margin-top: 20px;
+  border-collapse: collapse;
+}
+
+.table-striped td,
+.table-striped th {
+  padding: 10px;
+  text-align: center;
+}
+
+.table-striped th {
+  background-color: #f8f9fa;
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f1f1f1;
+}
+
+/* Filtro de texto */
+input[type="text"] {
+  font-size: 1rem;
+  padding: 10px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+}
+
+input[type="text"]:focus {
+  border-color: #DF1115;
+  box-shadow: 0 0 5px rgba(223, 17, 21, 0.5);
+}
+
+/* Círculos de variación */
+.variation-circle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+
+  .circle {
+    min-width: 40px;
+    min-height: 40px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    font-weight: bold;
+    border-radius: 50%;
+    position: relative;
+    top: -4px;
+    box-sizing: border-box;
+  }
+
+  &.down .circle {
+    background-color: rgba(255, 0, 0, 0.15);
+    color: red;
+    border: 1px solid rgba(255, 0, 0, 0.3);
+  }
+
+  &.up .circle {
+    background-color: rgba(0, 128, 0, 0.15);
+    color: green;
+    border: 1px solid rgba(0, 128, 0, 0.3);
+  }
+
+  &.neutral .circle {
+    background-color: rgba(255, 165, 0, 0.1);
+    color: orange;
+    border: 1px solid rgba(255, 165, 0, 0.3);
+  }
+}
+
+/* Estilo del botón de historial */
+button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+button:hover {
+  color: #DF1115;
+}
+
+button:focus {
+  outline: none;
+}
+
+/* Alineación y espaciado */
+.container {
+  padding-left: 2rem;
+  padding-right: 2rem;
+}
+
+.row {
+  margin-bottom: 20px;
+}
+
+.text-end {
+  text-align: right;
+}
+
+/* Responsive: adaptaciones para pantallas pequeñas */
+@media (max-width: 767px) {
+  .col-md-8, .col-md-4 {
+    padding: 10px;
+    margin: 0;
+  }
+
+  .table-striped td, .table-striped th {
+    font-size: 0.875rem;
+  }
+
+  .form-control {
+    font-size: 0.875rem;
+  }
+
+  .table-responsive {
+    margin-top: 10px;
+  }
+}

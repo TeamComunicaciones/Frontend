@@ -1,0 +1,107 @@
+/* src/assets/scss/home.scss */
+@use "sass:color";
+$primary-color: #DF1115;
+$black-use: #000000;
+$white-use: #ffffff;
+
+.background-team {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url('icons/background.png');
+    background-size: cover;
+    background-position: center;
+    opacity: 0.5; // Ajusta la opacidad según sea necesario
+    z-index: -1; // Asegura que el contenido del elemento esté por encima
+  }
+}
+
+.welcome-home {
+  margin: 25px 0;
+  h2 {
+    font-family: 'Comfortaa';
+    font-weight: bold;
+    font-size: 2rem;
+  }
+  p {
+    margin: 0;
+    font-family: 'Open Sans';
+    font-weight: 200;
+    font-size: 1rem;
+  }
+}
+
+.task-pending {
+  margin: 35px 0;
+  padding: 0;
+  list-style-type: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  li {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    width: 125px; 
+    height: 80px; 
+    background-color: $primary-color;
+    color: $white-use;
+    border-radius: 10px;
+    padding: 10px;
+    text-align: center;
+    &:hover {
+      background: color.adjust($primary-color, $lightness: -10%);
+      color: color.adjust($white-use, $lightness: 10%);
+    }
+
+    i {
+      font-size: 1.4rem; 
+      margin-bottom: 5px;
+    }
+
+    span {
+      font-family: 'Open Sans';
+      font-weight: bold;
+      font-size: 1rem;
+    }
+  }
+}
+
+.task-list {
+  margin-top: 8%;
+  h2{
+    font-family: 'Comfortaa';
+    font-weight: bold;
+    font-size: 1.5rem;
+  }
+  .nav-tabs {
+    border-bottom: 2px solid $primary-color;
+
+    .nav-link {
+      color: $primary-color;
+      &.active {
+        background-color: $primary-color;
+        color: $white-use;
+      }
+    }
+  }
+
+  .tab-content {
+    margin-top: 10px;
+    p {
+      font-family: 'Open Sans';
+      font-size: 1rem;
+      color: $black-use;
+    }
+  }
+}

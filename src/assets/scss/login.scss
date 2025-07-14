@@ -1,0 +1,154 @@
+/* src/assets/scss/login.scss */
+@use "sass:color";
+
+$primary-color: #DF1115;
+$black-use: #000000;
+$white-use: #ffffff;
+
+.no-scroll {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.centering-form {
+  padding: 0 15%;
+}
+
+.panel-login {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 10px;
+}
+
+.login-card {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  margin: 0 auto;
+
+  .img-container {
+    max-width: 60%;
+    margin: 0 auto;
+  }
+
+  .text-container {
+    color: $black-use;
+    text-align: center;
+    padding: 15px;
+
+    h2 {
+      font-family: 'Comfortaa';
+      font-weight: bold;
+      font-size: 1.5rem;
+      margin-bottom: 15px;
+    }
+
+    p {
+      font-family: 'Open Sans';
+      font-weight: 200;
+      font-size: 0.9rem;
+    }
+  }
+
+  form {
+    font-family: 'Open Sans';
+    font-size: 1rem;
+    font-weight: 200;
+    padding: 25px;
+
+    span {
+      font-family: 'Open Sans';
+      font-weight: bold;
+      font-size: 0.9rem;
+    }
+
+    input {
+      margin-bottom: 15px;
+
+      &::placeholder {
+        opacity: 0.7;
+      }
+    }
+
+    .login_btn {
+      width: 100%;
+      background: $primary-color;
+      color: $white-use;
+
+      &:hover {
+        background: color.adjust($primary-color, $lightness: -10%);
+        color: color.adjust($white-use, $lightness: 10%);
+      }
+    }
+  }
+
+  .links-forgot {
+    margin: 25px 0;
+
+    input[type="checkbox"] {
+      margin: 0;
+      margin-right: 10px;
+    }
+  }
+
+  a {
+    text-decoration: none;
+    font-weight: bold;
+    color: $black-use;
+  }
+}
+
+.cors {
+  font-family: 'Open Sans';
+  color: $black-use;
+  font-size: 0.7rem;
+  margin-top: auto;
+  padding-bottom: 15px;
+
+  ul {
+    margin: 0;
+    padding: 0;
+
+    li {
+      text-decoration: none;
+      display: inline-block;
+      width: 50%;
+    }
+
+    li:first-child {
+      text-align: left;
+    }
+
+    li:last-child {
+      text-align: right;
+    }
+  }
+}
+
+.img-destacada {
+  height: 100%;
+  padding: 15px 0;
+
+  img {
+    height: 100%;
+    border-radius: 10px;
+  }
+}
+
+/* Estilos personalizados para SweetAlert2 */
+.swal2-confirm.btn.login_btn {
+  width: auto;
+  padding: 10px 20px;
+  font-size: 1rem;
+  width: 100%;
+      background: $primary-color;
+      color: $white-use;
+
+      &:hover {
+        background: color.adjust($primary-color, $lightness: -10%);
+        color: color.adjust($white-use, $lightness: 10%);
+      }
+}

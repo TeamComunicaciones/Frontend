@@ -1,0 +1,39 @@
+{
+  "name": "frontendv3",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "axios": "^1.6.8",
+    "bootstrap": "^5.3.3",
+    "bootstrap-vue-next": "^0.16.6",
+    "chart.js": "^2.9.4",
+    "export-from-json": "^1.7.0",
+    "read-excel-file": "^5.5.3",
+    "sweetalert2": "^11.4.8",
+    "vue": "^3.4.21",
+    "vue-cookies": "^1.8.3",
+    "vue-currency-input": "^3.1.0",
+    "vue-horizontal": "^1.0.2",
+    "vue-image-zoomer": "^2.4.4",
+    "vue-loading-overlay": "^6.0.4",
+    "vue-router": "^4.3.0",
+    "vue-sweetalert2": "^5.0.5",
+    "vue3-cookies": "^1.0.6",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@iconify-json/bi": "^1.1.23",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "@vue/compiler-sfc": "^3.4.21",
+    "sass": "^1.82.0",
+    "sass-loader": "^16.0.4",
+    "unplugin-icons": "^0.18.5",
+    "unplugin-vue-components": "^0.26.0"
+  }
+}

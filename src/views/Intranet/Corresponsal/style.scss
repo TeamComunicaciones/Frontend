@@ -1,0 +1,180 @@
+
+// Importa variables y utilidades globales
+@use '@/assets/scss/global' as *;
+
+
+$table-border-color: #e0e0e0;
+$table-hover-bg: #f1f1f1;
+$primary-red: #DF1115;
+$primary-red-dark: #C90F12;
+$secondary-red: #c81014;
+
+.table-wrapper {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  margin: 2rem auto;
+  height: 500px;
+  background-color: #fff;
+  padding: 1rem;
+  border-radius: 1rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+  margin-bottom: 1.5rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--fuente-texto);
+  font-size: 0.95rem;
+
+  th, td {
+    padding: 12px 16px;
+    text-align: left;
+    border: 1px solid $table-border-color;
+    font-size: 1rem;
+    transition: background-color 0.3s ease;
+  }
+
+  th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 1;
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #333;
+    border-bottom: 2px solid #dee2e6;
+    font-family: var(--fuente-titulo);
+  }
+
+  td {
+    color: #555;
+    font-size: 0.92rem;
+  }
+
+  tr:hover {
+    background-color: $table-hover-bg;
+  }
+}
+
+.form-select {
+  max-width: 350px;
+  font-size: 1rem;
+  padding: 10px;
+  width: 100%;
+}
+
+.btn-danger {
+  background-color: $primary-red;
+  border-color: $primary-red;
+  color: #fff;
+  font-size: 1rem;
+  padding: 10px 20px;
+  border-radius: 5px;
+
+  &:hover {
+    background-color: $secondary-red;
+    border-color: $secondary-red;
+  }
+}
+
+.tarjeta {
+  padding: 2rem;
+  width: 100%;
+  max-width: 350px;
+  border-radius: 1rem;
+  background-color: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: 0 5px 9px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  z-index: 1050;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+
+  .modal-content {
+    background-color: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    position: relative;
+    max-height: 90%;
+    overflow-y: auto;
+    width: 100%;
+    max-width: 800px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+  }
+
+  .small-modal {
+    max-width: 80%;
+    max-height: 80%;
+  }
+
+  .close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #000;
+  }
+}
+
+.zoom-image {
+  width: 100%;
+  transition: transform 0.3s ease;
+}
+
+.custom-image {
+  width: 100%;
+  max-width: 500px;
+  height: auto;
+  border-radius: 0.5rem;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="number"],
+select,
+textarea {
+  font-family: var(--fuente-texto);
+  font-size: 0.95rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid #ccc;
+  width: 100%;
+  margin-bottom: 1rem;
+  transition: border-color 0.2s ease;
+
+  &:focus {
+    border-color: $primary-red;
+    outline: none;
+    box-shadow: 0 0 0 0.15rem rgba(223, 17, 21, 0.2);
+  }
+}
+
+.btn-outline-danger {
+  background-color: transparent;
+  color: $primary-red;
+
+  &:hover {
+    background-color: #c00e12;
+    border-color: #c00e12;
+  }
+}
+
+.text-danger {
+  color: $primary-red !important;
+}

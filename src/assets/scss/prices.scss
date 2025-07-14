@@ -1,0 +1,188 @@
+/* src/assets/scss/prices.scss */
+
+// Variables
+$primary-color: #DF1115;
+$primary-color-hover: #C10F13;
+$secondary-color: #6c757d;
+$secondary-color-hover: #5a6268;
+$secondary-color-active: #545b62;
+$nav-link-active-bg: #DF111580;
+$nav-link-active-border: 10px solid $primary-color;
+
+// Estilos para el menú de precios
+.menu-precios {
+  margin-top: 25px;
+
+  ul {
+    li {
+      display: inline-block;
+      width: 100%;
+
+      a {
+        color: black;
+        text-decoration: none;
+
+        &:hover {
+          color: white; // Cambia el texto a blanco al pasar el mouse
+        }
+      }
+    }
+  }
+}
+
+// Estilos para el contenido de la calculadora
+.contenido-calc {
+  margin-top: 25px;
+  h5{
+    font-weight: bold;
+  }
+  pre{
+    font-size: 1em;
+    letter-spacing: 2px;
+  }
+  .botonera{
+    width: 100%;
+    text-align: right;
+    margin-top: 100px;
+    button{
+      margin: 0 15px;
+    }
+  }
+  .selectedVariable{
+    margin-top: 100px;
+    button{
+      margin-right: 15px;
+    }
+  }
+  .calculadora-precio{
+    .valor-manual{
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      input{
+        width: 75%;
+        margin-right: 15px;
+      }
+    }
+    .btn-group.grupo1{
+      display:block;
+      button{
+        width: 70px;
+        height: 70px;
+        border-radius: 5px;
+        margin: 10px;
+      }
+    }
+    .variables-section{
+      .btn-group{
+        display: block;
+      }
+      
+    }
+  }
+}
+.alinear-modal{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  input{
+    width: 70%;
+    margin-right: 15px;
+  } 
+}
+.modal-body{
+  .btn-group{
+    text-align: center;
+    button{
+      margin: 5px;
+       border-radius: 5px !important;
+       width: 40px;
+       height: 40px;
+    }
+  }
+}
+// Estilos para las pestañas de navegación
+.nav-tabs {
+  .nav-link {
+    color: inherit; // Mantiene el color heredado
+
+    &.active,
+    .nav-item.show & {
+      background-color: $nav-link-active-bg;
+      width: 100%;
+      text-align: left;
+      color: #fff;
+      border-left: $nav-link-active-border;
+    }
+
+    &:hover {
+      color: inherit; // Mantiene el color heredado al pasar el mouse
+    }
+  }
+}
+
+// Estilos para los botones
+.btn-primary {
+  background-color: $primary-color;
+  border-color: $primary-color;
+
+  &:hover,
+  &:focus,
+  &:active {
+    background-color: $primary-color-hover;
+    border-color: $primary-color-hover;
+  }
+}
+
+.btn-danger {
+  background-color: $primary-color;
+  border-color: $primary-color;
+
+  &:hover,
+  &:focus,
+  &:active {
+    background-color: $primary-color-hover;
+    border-color: $primary-color-hover;
+  }
+}
+
+.btn-secondary {
+  background-color: $secondary-color;
+  border-color: $secondary-color;
+
+  &:hover,
+  &:focus,
+  &:active {
+    background-color: $secondary-color-hover;
+    border-color: $secondary-color-active;
+  }
+}
+
+// Estilos personalizados para los botones de SweetAlert2
+.btn-confirm,
+.swal2-confirm.swal2-styled {
+  background-color: $primary-color;
+  border-color: $primary-color;
+  color: #fff;
+
+  &:hover,
+  &:focus,
+  &:active {
+    background-color: $primary-color-hover;
+    border-color: $primary-color-hover;
+  }
+}
+
+.btn-cancel,
+.swal2-cancel.swal2-styled {
+  background-color: $secondary-color;
+  border-color: $secondary-color;
+  color: #fff;
+
+  &:hover,
+  &:focus,
+  &:active {
+    background-color: $secondary-color-hover;
+    border-color: $secondary-color-active;
+  }
+}

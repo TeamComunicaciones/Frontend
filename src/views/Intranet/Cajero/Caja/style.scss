@@ -1,0 +1,174 @@
+@use '@/assets/scss/global' as *;
+
+
+// Fuente general
+body,
+input,
+select,
+textarea {
+  font-family: 'Open Sans', sans-serif;
+}
+
+// Fuentes específicas para títulos y subtítulos
+h2,
+h3,
+h4,
+h5,
+.modal-title,
+.form-label,
+.text-center {
+  font-family: 'Comfortaa', cursive;
+  font-weight: 700;
+}
+
+// Fondo y texto principal
+body {
+  background-color: #fff;
+  color: #000;
+}
+
+// Botones
+button,
+.btn,
+.btn-outline-dark {
+  font-family: 'Comfortaa', cursive;
+}
+
+// Card - Panel izquierdo y derecho
+.bg-white {
+  background-color: #fff;
+  border-radius: 8px;
+}
+
+// Espaciado de las tarjetas
+.m-3,
+.p-4 {
+  padding: 20px;
+  margin: 15px;
+}
+
+// Modal
+.modal {
+  display: block;
+  position: fixed;
+  z-index: 1;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  overflow: auto;
+  background-color: rgba(0, 0, 0, 0.4);
+}
+
+.modal-content {
+  background-color: #fefefe;
+  margin: 5% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.close {
+  color: #aaa;
+  font-size: 28px;
+  font-weight: bold;
+
+  &:hover,
+  &:focus {
+    color: black;
+    cursor: pointer;
+  }
+}
+
+// Tabla
+.table-bordered {
+  border: 1px solid #ddd;
+}
+
+.table-light {
+  th {
+    background-color: #f8f9fa;
+  }
+}
+
+table {
+  td,
+  th {
+    padding: 10px;
+    text-align: center;
+  }
+}
+
+// Modal de imagen
+.imagen-modal {
+  position: relative;
+  max-width: 90%;
+  max-height: 80vh;
+  margin: 0 auto;
+}
+
+.zoom-container {
+  overflow: hidden;
+  max-width: 600px;
+  max-height: 600px;
+  cursor: zoom-in;
+
+  img {
+    transition: transform 0.3s ease;
+    width: 100%;
+    height: auto;
+
+    &.zoomed {
+      transform: scale(2);
+    }
+  }
+}
+
+// Estilo de los formularios
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-control,
+.form-control-file {
+  font-size: 1rem;
+  padding: 10px;
+  border-radius: 5px;
+}
+
+.text-center {
+  font-size: 1.2rem;
+  margin-top: 20px;
+}
+
+// Botones de peligro
+.btn-danger {
+  background-color: #DF1115;
+  border-color: #DF1115;
+
+  &:hover {
+    background-color: #C10D11;
+    border-color: #C10D11;
+  }
+}
+
+// Responsive
+@media (max-width: 767px) {
+  .col-md-5,
+  .col-md-6 {
+    margin: 10px;
+    padding: 15px;
+  }
+
+  .modal-content {
+    width: 90%;
+  }
+
+  .zoom-container {
+    max-width: 100%;
+    max-height: 100%;
+  }
+}

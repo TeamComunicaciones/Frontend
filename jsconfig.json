@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": [
+    "components.d.ts",
+    "node_modules/unplugin-icons/types/vue" // Ruta a los tipos de unplugin-icons
+  ],
+  "exclude": ["node_modules", "dist"]
+}
