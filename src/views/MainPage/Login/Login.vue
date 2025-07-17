@@ -50,6 +50,7 @@ import axios from 'axios'
 import router from '../../../router'
 import Swal from 'sweetalert2'
 import backendRouter from '@/components/BackendRouter/BackendRouter'
+import { authState } from '@/auth';
 
 export default {
   data() {
@@ -81,6 +82,7 @@ export default {
       };
       axios.post(path, access).then((response) => {
         this.$cookies.set('jwt', response.data.jwt);
+        authState.login();
         router.push('/home');
       }).catch((error) => {
         Swal.fire({

@@ -1,14 +1,12 @@
 <template>
-  <div class="main-wrapper bg-white text-black" style="font-family: 'Comfortaa', sans-serif;">
-    <SidebarMenu :titulo="tituloMenu" />
-
+  <div class="main-wrapper">
     <div class="vld-parent">
       <loading :active.sync="isLoading" :is-full-page="fullPage"></loading>
     </div>
 
     <div class="container py-4">
       <div class="d-flex flex-wrap align-items-center gap-3 mb-4">
-       <BFormRadioGroup
+        <BFormRadioGroup
           v-model="buttonsSelected"
           :options="buttonsOptions"
           button-variant="outline-danger"
@@ -27,30 +25,33 @@
         />
       </div>
 
-      <h3>Gestionar Consignaciones Pendientes</h3>
-      <p v-if="!sucursal && !isLoading" class="text-muted">Seleccione una fecha y sucursal para ver los pendientes.</p>
-      
-      <div class="row" v-else>
-        <div class="col-lg-8 mb-3">
-          <div class="mb-3">
-            <select class="form-select" v-model="bancoSeleccionado">
-              <option value="">-- Filtrar por categoría --</option>
-              <option v-for="banco in bancosDisponibles" :key="banco" :value="banco">{{ banco }}</option>
-            </select>
+      <div v-if="sucursal !== null">
+        <h3 class="mb-3">Gestionar Consignaciones Pendientes</h3>
+        <div class="row">
+          <div class="col-lg-8 mb-3">
+            <div class="mb-3">
+              <select class="form-select" v-model="bancoSeleccionado">
+                <option value="">-- Filtrar por categoría --</option>
+                <option v-for="banco in bancosDisponibles" :key="banco" :value="banco">{{ banco }}</option>
+              </select>
+            </div>
+            <DetalleConsignacionesTabla 
+              :consignaciones="filtradasPorBanco" 
+              :selectable="true" 
+              @view="mostrarInformacion" 
+              @selection-change="updateSeleccionados" 
+            />
           </div>
-          <DetalleConsignacionesTabla 
-            :consignaciones="filtradasPorBanco" 
-            :selectable="true" 
-            @view="mostrarInformacion" 
-            @selection-change="updateSeleccionados" 
-          />
-        </div>
-        <div class="col-lg-4" v-if="seleccionados.length">
-          <div class="p-3 border rounded bg-light shadow-sm">
-            <h5 class="text-end fw-bold">Total: {{ formatCurrency(totalSeleccionados) }}</h5>
-            <BButton variant="danger" class="w-100" @click="showSaldarModal = true">SALDAR</BButton>
+          <div class="col-lg-4" v-if="seleccionados.length">
+            <div class="p-3 border rounded bg-light shadow-sm">
+              <h5 class="text-end fw-bold">Total: {{ formatCurrency(totalSeleccionados) }}</h5>
+              <BButton variant="danger" class="w-100" @click="showSaldarModal = true">SALDAR</BButton>
+            </div>
           </div>
         </div>
+      </div>
+      <div v-else class="text-center text-muted mt-5">
+        <h4>Seleccione una fecha y sucursal para ver los pendientes.</h4>
       </div>
     </div>
 
@@ -100,11 +101,9 @@
 </template>
 
 <script>
-import SidebarMenu from '@/components/Intranet/SidebarMenu/SidebarMenu.vue';
 import Loading from 'vue-loading-overlay';
 import backendRouter from '@/components/BackendRouter/BackendRouter';
 import axios from 'axios';
-import * as XLSX from 'xlsx';
 import { VueImageZoomer } from 'vue-image-zoomer';
 import 'vue-image-zoomer/dist/style.css';
 import DetalleConsignacionesTabla from './DetalleConsignacionesTabla.vue';
@@ -112,14 +111,12 @@ import DetalleConsignacionesTabla from './DetalleConsignacionesTabla.vue';
 export default {
   name: 'Tesoreria',
   components: {
-    SidebarMenu,
     VueImageZoomer,
     Loading,
     DetalleConsignacionesTabla
   },
   data() {
     return {
-      tituloMenu: 'Tesorería - Gestión de Pendientes',
       isLoading: false,
       fullPage: true,
       fecha: '',
@@ -170,36 +167,40 @@ export default {
       });
     },
     async fetchData() {
-        if (!this.fecha) return;
-        this.isLoading = true;
-        this.resumen = {};
-        this.sucursal = null;
-        try {
-            const path = backendRouter.data + 'select-datos-corresponsal';
-            const response = await axios.post(path, { fecha: this.fecha });
-            this.sucursales = response.data.sucursales.sort((a, b) => a.text.localeCompare(b.text));
-        } catch (error) {
-            console.error("Error en fetchData:", error);
-        } finally {
-            this.isLoading = false;
+      if (!this.fecha) return;
+      this.isLoading = true;
+      this.resumen = {};
+      try {
+        const path = backendRouter.data + 'select-datos-corresponsal';
+        const response = await axios.post(path, { fecha: this.fecha });
+        this.sucursales = response.data.sucursales.sort((a, b) => a.text.localeCompare(b.text));
+        if (this.sucursal) {
+          this.filterData();
         }
+      } catch (error) {
+        console.error("Error en fetchData:", error);
+      } finally {
+        this.isLoading = false;
+      }
     },
     async filterData() {
-        if (!this.sucursal) {
-            this.resumen = {};
-            return;
-        }
-        this.isLoading = true;
-        try {
-            const path = backendRouter.data + 'resumen-corresponsal';
-            const response = await axios.post(path, { fecha: this.fecha, sucursal: this.sucursal });
-            this.resumen = response.data;
-        } catch (error) {
-            this.resumen = {};
-            console.error("Error en filterData:", error);
-        } finally {
-            this.isLoading = false;
-        }
+      if (this.sucursal === null) {
+        this.resumen = {};
+        return;
+      }
+      this.isLoading = true;
+      this.seleccionados = [];
+      this.bancoSeleccionado = '';
+      try {
+        const path = backendRouter.data + 'resumen-corresponsal';
+        const response = await axios.post(path, { fecha: this.fecha, sucursal: this.sucursal });
+        this.resumen = response.data;
+      } catch (error) {
+        this.resumen = {};
+        console.error("Error en filterData:", error);
+      } finally {
+        this.isLoading = false;
+      }
     },
     async settleInvoices() {
       if (!this.saldar.fechaConsignacion || !this.saldar.detalle) {
@@ -221,7 +222,6 @@ export default {
         this.$swal('Error', `No se pudo encontrar el código para la sucursal: ${primeraSucursalNombre}`, 'error');
         return;
       }
-      
       const sucursalCodeParaEnviar = sucursalInfo.value;
       this.isLoading = true;
       const payload = {

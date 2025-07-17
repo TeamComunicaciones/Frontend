@@ -1,6 +1,5 @@
 <template>
   <div>
-    <SidebarMenu :titulo="tituloMenu" />
     <div class="vld-parent">
       <loading :active.sync="isLoading" :is-full-page="fullPage"></loading>
     </div>
@@ -34,7 +33,6 @@
 </template>
 
 <script>
-import SidebarMenu from '@/components/Intranet/SidebarMenu/SidebarMenu.vue'
 import backendRouter from '@/components/BackendRouter/BackendRouter'
 import Loading from 'vue-loading-overlay'
 import axios from 'axios'
@@ -91,7 +89,6 @@ export default {
     }
   },
   components: {
-    SidebarMenu,
     Loading,
     BTableSimple, BThead, BTbody, BTr, BTh, BTd, BButton
   },

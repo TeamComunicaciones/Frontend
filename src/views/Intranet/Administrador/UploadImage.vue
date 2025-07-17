@@ -1,7 +1,5 @@
 <template>
   <div class="container py-5">
-    <SidebarMenu :titulo="tituloMenu" />
-
     <!-- Loader -->
     <div class="vld-parent">
       <loading :active.sync="isLoading" :can-cancel="true" :is-full-page="fullPage" />

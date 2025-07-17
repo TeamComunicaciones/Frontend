@@ -1,5 +1,5 @@
 <template>
-  <SidebarMenu :titulo="tituloMenu"/>
+
   <div class="vld-parent">
     <loading :active.sync="isLoading" :can-cancel="true" :is-full-page="fullPage"></loading>
   </div>

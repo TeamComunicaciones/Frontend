@@ -1,6 +1,5 @@
 <template>
     <div class="textos" style="width: 100%; margin: 0px; padding: 30px;">
-        <SidebarMenu :titulo="tituloMenu" />
         <div class="vld-parent">
             <loading :active.syn="isLoading" :can-cancel="true"  :is-full-page="fullPage"></loading>
         </div>
@@ -85,7 +84,6 @@
 </template>
   
 <script>
-import SidebarMenu from '@/components/Intranet/SidebarMenu/SidebarMenu.vue'
 import backendRouter from '@/components/BackendRouter/BackendRouter';
 import Loading from 'vue-loading-overlay';
 import axios from 'axios';
@@ -314,7 +312,6 @@ import Chart from "chart.js";
         this.semana()
     },
     components: {
-        SidebarMenu,
         Loading
     },
     beforeDestroy() {

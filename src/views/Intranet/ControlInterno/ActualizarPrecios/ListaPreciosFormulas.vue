@@ -277,7 +277,6 @@ import backendRouter from '@/components/BackendRouter/BackendRouter';
 
 export default {
   components: {
-    SidebarMenu,
     Loading
   },
   data() {

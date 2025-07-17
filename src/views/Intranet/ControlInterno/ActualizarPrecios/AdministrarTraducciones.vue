@@ -1,6 +1,5 @@
 <template>
   <div>
-    <SidebarMenu :titulo="tituloMenu" />
 
     <div class="vld-parent">
       <loading :active.sync="isLoading" :can-cancel="true" :is-full-page="fullPage"></loading>
@@ -104,7 +103,6 @@
     import axios from 'axios';
     import router from '@/router';
     import backendRouter from '@/components/BackendRouter/BackendRouter';
-    import SidebarMenu from '@/components/Intranet/SidebarMenu/SidebarMenu.vue';
     import Loading from 'vue-loading-overlay';
     import Swal from 'sweetalert2';
     import * as XLSX from 'xlsx';
@@ -139,7 +137,6 @@
         };
     },
     components: {
-        SidebarMenu,
         Loading,
     },
     computed: {

@@ -1,6 +1,5 @@
 <template>
     <div>
-        <SidebarMenu :titulo="tituloMenu"/>
         <div class="table-wrapper m-3 p-3">
             <BButton variant="danger" class="" @click="showCreateUserModal = true" >Crear Usuario</BButton>
             <table>
@@ -57,7 +56,6 @@
 <script>
     import axios from 'axios'
     import backendRouter from  '@/components/BackendRouter/BackendRouter'
-    import SidebarMenu from '@/components/Intranet/SidebarMenu/SidebarMenu.vue'
     import Loading from 'vue-loading-overlay';
     import { BContainer } from 'bootstrap-vue-next'
     
@@ -135,7 +133,6 @@
             this.validate()
         },
         components: {
-            SidebarMenu,
             Loading,
         },
     }
