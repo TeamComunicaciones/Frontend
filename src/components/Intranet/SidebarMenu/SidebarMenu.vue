@@ -8,9 +8,9 @@
         </div>
 
         <div v-if="!permisosCargados" class="text-center my-auto">
-            <div class="spinner-border text-danger" role="status">
-                <span class="visually-hidden">Cargando...</span>
-            </div>
+          <div class="spinner-border text-danger" role="status">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
         </div>
 
         <ul v-if="permisosCargados" class="nav-menu list-unstyled">
@@ -36,45 +36,45 @@
 
           <li v-if="permisos.informes.main" class="nav-item">
             <a @click.prevent="toggleMenu('informes')" href="#" class="nav-link" :class="{active: menu.informes}">
-                <i class="bi bi-file-earmark-bar-graph-fill me-2"></i><span>Informes</span>
-                <i class="bi bi-chevron-right ms-auto chevron" :class="{ rotated: menu.informes }"></i>
+              <i class="bi bi-file-earmark-bar-graph-fill me-2"></i><span>Informes</span>
+              <i class="bi bi-chevron-right ms-auto chevron" :class="{ rotated: menu.informes }"></i>
             </a>
             <ul v-if="menu.informes" class="submenu list-unstyled">
-                <li><a href="/informes"><i class="bi bi-file-earmark-text-fill me-2"></i>Informes</a></li>
+              <li><a href="/informes"><i class="bi bi-file-earmark-text-fill me-2"></i>Informes</a></li>
             </ul>
           </li>
 
           <li v-if="permisos.control_interno.main" class="nav-item">
             <a @click.prevent="toggleMenu('control_interno')" href="#" class="nav-link" :class="{active: menu.control_interno}">
-                <i class="bi bi-gear-fill me-2"></i><span>Control Interno</span>
-                <i class="bi bi-chevron-right ms-auto chevron" :class="{ rotated: menu.control_interno }"></i>
+              <i class="bi bi-gear-fill me-2"></i><span>Control Interno</span>
+              <i class="bi bi-chevron-right ms-auto chevron" :class="{ rotated: menu.control_interno }"></i>
             </a>
             <ul v-if="menu.control_interno" class="submenu list-unstyled">
-                <li><a href="/actualizar-equipos-prepagos"><i class="bi bi-currency-exchange me-2"></i>Precios prepagos</a></li>
-                <li><a href="/administrar-traducciones"><i class="bi bi-translate me-2"></i>Traducciones</a></li>
-                <li><a href="/formulas-prepago"><i class="bi bi-list-ol me-2"></i>Lista Precios</a></li>
-                <li><a href="/lista-negra"><i class="bi bi-x-circle-fill me-2"></i>Lista Negra</a></li>
+              <li><a href="/actualizar-equipos-prepagos"><i class="bi bi-currency-exchange me-2"></i>Precios prepagos</a></li>
+              <li><a href="/administrar-traducciones"><i class="bi bi-translate me-2"></i>Traducciones</a></li>
+              <li><a href="/formulas-prepago"><i class="bi bi-list-ol me-2"></i>Lista Precios</a></li>
+              <li><a href="/lista-negra"><i class="bi bi-x-circle-fill me-2"></i>Lista Negra</a></li>
             </ul>
           </li>
 
           <li v-if="permisos.comisiones.main" class="nav-item">
             <a @click.prevent="toggleMenu('comisiones')" href="#" class="nav-link" :class="{active: menu.comisiones}">
-                <i class="bi bi-cash-stack me-2"></i><span>Comisiones</span>
-                <i class="bi bi-chevron-right ms-auto chevron" :class="{ rotated: menu.comisiones }"></i>
+              <i class="bi bi-cash-stack me-2"></i><span>Comisiones</span>
+              <i class="bi bi-chevron-right ms-auto chevron" :class="{ rotated: menu.comisiones }"></i>
             </a>
             <ul v-if="menu.comisiones" class="submenu list-unstyled">
-                <li><a href="/comisiones"><i class="bi bi-clipboard-check-fill me-2"></i>Administrar</a></li>
-                <li><a href="/liquidador-comisiones"><i class="bi bi-calculator-fill me-2"></i>Liquidar</a></li>
+              <li><a href="/comisiones"><i class="bi bi-clipboard-check-fill me-2"></i>Administrar</a></li>
+              <li><a href="/liquidador-comisiones"><i class="bi bi-calculator-fill me-2"></i>Liquidar</a></li>
             </ul>
           </li>
 
           <li v-if="permisos.comercial.main" class="nav-item">
             <a @click.prevent="toggleMenu('comercial')" href="#" class="nav-link" :class="{active: menu.comercial}">
-                <i class="bi bi-shop-window me-2"></i><span>Comercial</span>
-                <i class="bi bi-chevron-right ms-auto chevron" :class="{ rotated: menu.comercial }"></i>
+              <i class="bi bi-shop-window me-2"></i><span>Comercial</span>
+              <i class="bi bi-chevron-right ms-auto chevron" :class="{ rotated: menu.comercial }"></i>
             </a>
             <ul v-if="menu.comercial" class="submenu list-unstyled">
-                <li><a href="/lista-precios-prepago"><i class="bi bi-tag-fill me-2"></i>Precios prepagos</a></li>
+              <li><a href="/lista-precios-prepago"><i class="bi bi-tag-fill me-2"></i>Precios prepagos</a></li>
             </ul>
           </li>
 
@@ -117,7 +117,9 @@
 
     <div class="main-container">
       <header class="top-header">
-        <button class="btn btn-light" @click="toggleSidebar"><i class="bi bi-list"></i></button>
+        <button class="menu-toggle-btn" @click="toggleSidebar" aria-label="Toggle Menu">
+          <i class="bi bi-list"></i>
+        </button>
       </header>
 
       <main class="main-content p-4">
@@ -312,5 +314,47 @@ export default {
 .sidebar-footer {
   border-top: 1px solid #e0e0e0;
   padding-top: 1rem;
+}
+
+// Estilos mejorados para el botón del menú
+@keyframes pulse-once {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(223, 17, 21, 0.4);
+  }
+  70% {
+    transform: scale(1.05);
+    box-shadow: 0 0 10px 15px rgba(223, 17, 21, 0);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(223, 17, 21, 0);
+  }
+}
+
+.menu-toggle-btn {
+  background-color: transparent;
+  border: none;
+  color: #495057;
+  padding: 0.5rem;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out;
+  animation: pulse-once 1.5s ease-out 1s 1;
+
+  i {
+    font-size: 1.75rem;
+    line-height: 1;
+  }
+
+  &:hover {
+    background-color: #f0f0f0;
+    color: #DF1115;
+  }
 }
 </style>
