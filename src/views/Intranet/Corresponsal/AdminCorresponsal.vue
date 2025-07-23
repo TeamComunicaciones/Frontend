@@ -21,7 +21,7 @@
               <BFormSelect
                 :options="users_options"
                 v-model="assignedResponsables[sucursal]"
-                @change="selectSucursal(sucursal, $event)"
+                @change="selectSucursal(sucursal)"
               />
               <div v-if="recentlySaved === sucursal" class="save-indicator">
                 <i class="bi bi-check-circle-fill"></i> Guardado
@@ -71,8 +71,8 @@ export default {
     }
   },
   methods: {
-    async selectSucursal(sucursal, encargadoId) {
-      if (encargadoId === this.assignedResponsables[sucursal]) return;
+    async selectSucursal(sucursal) {
+      const encargadoId = this.assignedResponsables[sucursal];
       
       const path = backendRouter.data + 'assign-responsible';
       const data = {
@@ -82,7 +82,6 @@ export default {
       
       try {
         await axios.post(path, data);
-        this.assignedResponsables[sucursal] = encargadoId;
         this.showSaveIndicator(sucursal);
       } catch (error) {
         Swal.fire('Error', 'No se pudo asignar el encargado.', 'error');
