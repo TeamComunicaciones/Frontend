@@ -222,17 +222,24 @@ export default {
       return false;
     },
     calculateDynamicTotal(item) {
-        if (!item) return 0;
-        const baseTotal = (item['equipo sin IVA'] || 0) + (item['IVA equipo'] || 0) + (item['precio simcard'] || 0) + (item['IVA simcard'] || 0);
-        let kitTotal = 0;
+      if (!item) return 0;
 
-        if (Array.isArray(item.kits)) {
-            const visibleKit = item.kits.find(k => k && k.nombre && this.shouldShowKit(item.nombre_lista, k.nombre));
-            if (visibleKit) {
-                kitTotal = visibleKit.valor || 0;
-            }
+      // Suma todos los componentes base, incluyendo el IVA del equipo
+      const baseTotal = (item['equipo sin IVA'] || 0) + 
+                        (item['IVA equipo'] || 0) + 
+                        (item['precio simcard'] || 0) + 
+                        (item['IVA simcard'] || 0);
+      
+      let kitTotal = 0;
+      if (Array.isArray(item.kits)) {
+        // Busca y suma el kit visible si existe
+        const visibleKit = item.kits.find(k => k && k.nombre && this.shouldShowKit(item.nombre_lista, k.nombre));
+        if (visibleKit) {
+          kitTotal = visibleKit.valor || 0;
         }
-        return baseTotal + kitTotal;
+      }
+      
+      return baseTotal + kitTotal;
     },
     async verHistorico(item) {
       this.isLoading = true;
