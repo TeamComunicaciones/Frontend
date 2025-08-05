@@ -74,17 +74,20 @@
                     <div class="card-header"><h5 class="card-title mb-0">{{ item.equipo }}</h5><div class="variation-badge" :class="getVariationClass(item.indicador)"><i :class="getVariationIcon(item.indicador)"></i><span>{{ item.porcentaje }}%</span></div></div>
                     <div class="card-body py-2">
                       <span v-if="item.Promo" class="badge bg-danger mb-2">PROMO</span>
-                      <ul class="list-group list-group-flush price-details">
+                      <ul v-if="esListaCosto(item)" class="list-group list-group-flush price-details">
+                        <li class="list-group-item"><span>Costo Principal</span><strong>{{ formatCurrency(item.costo) }}</strong></li>
+                        <li class="list-group-item"><span>Descuento</span><strong>- {{ formatCurrency(item.descuento) }}</strong></li>
+                      </ul>
+                      <ul v-else class="list-group list-group-flush price-details">
                           <li class="list-group-item"><span>Equipo sin IVA</span><span>{{ formatCurrency(item['equipo sin IVA']) }}</span></li>
                           <li class="list-group-item"><span>IVA Equipo</span><span>{{ formatCurrency(item['IVA equipo']) }}</span></li>
                           <li class="list-group-item"><span>Precio Simcard</span><span>{{ formatCurrency(item['precio simcard']) }}</span></li>
                           <li class="list-group-item"><span>IVA Simcard</span><span>{{ formatCurrency(item['IVA simcard']) }}</span></li>
                           <template v-for="(kit, index) in item.kits" :key="index">
-                            <li v-if="kit && kit.nombre && shouldShowKit(item.nombre_lista, kit.nombre)" class="list-group-item">
-                              <span>{{ kit.nombre }}</span><strong>{{ formatCurrency(kit.valor) }}</strong>
-                            </li>
+                              <li v-if="kit && kit.nombre && shouldShowKit(item.nombre_lista, kit.nombre)" class="list-group-item">
+                                  <span>{{ kit.nombre }}</span><strong>{{ formatCurrency(kit.valor) }}</strong>
+                              </li>
                           </template>
-                          <li class="list-group-item"><span>Diferencial</span><strong :class="getVariationTextColor(item.indicador)">{{ formatCurrency(item.diferencial) }}</strong></li>
                       </ul>
                     </div>
                     <div class="card-footer"><div class="total-price">Total Kit: <span class="total-value">{{ formatCurrency(calculateDynamicTotal(item)) }}</span></div><BButton variant="outline-secondary" size="sm" @click="verHistorico(item)"><i class="bi bi-clock-history me-1"></i> Historial</BButton></div>
@@ -102,17 +105,20 @@
                 <div class="card-header"><h5 class="card-title mb-0">{{ item.equipo }}</h5><div class="variation-badge" :class="getVariationClass(item.indicador)"><i :class="getVariationIcon(item.indicador)"></i><span>{{ item.porcentaje }}%</span></div></div>
                 <div class="card-body py-2">
                   <span v-if="item.Promo" class="badge bg-danger mb-2">PROMO</span>
-                  <ul class="list-group list-group-flush price-details">
+                    <ul v-if="esListaCosto(item)" class="list-group list-group-flush price-details">
+                        <li class="list-group-item"><span>Costo Principal</span><strong>{{ formatCurrency(item.costo) }}</strong></li>
+                        <li class="list-group-item"><span>Descuento</span><strong>- {{ formatCurrency(item.descuento) }}</strong></li>
+                    </ul>
+                  <ul v-else class="list-group list-group-flush price-details">
                       <li class="list-group-item"><span>Equipo sin IVA</span><span>{{ formatCurrency(item['equipo sin IVA']) }}</span></li>
                       <li class="list-group-item"><span>IVA Equipo</span><span>{{ formatCurrency(item['IVA equipo']) }}</span></li>
                       <li class="list-group-item"><span>Precio Simcard</span><span>{{ formatCurrency(item['precio simcard']) }}</span></li>
                       <li class="list-group-item"><span>IVA Simcard</span><span>{{ formatCurrency(item['IVA simcard']) }}</span></li>
                       <template v-for="(kit, index) in item.kits" :key="index">
-                        <li v-if="kit && kit.nombre && shouldShowKit(item.nombre_lista, kit.nombre)" class="list-group-item">
-                          <span>{{ kit.nombre }}</span><strong>{{ formatCurrency(kit.valor) }}</strong>
-                        </li>
+                          <li v-if="kit && kit.nombre && shouldShowKit(item.nombre_lista, kit.nombre)" class="list-group-item">
+                              <span>{{ kit.nombre }}</span><strong>{{ formatCurrency(kit.valor) }}</strong>
+                          </li>
                       </template>
-                      <li class="list-group-item"><span>Diferencial</span><strong :class="getVariationTextColor(item.indicador)">{{ formatCurrency(item.diferencial) }}</strong></li>
                   </ul>
                 </div>
                 <div class="card-footer"><div class="total-price">Total Kit: <span class="total-value">{{ formatCurrency(calculateDynamicTotal(item)) }}</span></div><BButton variant="outline-secondary" size="sm" @click="verHistorico(item)"><i class="bi bi-clock-history me-1"></i> Historial</BButton></div>
@@ -181,6 +187,9 @@ export default {
         acc[listName].push(item);
         return acc;
       }, {});
+    },
+    isCostoSelected() {
+        return this.filtros.listas_precios.length === 1 && this.filtros.listas_precios[0].id === 'Costo';
     }
   },
   methods: {
@@ -191,55 +200,61 @@ export default {
     formatCell(value, key) { if (key && key.toLowerCase().includes('fecha')) { const date = new Date(value); if (!isNaN(date)) { return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }); } } if (typeof value === 'number') { return this.formatCurrency(value); } return value; },
     async getFilterOptions() { this.isLoading = true; try { const path = backendRouter.data + 'get_filtros_precios/'; const token = this.$cookies.get('jwt'); const response = await axios.get(path, { headers: { 'Authorization': `Bearer ${token}` } }); this.opcionesFiltro = response.data; } catch (e) { this.$swal('Error', 'No se pudieron cargar las opciones de filtro.', 'error'); } finally { this.isLoading = false; } },
     async aplicarFiltros() {
-      this.isLoading = true; this.currentPage = 1; this.vistaHistorico = false;
+      this.isLoading = true;
+      this.currentPage = 1;
+      this.vistaHistorico = false;
+      this.items = [];
+      this.fechaCarga = '';
+      
+      const payload = { ...this.filtros, listas_precios: this.filtros.listas_precios.map(l => l.id) };
+      const path = backendRouter.data + 'buscar-precios/';
+
       try {
-        const payload = { ...this.filtros, listas_precios: this.filtros.listas_precios.map(l => l.id) };
-        const path = backendRouter.data + 'buscar-precios/';
         const response = await axios.post(path, {filtros: payload});
         this.items = response.data.data;
         this.fechaCarga = response.data.fecha_actual;
-      } catch (e) { this.$swal('Error', 'No se pudieron cargar los productos.', 'error'); } 
-      finally { this.isLoading = false; }
+      } catch (e) {
+        this.$swal('Error', 'No se pudieron cargar los productos.', 'error');
+      } finally {
+        this.isLoading = false;
+      }
     },
     shouldShowKit(listName, kitName) {
-      if (!listName || !kitName) {
-        return false;
-      }
+      if (!listName || !kitName) { return false; }
       const list = listName.toLowerCase();
       const kit = kitName.toLowerCase();
       const keywords = ['addi', 'sub', 'fintech', 'valle'];
       const hasKeyword = keywords.some(kw => kit.includes(kw));
-
-      if (!hasKeyword) {
-        return true;
-      }
-
+      if (!hasKeyword) { return true; }
       if (kit.includes('addi') && list.includes('addi')) return true;
       if (kit.includes('sub') && list.includes('sub')) return true;
       if (kit.includes('fintech') && list.includes('fintech')) return true;
       if (kit.includes('valle') && list.includes('valle')) return true;
-
       return false;
     },
+    esListaCosto(item) {
+        return item && item.nombre_lista && item.nombre_lista.toLowerCase() === 'costo';
+    },
     calculateDynamicTotal(item) {
-      if (!item) return 0;
-
-      // Suma todos los componentes base, incluyendo el IVA del equipo
-      const baseTotal = (item['equipo sin IVA'] || 0) + 
-                        (item['IVA equipo'] || 0) + 
-                        (item['precio simcard'] || 0) + 
-                        (item['IVA simcard'] || 0);
-      
-      let kitTotal = 0;
-      if (Array.isArray(item.kits)) {
-        // Busca y suma el kit visible si existe
-        const visibleKit = item.kits.find(k => k && k.nombre && this.shouldShowKit(item.nombre_lista, k.nombre));
-        if (visibleKit) {
-          kitTotal = visibleKit.valor || 0;
+        if (!item) return 0;
+        if (this.esListaCosto(item)) {
+            // Usa el valor del backend si está disponible, o recalcula
+            return item.total_kit_calculado || (item.costo - item.descuento - (item['precio simcard'] || 2000));
+        } else {
+            const baseTotal = (item['equipo sin IVA'] || 0) +
+                              (item['IVA equipo'] || 0) +
+                              (item['precio simcard'] || 0) +
+                              (item['IVA simcard'] || 0);
+            
+            let kitTotal = 0;
+            if (Array.isArray(item.kits)) {
+                const visibleKit = item.kits.find(k => k && k.nombre && this.shouldShowKit(item.nombre_lista, k.nombre));
+                if (visibleKit) {
+                    kitTotal = visibleKit.valor || 0;
+                }
+            }
+            return baseTotal + kitTotal;
         }
-      }
-      
-      return baseTotal + kitTotal;
     },
     async verHistorico(item) {
       this.isLoading = true;
@@ -321,25 +336,32 @@ export default {
 
             listasDePreciosUnicas.forEach(lista => {
                 const item = itemsDelEquipo.find(i => i.nombre_lista === lista);
+                const isCosto = lista.toLowerCase() === 'costo';
 
-                row.push(item ? item['precio simcard'] : '');
-                row.push(item ? item['IVA simcard'] : '');
-                row.push(item ? item['equipo sin IVA'] : '');
-                row.push(item ? item['IVA equipo'] : '');
-                
-                const kitHeaderName = kitHeadersPorLista[lista];
-                if (kitHeaderName) {
-                    let kitValor = '';
-                    if (item && Array.isArray(item.kits)) {
-                        const visibleKit = item.kits.find(k => k && k.nombre === kitHeaderName);
-                        if (visibleKit) {
-                            kitValor = visibleKit.valor;
+                if (isCosto) {
+                    row.push(item ? item.costo : '');
+                    row.push(item ? item.descuento : '');
+                    row.push(item ? this.calculateDynamicTotal(item) : '');
+                } else {
+                    row.push(item ? item['precio simcard'] : '');
+                    row.push(item ? item['IVA simcard'] : '');
+                    row.push(item ? item['equipo sin IVA'] : '');
+                    row.push(item ? item['IVA equipo'] : '');
+                    
+                    const kitHeaderName = kitHeadersPorLista[lista];
+                    if (kitHeaderName) {
+                        let kitValor = '';
+                        if (item && Array.isArray(item.kits)) {
+                            const visibleKit = item.kits.find(k => k && k.nombre === kitHeaderName);
+                            if (visibleKit) {
+                                kitValor = visibleKit.valor;
+                            }
                         }
+                        row.push(kitValor);
                     }
-                    row.push(kitValor);
+                    
+                    row.push(item ? this.calculateDynamicTotal(item) : '');
                 }
-                
-                row.push(item ? this.calculateDynamicTotal(item) : '');
             });
 
             row.push(firstItem.diferencial);
@@ -363,7 +385,7 @@ export default {
                 if (!cell || !headerValue) continue;
 
                 if (typeof cell.v === 'number') {
-                    if (['Diferencial', 'Total Kit', 'Precio Simcard', 'IVA Simcard', 'Equipo sin IVA', 'IVA Equipo'].includes(headerValue) || headerValue.includes('Kit')) {
+                    if (['Diferencial', 'Total Kit', 'Precio Simcard', 'IVA Simcard', 'Equipo sin IVA', 'IVA Equipo', 'Costo Principal', 'Descuento'].includes(headerValue) || headerValue.includes('Kit')) {
                         cell.z = '$ #,##0';
                     } else if (headerValue === 'Porcentaje') {
                         cell.z = '0.00%';
@@ -413,12 +435,18 @@ export default {
           calculatedHeight += sectionSpacing;
           if (item.Promo) calculatedHeight += 6;
           
-          const baseDetailsCount = 5;
-          calculatedHeight += baseDetailsCount * lineSpacing;
+          let detailsCount = 0;
+          let visibleKits = [];
+
+          if (this.esListaCosto(item)) {
+            detailsCount = 2;
+          } else {
+            detailsCount = 4;
+            visibleKits = Array.isArray(item.kits) ? item.kits.filter(kit => this.shouldShowKit(item.nombre_lista, kit.nombre)) : [];
+          }
           
-          const visibleKits = Array.isArray(item.kits) ? item.kits.filter(kit => this.shouldShowKit(item.nombre_lista, kit.nombre)) : [];
+          calculatedHeight += detailsCount * lineSpacing;
           calculatedHeight += visibleKits.length * lineSpacing;
-          
           calculatedHeight += 8;
           calculatedHeight += 2;
           
@@ -456,27 +484,38 @@ export default {
           }
           
           pdf.setTextColor(108, 117, 125);
-          const details = [
-            {label: 'Equipo s/IVA:', value: this.formatCurrency(item['equipo sin IVA'])},
-            {label: 'IVA Equipo:', value: this.formatCurrency(item['IVA equipo'])},
-            {label: 'Simcard:', value: this.formatCurrency(item['precio simcard'])},
-            {label: 'IVA Simcard:', value: this.formatCurrency(item['IVA simcard'])},
-          ];
-          
-          details.forEach(detail => {
-            pdf.text(detail.label, startX + 5, currentY);
-            pdf.text(detail.value, startX + cardWidth - 5, currentY, { align: 'right' });
-            currentY += lineSpacing;
-          });
-          
-          visibleKits.forEach(kit => {
-            pdf.setFont('helvetica', 'bold');
-            pdf.text(`${kit.nombre}:`, startX + 5, currentY);
-            pdf.text(this.formatCurrency(kit.valor), startX + cardWidth - 5, currentY, { align: 'right' });
-            currentY += lineSpacing;
-            pdf.setFont('helvetica', 'normal');
-          });
-          
+
+          if (this.esListaCosto(item)) {
+              const details = [
+                  {label: 'Costo Principal:', value: this.formatCurrency(item.costo)},
+                  {label: 'Descuento:', value: `- ${this.formatCurrency(item.descuento)}`},
+              ];
+              details.forEach(detail => {
+                  pdf.text(detail.label, startX + 5, currentY);
+                  pdf.text(detail.value, startX + cardWidth - 5, currentY, { align: 'right' });
+                  currentY += lineSpacing;
+              });
+          } else {
+              const details = [
+                  {label: 'Equipo s/IVA:', value: this.formatCurrency(item['equipo sin IVA'])},
+                  {label: 'IVA Equipo:', value: this.formatCurrency(item['IVA equipo'])},
+                  {label: 'Simcard:', value: this.formatCurrency(item['precio simcard'])},
+                  {label: 'IVA Simcard:', value: this.formatCurrency(item['IVA simcard'])},
+              ];
+              details.forEach(detail => {
+                  pdf.text(detail.label, startX + 5, currentY);
+                  pdf.text(detail.value, startX + cardWidth - 5, currentY, { align: 'right' });
+                  currentY += lineSpacing;
+              });
+              visibleKits.forEach(kit => {
+                  pdf.setFont('helvetica', 'bold');
+                  pdf.text(`${kit.nombre}:`, startX + 5, currentY);
+                  pdf.text(this.formatCurrency(kit.valor), startX + cardWidth - 5, currentY, { align: 'right' });
+                  currentY += lineSpacing;
+                  pdf.setFont('helvetica', 'normal');
+              });
+          }
+
           const diffColor = item.indicador === 'up' ? [220, 53, 69] : item.indicador === 'down' ? [25, 135, 84] : [108, 117, 125];
           pdf.setTextColor(...diffColor);
           pdf.setFont('helvetica', 'bold');
@@ -517,7 +556,7 @@ export default {
           }
         }
         
-        pdf.save(`Busqueda_Precios_${new Date().toISOString().slice(0,10)}.pdf`);
+        pdf.save(`Busqueda_Precios_${new Date().toISOString().slice(0,10)}.xlsx`);
       } catch (error) {
         console.error("Error al generar el PDF:", error);
         this.$swal('Error', 'Ocurrió un error inesperado al generar el PDF.', 'error');
@@ -531,7 +570,6 @@ export default {
   },
 };
 </script>
-
 <style src="vue-multiselect/dist/vue-multiselect.css"></style>
 <style lang="scss" scoped>
 .filter-bar { 
