@@ -219,7 +219,43 @@ export default {
 
       try {
         const response = await axios.post(path, {filtros: payload});
-        this.items = response.data.data;
+        
+        const processedData = response.data.data.map(item => {
+            const ivaExcluidoBase = 1095578;
+            const valorAnterior = item.valor_anterior || 0;
+            
+            const previousItem = {
+                nombre_lista: item.nombre_lista,
+                costo: item.costo_anterior,
+                descuento: item.descuento_anterior,
+                'equipo sin IVA': valorAnterior,
+                'IVA equipo': valorAnterior > ivaExcluidoBase ? valorAnterior * 0.19 : 0,
+                'precio simcard': item['precio simcard'],
+                'IVA simcard': item['IVA simcard'],
+                kits: item.kits_anteriores || [],
+            };
+
+            const totalActual = this.calculateDynamicTotal(item);
+            const totalAnterior = this.calculateDynamicTotal(previousItem);
+
+            if (totalAnterior > 0) {
+                const diferencial = totalActual - totalAnterior;
+                item.diferencial = diferencial;
+                item.porcentaje = Math.round((diferencial / totalAnterior) * 100);
+                
+                if (diferencial > 0) item.indicador = 'up';
+                else if (diferencial < 0) item.indicador = 'down';
+                else item.indicador = 'neutral';
+            } else {
+                item.indicador = 'neutral';
+                item.diferencial = 0;
+                item.porcentaje = 0;
+            }
+            
+            return item;
+        });
+        
+        this.items = processedData;
         this.fechaCarga = response.data.fecha_actual;
       } catch (e) {
         this.$swal('Error', 'No se pudieron cargar los productos.', 'error');
@@ -326,11 +362,9 @@ export default {
             return;
         }
 
-        // ===== INICIO CAMBIO 2: Lógica condicional para exportar Excel =====
         const isCostoOnly = this.filtros.listas_precios.length === 1 && this.filtros.listas_precios[0].id.toLowerCase() === 'costo';
 
         if (isCostoOnly) {
-            // --- Lógica para exportar solo la lista de Costo ---
             const headers = ['Equipo', 'Costo Principal', 'Descuento', 'Total Kit', 'Diferencial', 'Porcentaje', 'Indicador', 'Promo'];
             const dataRows = this.filteredItems.map(item => [
                 item.equipo,
@@ -346,7 +380,6 @@ export default {
             const finalData = [headers, ...dataRows];
             const worksheet = XLSX.utils.aoa_to_sheet(finalData);
 
-            // Aplicar formato a las celdas
             for (let R = 1; R <= dataRows.length; ++R) {
                 for (let C = 0; C < headers.length; ++C) {
                     const headerValue = headers[C];
@@ -368,7 +401,6 @@ export default {
             XLSX.writeFile(workbook, `Reporte_Costo_${new Date().toISOString().slice(0,10)}.xlsx`);
 
         } else {
-            // --- Lógica existente para la comparación de múltiples listas ---
             const productosAgrupados = this.filteredItems.reduce((acc, item) => {
                 const equipo = item.equipo;
                 if (!acc[equipo]) {
@@ -485,7 +517,6 @@ export default {
             XLSX.utils.book_append_sheet(workbook, worksheet, 'Comparativa de Precios');
             XLSX.writeFile(workbook, `Comparativa_Precios_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
-        // ===== FIN CAMBIO 2 =====
     }, 
     exportToPDF() {
       if (this.filteredItems.length === 0) {
@@ -641,9 +672,7 @@ export default {
           }
         }
         
-        // ===== INICIO CAMBIO 1: Corregir extensión del archivo PDF =====
         pdf.save(`Busqueda_Precios_${new Date().toISOString().slice(0,10)}.pdf`);
-        // ===== FIN CAMBIO 1 =====
 
       } catch (error) {
         console.error("Error al generar el PDF:", error);

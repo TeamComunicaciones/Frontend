@@ -1,6 +1,5 @@
 <template>
   <div>
-
     <div class="vld-parent">
       <loading :active.sync="isLoading" :can-cancel="true" :is-full-page="fullPage"></loading>
     </div>
@@ -39,6 +38,11 @@
                 <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708l-3-3zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.499.499 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11l.178-.178z"/>
               </svg>
             </b-button>
+            <b-button size="sm" variant="dark" @click="confirmDeleteItem(data.item)" class="ms-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+                <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>
+              </svg>
+            </b-button>
           </template>
         </b-table>
       </div>
@@ -62,7 +66,7 @@
             <label class="form-check-label" for="ACTIVO">ACTIVO</label>
           </div>
           <div class="d-flex justify-content-between">
-            <button type="submit" class="btn btn-danger">CREAR</button>
+            <button type="submit" class="btn btn-danger">GUARDAR CAMBIOS</button>
             <button type="button" class="btn btn-secondary" @click="create = true">ATRÁS</button>
           </div>
         </form>
@@ -71,7 +75,7 @@
       <nav>
         <ul class="pagination justify-content-center">
           <li class="page-item" :class="{ disabled: currentPage === 1 }">
-            <button class="page-link" @click="changePage(currentPage - 1)"><<</button>
+            <button class="page-link" @click="changePage(currentPage - 1)">&lt;&lt;</button>
           </li>
           <li class="page-item" v-if="currentPage > 3">
             <button class="page-link" @click="changePage(1)">1</button>
@@ -89,27 +93,25 @@
             <button class="page-link" @click="changePage(totalPages)">{{ totalPages }}</button>
           </li>
           <li class="page-item" :class="{ disabled: currentPage === totalPages }">
-            <button class="page-link" @click="changePage(currentPage + 1)">>></button>
+            <button class="page-link" @click="changePage(currentPage + 1)">&gt;&gt;</button>
           </li>
         </ul>
       </nav>
     </div>
   </div>
 </template>
-  
-  
-  
-  <script>
-    import axios from 'axios';
-    import router from '@/router';
-    import backendRouter from '@/components/BackendRouter/BackendRouter';
-    import Loading from 'vue-loading-overlay';
-    import Swal from 'sweetalert2';
-    import * as XLSX from 'xlsx';
 
-    export default {
+<script>
+  import axios from 'axios';
+  import router from '@/router';
+  import backendRouter from '@/components/BackendRouter/BackendRouter';
+  import Loading from 'vue-loading-overlay';
+  import Swal from 'sweetalert2';
+  import * as XLSX from 'xlsx';
+
+  export default {
     data() {
-        return {
+      return {
         tituloMenu: 'Traducciones',
         categoria: 'translate-products-prepago',
         create: true,
@@ -134,10 +136,10 @@
         fullPage: true,
         checkIva: false,
         checkActive: false,
-        };
+      };
     },
     components: {
-        Loading,
+      Loading,
     },
     computed: {
       filteredProducts() {
@@ -165,18 +167,14 @@
           } else if (this.currentPage >= this.totalPages - 2) {
             pages.push(this.totalPages - 4, this.totalPages - 3, this.totalPages - 2, this.totalPages - 1, this.totalPages);
           } else {
-            // pages.push(1);
-            // pages.push('...');
             pages.push(this.currentPage - 1, this.currentPage, this.currentPage + 1);
-            // pages.push('...');
-            // pages.push(this.totalPages);
           }
         }
         return pages;
       }
     },
     methods: {
-        validate() {
+      validate() {
         const path = backendRouter.data + 'user-validate';
         axios.post(path, { jwt: this.$cookies.get('jwt') }).then(response => {
             console.log('check');
@@ -184,26 +182,39 @@
             router.push('/login');
             this.$swal(error.response.data.detail);
         });
-        },
-        listaPrepago() {
+      },
+      listaPrepago() {
         this.categoria = 'translate-products-prepago';
         this.getTranslates();
-        },
-        listaPostpago() {
+      },
+      listaPostpago() {
         this.categoria = 'translateProductsPostpago';
         this.getTranslates();
-        },
-        deleteItem(data) {
-        this.deleteItemBack(data.item.id);
-        },
-        selectItem(data) {
+      },
+      confirmDeleteItem(item) {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: `El producto "${item.producto}" será enviado a la lista negra (inactivado).`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#DF1115',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Sí, ¡envíalo!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                this.deleteItemBack(item.producto);
+            }
+        });
+      },
+      selectItem(data) {
         this.form.product = data.item.producto;
         this.form.stok = data.item.stok;
         this.checkIva = data.item.iva === "1";
         this.checkActive = data.item.active === "1";
         this.create = false;
-        },
-        editTranslate() {
+      },
+      editTranslate() {
         this.form.iva = this.checkIva ? "1" : "0";
         this.form.active = this.checkActive ? "1" : "0";
         const data = {
@@ -234,16 +245,17 @@
             buttonsStyling: false
             });
         });
-        },
-        deleteItemBack(equipo) {
+      },
+      deleteItemBack(equipo) {
         this.isLoading = true;
         const path = backendRouter.data + this.categoria + '/admin';
         const data = { equipo };
         axios.delete(path, { data }).then(response => {
             this.isLoading = false;
-            this.items = response.data;
-            this.create = true;
+            this.getTranslates();
+            Swal.fire('¡Éxito!', response.data.message, 'success');
         }).catch(error => {
+            this.isLoading = false;
             Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -254,8 +266,8 @@
             buttonsStyling: false
             });
         });
-        },
-        getTranslates() {
+      },
+      getTranslates() {
         this.isLoading = true;
         const path = backendRouter.data + this.categoria;
         axios.get(path).then(response => {
@@ -273,31 +285,30 @@
             buttonsStyling: false
             });
         });
-        },
-        changePage(page) {
+      },
+      changePage(page) {
         if (page >= 1 && page <= this.totalPages) {
             this.currentPage = page;
         }
-        },
-        goToBlacklist() {
+      },
+      goToBlacklist() {
         this.$router.push({ path: '/lista-negra' });
-        },
-        download(){
-          const data = this.items;
-          const fileName = 'download.xlsx';
-          const workbook = XLSX.utils.book_new();
-          const worksheet = XLSX.utils.json_to_sheet(data)
-          XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
-          XLSX.writeFile(workbook, fileName)
-        },
+      },
+      download(){
+        const data = this.items;
+        const fileName = 'download.xlsx';
+        const workbook = XLSX.utils.book_new();
+        const worksheet = XLSX.utils.json_to_sheet(data)
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
+        XLSX.writeFile(workbook, fileName)
+      },
     },
     created() {
-        this.getTranslates();
+      this.getTranslates();
     },
-    };
-
+  };
 </script>
-  
+
 <style>
   body {
     background-color: #ffffff;
@@ -314,11 +325,11 @@
   }
 
   .table-striped tbody tr:nth-of-type(odd) {
-    background-color: #f9f9f9; /* Gris claro */
+    background-color: #f9f9f9;
   }
 
   .table-striped tbody tr:nth-of-type(even) {
-    background-color: #ffffff; /* Blanco */
+    background-color: #ffffff;
   }
 
   .table-dark thead {
