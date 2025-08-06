@@ -1,8 +1,4 @@
 <template>
-  <SidebarMenu :titulo="tituloMenu" />
-  <div class="vld-parent">
-    <loading :active.sync="isLoading" :can-cancel="true" :is-full-page="fullPage"></loading>
-  </div>
   <div class="container-fluid">
     <div class="row">
       <div class="col-md-3">
@@ -26,25 +22,23 @@
               <div class="tab-content" id="myTabContent">
                 <div v-for="(price, index) in prices" :key="index" class="tab-pane fade" :class="{ 'show active': activeTab === index }" :id="price.name" role="tabpanel" :aria-labelledby="`${price.name}-tab`">
                   <div v-if="formulasWithVariableNames[price.name]">
-                      <h5>Última fórmula guardada:  </h5>
-                      <pre>{{ formulasWithVariableNames[price.name].formula }}</pre>
-                    </div>
-                    <div v-if="activeTab === index">
-                      <h5>Fórmula nueva:</h5>
-                      <pre>{{ currentFormula }}</pre>
-                      <!-- Descripción de la fórmula -->
-                      
-                    </div>
+                    <h5>Última fórmula guardada: </h5>
+                    <pre>{{ formulasWithVariableNames[price.name].formula }}</pre>
+                  </div>
+                  <div v-if="activeTab === index">
+                    <h5>Fórmula nueva:</h5>
+                    <pre>{{ currentFormula }}</pre>
+                  </div>
                   <div class="botonera">
                     <button @click="deletePrice(price.id)" class="btn btn-danger mt-2">
-                    <i class="bi bi-trash"></i> Eliminar precio
-                  </button>
-                  <button v-if="!formulas[price.name]" @click="saveFormula(price.id, price.name)" class="btn btn-success mt-2" :disabled="!isResultValid">
-                        <i class="bi bi-save"></i> Guardar fórmula
-                      </button>
-                      <button v-else @click="updateFormula(price.id, price.name)" class="btn btn-success mt-2" :disabled="!isResultValid">
-                        <i class="bi bi-save"></i> Actualizar fórmula
-                      </button>
+                      <i class="bi bi-trash"></i> Eliminar precio
+                    </button>
+                    <button v-if="!formulas[price.name]" @click="saveFormula(price.id, price.name)" class="btn btn-success mt-2" :disabled="!isResultValid">
+                      <i class="bi bi-save"></i> Guardar fórmula
+                    </button>
+                    <button v-else @click="updateFormula(price.id, price.name)" class="btn btn-success mt-2" :disabled="!isResultValid">
+                      <i class="bi bi-save"></i> Actualizar fórmula
+                    </button>
                   </div>
 
                 </div>
@@ -55,19 +49,20 @@
                   </button>
                 </div>
               </div>
-            </div><div class="col-md-6">
+            </div>
+            <div class="col-md-6">
               <div class="calculadora-precio">
                 <h5>Operadores lógicos</h5>
                 <div class="valor-manual">
                   <input type="text" v-model="manualValue" @input="validateManualValue" class="form-control mb-2" placeholder="Ingrese un valor" @keydown="handleKeydown" />
                   <button @click="appendManualValue" class="btn btn-secondary mb-2">Añadir valor</button>
                 </div>
-               
-                <div class="btn-group grupo1  " role="group">
-                  <button @click="appendValue('+')" class="btn btn-secondary" ><i class="bi bi-plus"></i></button>
-                  <button @click="appendValue('-')" class="btn btn-secondary" ><i class="bi bi-dash"></i></button>
-                  <button @click="appendValue('*')" class="btn btn-secondary" ><i class="bi bi-x"></i></button>
-                  <button @click="appendValue('/')" class="btn btn-secondary" ><i class="bi bi-slash"></i></button>
+
+                <div class="btn-group grupo1 " role="group">
+                  <button @click="appendValue('+')" class="btn btn-secondary"><i class="bi bi-plus"></i></button>
+                  <button @click="appendValue('-')" class="btn btn-secondary"><i class="bi bi-dash"></i></button>
+                  <button @click="appendValue('*')" class="btn btn-secondary"><i class="bi bi-x"></i></button>
+                  <button @click="appendValue('/')" class="btn btn-secondary"><i class="bi bi-slash"></i></button>
                   <button @click="appendValue('(')" class="btn btn-secondary">(</button>
                   <button @click="appendValue(')')" class="btn btn-secondary">)</button>
                   <button @click="deleteLastValue" class="btn btn-primary"><i class="bi bi-backspace"></i></button>
@@ -91,8 +86,8 @@
                       <button @click="editVariable(variable)" class="btn btn-primary ms-2"><i class="bi bi-pencil"></i></button>
                     </div>
                     <button @click="showAddVariableModal" class="btn btn-primary mt-2">
-                    <i class="bi bi-plus-circle"></i> Agregar variable
-                  </button>
+                      <i class="bi bi-plus-circle"></i> Agregar variable
+                    </button>
                   </div>
                 </div>
               </div>
@@ -102,44 +97,40 @@
       </div>
     </div>
   </div>
-<!-- Modal para agregar variables -->
-<div class="modal fade" id="addVariableModal" tabindex="-1" aria-labelledby="addVariableModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="addVariableModalLabel">Agregar/Editar Variable</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <input type="text" v-model="newVariableName" placeholder="Nombre de la variable" class="form-control mb-2" />
-        <select v-model="newVariableType" @change="onVariableTypeChange" class="form-control mb-2">
-          <option value="" disabled>Seleccione el tipo</option>
-          <option value="Variable">Variable</option>
-          <option value="Condición">Condición</option>
-        </select>
-        <div id="variable" v-if="newVariableType=='Variable'">
-          <div class="alinear-modal">
-            <input type="text" v-model="newVariableManualValue" @input="validateManualValue" placeholder="Valor manual" class="form-control mb-2" />
-            <button @click="appendVariableManualValue" class="btn btn-secondary mb-2">Añadir valor</button>
-          </div>          
-          <div class="btn-group" role="group">
-            <button @click="appendVariableValue('+')" class="btn btn-secondary" :disabled="!isNewVariableFormulaValid"><i class="bi bi-plus"></i></button>
-            <button @click="appendVariableValue('-')" class="btn btn-secondary" :disabled="!isNewVariableFormulaValid"><i class="bi bi-dash"></i></button>
-            <button @click="appendVariableValue('*')" class="btn btn-secondary" :disabled="!isNewVariableFormulaValid"><i class="bi bi-x"></i></button>
-            <button @click="appendVariableValue('/')" class="btn btn-secondary" :disabled="!isNewVariableFormulaValid"><i class="bi bi-slash"></i></button>
-            <button @click="appendVariableValue('(')" class="btn btn-secondary">(</button>
-            <button @click="appendVariableValue(')')" class="btn btn-secondary">)</button>
-          </div>
+  <div class="modal fade" id="addVariableModal" tabindex="-1" aria-labelledby="addVariableModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="addVariableModalLabel">Agregar/Editar Variable</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
         </div>
-        <div id="condición" v-if="newVariableType=='Condición'">
-          <!-- Generar una fila para cada condición -->
-          <div v-for="(condition, index) in conditions" :key="index" class="row align-items-center mb-2">
-            <!-- Checkbox para convertir a combobox del primer valor -->
+        <div class="modal-body">
+          <input type="text" v-model="newVariableName" placeholder="Nombre de la variable" class="form-control mb-2" />
+          <select v-model="newVariableType" @change="onVariableTypeChange" class="form-control mb-2">
+            <option value="" disabled>Seleccione el tipo</option>
+            <option value="Variable">Variable</option>
+            <option value="Condición">Condición</option>
+          </select>
+          <div id="variable" v-if="newVariableType=='Variable'">
+            <div class="alinear-modal">
+              <input type="text" v-model="newVariableManualValue" @input="validateManualValue" placeholder="Valor manual" class="form-control mb-2" />
+              <button @click="appendVariableManualValue" class="btn btn-secondary mb-2">Añadir valor</button>
+            </div>
+            <div class="btn-group" role="group">
+              <button @click="appendVariableValue('+')" class="btn btn-secondary" :disabled="!isNewVariableFormulaValid"><i class="bi bi-plus"></i></button>
+              <button @click="appendVariableValue('-')" class="btn btn-secondary" :disabled="!isNewVariableFormulaValid"><i class="bi bi-dash"></i></button>
+              <button @click="appendVariableValue('*')" class="btn btn-secondary" :disabled="!isNewVariableFormulaValid"><i class="bi bi-x"></i></button>
+              <button @click="appendVariableValue('/')" class="btn btn-secondary" :disabled="!isNewVariableFormulaValid"><i class="bi bi-slash"></i></button>
+              <button @click="appendVariableValue('(')" class="btn btn-secondary">(</button>
+              <button @click="appendVariableValue(')')" class="btn btn-secondary">)</button>
+              <button @click="deleteLastVariableFormulaValue" class="btn btn-primary"><i class="bi bi-backspace"></i></button>
+            </div>
+          </div>
+          <div id="condición" v-if="newVariableType=='Condición'">
+            <div v-for="(condition, index) in conditions" :key="index" class="row align-items-center mb-2">
               <div class="col-auto">
                 <input type="checkbox" v-model="condition.isComboBoxFirstValue" />
               </div>
-
-              <!-- Primer valor -->
               <div class="col">
                 <div v-if="condition.isComboBoxFirstValue">
                   <select v-model="condition.firstValue" class="form-control">
@@ -147,124 +138,91 @@
                   </select>
                 </div>
                 <div v-else>
-                  <input
-                    type="text"
-                    v-model="condition.firstValue"
-                    placeholder="Valor"
-                    class="form-control"
-                    @input="generateConditionValue()"
-                  />
+                  <input type="text" v-model="condition.firstValue" placeholder="Valor" class="form-control" @input="generateConditionValue()" />
                 </div>
               </div>
-
-            <!-- Operador lógico -->
-            <div class="col">
-              <select v-model="condition.operator" class="form-control" @change="generateConditionValue">
-                <option value="<">&lt;</option>
-                <option value="<=">&lt;=</option>
-                <option value=">">&gt;</option>
-                <option value=">=">&gt;=</option>
-                <option value="==">=</option>
-                <option value="!=">≠</option>
-              </select>
-            </div>
-
-           <!-- Checkbox para convertir a combobox del segundo valor -->
-<div class="col-auto">
-  <input type="checkbox" v-model="condition.isComboBoxSecondValue" />
-</div>
-
-<!-- Segundo valor -->
-<div class="col">
-  <div v-if="condition.isComboBoxSecondValue">
-    <select v-model="condition.secondValue" class="form-control">
-      <option v-for="variable in variables" :key="variable.id" :value="variable.name">{{ variable.name }}</option>
-    </select>
-  </div>
-  <div v-else>
-    <input
-      type="text"
-      v-model="condition.secondValue"
-      placeholder="Valor"
-      class="form-control"
-      @input="generateConditionValue()"
-    />
-  </div>
-</div>
-
-            <!-- Checkbox para convertir a combobox -->
-            <div class="col-auto">
-              <input type="checkbox" v-model="condition.isComboBox" />
-            </div>
-
-            <!-- Resultado -->
-            <div class="col">
-              <div v-if="condition.isComboBox">
-                <select v-model="condition.result" class="form-control">
-                  <option v-for="variable in variables" :key="variable.id" :value="variable.name">{{ variable.name }}</option>
+              <div class="col">
+                <select v-model="condition.operator" class="form-control" @change="generateConditionValue">
+                  <option value="<">&lt;</option>
+                  <option value="<=">&lt;=</option>
+                  <option value=">">&gt;</option>
+                  <option value=">=">&gt;=</option>
+                  <option value="==">=</option>
+                  <option value="!=">≠</option>
                 </select>
               </div>
-              <div v-else>
-                <input
-                  type="text"
-                  v-model="condition.result"
-                  placeholder="Valor"
-                  class="form-control"
-                  @input="generateConditionValue()"
-                />
+              <div class="col-auto">
+                <input type="checkbox" v-model="condition.isComboBoxSecondValue" />
+              </div>
+              <div class="col">
+                <div v-if="condition.isComboBoxSecondValue">
+                  <select v-model="condition.secondValue" class="form-control">
+                    <option v-for="variable in variables" :key="variable.id" :value="variable.name">{{ variable.name }}</option>
+                  </select>
+                </div>
+                <div v-else>
+                  <input type="text" v-model="condition.secondValue" placeholder="Valor" class="form-control" @input="generateConditionValue()" />
+                </div>
+              </div>
+              <div class="col-auto">
+                <input type="checkbox" v-model="condition.isComboBox" />
+              </div>
+              <div class="col">
+                <div v-if="condition.isComboBox">
+                  <select v-model="condition.result" class="form-control">
+                    <option v-for="variable in variables" :key="variable.id" :value="variable.name">{{ variable.name }}</option>
+                  </select>
+                </div>
+                <div v-else>
+                  <input type="text" v-model="condition.result" placeholder="Valor" class="form-control" @input="generateConditionValue()" />
+                </div>
+              </div>
+              <div class="col-auto">
+                <button @click="removeCondition(index)" class="btn btn-danger">
+                  <i class="bi bi-dash-circle"></i>
+                </button>
               </div>
             </div>
-
-            <!-- Botón para quitar condición -->
-            <div class="col-auto">
-              <button @click="removeCondition(index)" class="btn btn-danger">
-                <i class="bi bi-dash-circle"></i>
-              </button>
-            </div>
+            <button @click="addCondition" class="btn btn-primary">
+              <i class="bi bi-plus-circle"></i> Agregar fila
+            </button>
           </div>
-
-          <!-- Botón para agregar una nueva fila -->
-          <button @click="addCondition" class="btn btn-primary">
-            <i class="bi bi-plus-circle"></i> Agregar fila
-          </button>
+          <div class="mt-2">
+            Fórmula: {{ newVariableFormula }}
+          </div>
         </div>
-        <div class="mt-2">
-          Fórmula: {{ newVariableFormula }}
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button @click="deleteVariable" class="btn btn-danger mt-2">
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button @click="deleteVariable" class="btn btn-danger mt-2">
             <i class="bi bi-x"></i> Eliminar
           </button>
-        <button @click="saveVariable" class="btn btn-primary">Guardar</button>
-      </div>
-    </div>
-  </div>
-</div>
-<!-- Modal para editar variables fijas -->
-<div class="modal fade" id="editFixedVariablesModal" tabindex="-1" aria-labelledby="editFixedVariablesModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="editFixedVariablesModalLabel">Editar Variables Fijas</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <div v-for="(value, key) in fixedVariables" :key="key" class="mb-3">
-          <label :for="key" class="form-label">
-            <strong>{{ formatVariableName(key) }}</strong> <span>{{ variableFormulas[key] }}</span>
-          </label>
-          <input type="number" v-model="fixedVariables[key]" :id="key" class="form-control" />
+          <button @click="saveVariable" class="btn btn-primary">Guardar</button>
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
-        <button type="button" class="btn btn-primary" @click="applyFixedVariables">Aplicar</button>
+    </div>
+  </div>
+  <div class="modal fade" id="editFixedVariablesModal" tabindex="-1" aria-labelledby="editFixedVariablesModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editFixedVariablesModalLabel">Editar Variables Fijas</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div v-for="(value, key) in fixedVariables" :key="key" class="mb-3">
+            <label :for="key" class="form-label">
+              <strong>{{ formatVariableName(key) }}</strong> <span>{{ variableFormulas[key] }}</span>
+            </label>
+            <input type="number" v-model="fixedVariables[key]" :id="key" class="form-control" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          <button type="button" class="btn btn-primary" @click="applyFixedVariables">Aplicar</button>
+        </div>
       </div>
     </div>
   </div>
-</div>
 </template>
 
 <script>
@@ -298,19 +256,25 @@ export default {
       isLoading: false,
       fullPage: true,
       tituloMenu: 'Menú de Precios',
-      activeTab: 0, 
-      showForm: false, 
-      newPriceName: '', 
-      inputValue: '', 
-      manualValue: '', 
-      result: null, 
-      currentFormula: '', 
+      activeTab: 0,
+      showForm: false,
+      newPriceName: '',
+      inputValue: '',
+      manualValue: '',
+      result: null,
+      currentFormula: '',
       newVariableName: '',
-      newVariableType: '', 
-      newVariableFormula: '', 
-      newVariableManualValue: '', 
-      selectedVariable: {}, // Inicializar como un objeto vacío
-      conditions: [{firstValue: '', operator: '', secondValue: '', result: '', isComboBox: false}]
+      newVariableType: '',
+      newVariableFormula: '',
+      newVariableManualValue: '',
+      selectedVariable: {},
+      conditions: [{
+        firstValue: '',
+        operator: '',
+        secondValue: '',
+        result: '',
+        isComboBox: false
+      }]
     };
   },
   async created() {
@@ -318,7 +282,7 @@ export default {
     await this.fetchPrices();
     await this.fetchFormulas();
     await this.fetchVariables();
-    await this.fetchVariableFormulas(); // Nueva función para obtener las fórmulas de las variables
+    await this.fetchVariableFormulas();
     this.isLoading = false;
   },
   computed: {
@@ -336,7 +300,9 @@ export default {
           const variableRegex = new RegExp(`\\b${variable.name}\\b`, 'g');
           formulaContent = formulaContent.replace(variableRegex, `(${variable.formula})`);
         });
-        formulasWithContent[name] = { ...formulaObj, formula: formulaContent };
+        formulasWithContent[name] = { ...formulaObj,
+          formula: formulaContent
+        };
       }
       return formulasWithContent;
     },
@@ -347,7 +313,8 @@ export default {
       if (this.activeTab === 'new') {
         return [];
       }
-      const activePriceName = this.prices[this.activeTab]?.name;
+      const activePrice = this.prices[this.activeTab];
+      const activePriceName = activePrice && activePrice.name;
       return this.variables.filter(variable => variable.price === activePriceName);
     }
   },
@@ -356,7 +323,6 @@ export default {
       this.currentFormula = newVal;
     },
     newVariableManualValue(newVal) {
-      // this.newVariableManualValue = newVal.replace(/[^0-9.]/g, '');
       this.newVariableManualValue = this.newVariableManualValue;
     }
   },
@@ -369,7 +335,7 @@ export default {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         if (Array.isArray(response.data.data)) {
           response.data.data.forEach(variable => {
             this.variableFormulas[variable.name] = variable.formula;
@@ -386,8 +352,6 @@ export default {
       modal.show();
     },
     applyFixedVariables() {
-      // Aquí puedes aplicar los valores de prueba a la fórmula
-      // No se guardarán en el JSON, solo se usarán para pruebas visuales
       const modal = bootstrap.Modal.getInstance(document.getElementById('editFixedVariablesModal'));
       modal.hide();
     },
@@ -399,9 +363,9 @@ export default {
       };
       return formattedNames[name] || name;
     },
-    generateConditionValue(){
+    generateConditionValue() {
       var formula = ''
-      for (let i=0; i < this.conditions.length; i++){
+      for (let i = 0; i < this.conditions.length; i++) {
         formula = `${formula} ( ${this.conditions[i].result} if ${this.conditions[i].firstValue} ${this.conditions[i].operator} ${this.conditions[i].secondValue} else`
       }
       formula = `${formula} 0 ${') '.repeat(this.conditions.length)}`
@@ -414,17 +378,26 @@ export default {
 
       while ((match = conditionRegex.exec(formula)) !== null) {
         const [_, firstValue, operator, secondValue, result] = match;
-        conditions.push({ firstValue: firstValue.trim(), operator: operator.trim(), secondValue: secondValue.trim(), result: result.trim() });
+        conditions.push({
+          firstValue: firstValue.trim(),
+          operator: operator.trim(),
+          secondValue: secondValue.trim(),
+          result: result.trim()
+        });
       }
 
       this.conditions = conditions;
     },
     onVariableTypeChange() {
       if (this.newVariableType === 'Condición') {
-        // Inicializa las condiciones al cambiar a "Condición"
-        this.conditions = [{firstValue: '', operator: '', secondValue: '', result: '', isComboBox: false}]
+        this.conditions = [{
+          firstValue: '',
+          operator: '',
+          secondValue: '',
+          result: '',
+          isComboBox: false
+        }]
       } else if (this.newVariableType === 'Variable') {
-        // Limpia o configura la sección específica para "Variable"
         this.newVariableManualValue = '';
         this.newVariableFormula = '';
       }
@@ -470,11 +443,14 @@ export default {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         if (Array.isArray(response.data.data)) {
-          this.formulas = {}; 
+          this.formulas = {};
           response.data.data.forEach(formula => {
-            this.formulas[formula.name] = { id: formula.id, formula: formula.formula };
+            this.formulas[formula.name] = {
+              id: formula.id,
+              formula: formula.formula
+            };
           });
         } else {
           console.error('La respuesta no contiene un array en la propiedad data:', response.data);
@@ -491,7 +467,7 @@ export default {
             'Authorization': `Bearer ${token}`
           }
         });
-        
+
         if (Array.isArray(response.data.data)) {
           this.variables = response.data.data;
         } else {
@@ -503,10 +479,10 @@ export default {
     },
     setActiveTab(index) {
       this.activeTab = index;
-      this.currentFormula = ''; 
-      this.inputValue = ''; 
+      this.currentFormula = '';
+      this.inputValue = '';
       this.result = null;
-      this.selectedVariable = {}; // Reiniciar como un objeto vacío
+      this.selectedVariable = {};
     },
     showAddPriceForm() {
       this.setActiveTab('new');
@@ -528,9 +504,9 @@ export default {
             'Authorization': `Bearer ${token}`
           }
         });
-        await this.fetchPrices(); 
-        this.newPriceName = ''; 
-        this.setActiveTab(0); 
+        await this.fetchPrices();
+        this.newPriceName = '';
+        this.setActiveTab(0);
       } catch (error) {
         console.error('Error adding new price:', error);
       } finally {
@@ -561,7 +537,7 @@ export default {
               'Authorization': `Bearer ${token}`
             }
           });
-          await this.fetchPrices(); 
+          await this.fetchPrices();
           Swal.fire('Eliminado', 'El precio ha sido eliminado.', 'success');
         } catch (error) {
           console.error('Error deleting price:', error);
@@ -588,37 +564,16 @@ export default {
     appendManualValue() {
       this.inputValue += ' ' + this.manualValue;
       this.manualValue = '';
-      // if (this.manualValue.trim() !== '' && !isNaN(this.manualValue)) {
-      //   this.inputValue += ' ' + this.manualValue;
-      //   this.manualValue = '';
-      // } else {
-      //   Swal.fire('Error', 'Por favor ingrese un valor numérico válido.', 'error');
-      // }
     },
     validateManualValue() {
       this.manualValue = this.manualValue.replace(/[^0-9.]/g, '');
     },
     deleteLastValue() {
-      const operators = ['+', '-', '*', '/', '(', ')'];
-      let lastIndex = this.inputValue.length - 1;
-
-      // Eliminar espacios en blanco al final
-      while (lastIndex >= 0 && this.inputValue[lastIndex] === ' ') {
-        lastIndex--;
-      }
-
-      // Si el último carácter es un operador, eliminarlo
-      if (operators.includes(this.inputValue[lastIndex])) {
-        this.inputValue = this.inputValue.slice(0, lastIndex);
-        return;
-      }
-
-      // Si el último comando es un número, eliminar el número completo
-      while (lastIndex >= 0 && !operators.includes(this.inputValue[lastIndex])) {
-        lastIndex--;
-      }
-
-      this.inputValue = this.inputValue.slice(0, lastIndex + 1);
+      let formula = this.inputValue.trim();
+      if (formula === '') return;
+      let tokens = formula.split(' ');
+      tokens.pop();
+      this.inputValue = tokens.join(' ');
     },
     async calculateResult() {
       try {
@@ -653,8 +608,8 @@ export default {
         const token = VueCookies.get('jwt');
         const newFormula = {
           name: priceName,
-          price: priceId, 
-          formula: this.currentFormula 
+          price: priceId,
+          formula: this.currentFormula
         };
 
         const response = await axios.post('https://api.teamcomunicaciones.com.co/api/v1.0/formulas', newFormula, {
@@ -664,11 +619,14 @@ export default {
         });
 
         const formulaId = response.data.data.id;
-        this.formulas[priceName] = { id: formulaId, formula: this.currentFormula };
+        this.formulas[priceName] = {
+          id: formulaId,
+          formula: this.currentFormula
+        };
 
         Swal.fire('Guardado', 'La fórmula ha sido guardada exitosamente.', 'success');
-        await this.fetchFormulas(); 
-        this.currentFormula = ''; 
+        await this.fetchFormulas();
+        this.currentFormula = '';
       } catch (error) {
         console.error('Error saving formula:', error);
         Swal.fire('Error', 'Hubo un problema al guardar la fórmula.', 'error');
@@ -681,10 +639,10 @@ export default {
       }
       try {
         const token = VueCookies.get('jwt');
-        const formulaId = this.formulas[priceName].id; 
+        const formulaId = this.formulas[priceName].id;
         const updatedFormula = {
           name: priceName,
-          price: priceId, 
+          price: priceId,
           formula: this.currentFormula
         };
         const path = backendRouter.data + `formulas/${formulaId}`;
@@ -695,8 +653,8 @@ export default {
         });
 
         Swal.fire('Actualizado', 'La fórmula ha sido actualizada exitosamente.', 'success');
-        await this.fetchFormulas(); 
-        this.currentFormula = ''; 
+        await this.fetchFormulas();
+        this.currentFormula = '';
       } catch (error) {
         console.error('Error updating formula:', error);
         Swal.fire('Error', 'Hubo un problema al actualizar la fórmula.', 'error');
@@ -706,7 +664,7 @@ export default {
       this.newVariableName = '';
       this.newVariableFormula = '';
       this.newVariableManualValue = '';
-      this.newVariableType = ''; // Añadir esta línea para limpiar el tipo de variable
+      this.newVariableType = '';
       const modal = new bootstrap.Modal(document.getElementById('addVariableModal'));
       modal.show();
     },
@@ -719,7 +677,13 @@ export default {
         this.conditions = [];
         for (let i = 1; i < data.length; i++) {
           var row = data[i].split(' ');
-          this.conditions.push({ firstValue: row[3], operator: row[4], secondValue: row[5], result: row[1], isComboBox: false });
+          this.conditions.push({
+            firstValue: row[3],
+            operator: row[4],
+            secondValue: row[5],
+            result: row[1],
+            isComboBox: false
+          });
         }
       }
       const modal = new bootstrap.Modal(document.getElementById('addVariableModal'));
@@ -727,19 +691,17 @@ export default {
     },
     appendVariableValue(value) {
       this.newVariableFormula += ' ' + value;
-      // if (this.canAddVariableOperator()) {
-      //   this.newVariableFormula += ' ' + value;
-      // }
     },
     appendVariableManualValue() {
       this.newVariableFormula += ' ' + this.newVariableManualValue;
       this.newVariableManualValue = '';
-      // if (this.newVariableManualValue.trim() !== '' && !isNaN(this.newVariableManualValue)) {
-      //   this.newVariableFormula += ' ' + this.newVariableManualValue;
-      //   this.newVariableManualValue = '';
-      // } else {
-      //   Swal.fire('Error', 'Por favor ingrese un valor numérico válido.', 'error');
-      // }
+    },
+    deleteLastVariableFormulaValue() {
+      let formula = this.newVariableFormula.trim();
+      if (formula === '') return;
+      let tokens = formula.split(' ');
+      tokens.pop();
+      this.newVariableFormula = tokens.join(' ');
     },
     async saveVariable() {
       if (this.newVariableName.trim() === '' || this.newVariableFormula.trim() === '') {
@@ -757,15 +719,13 @@ export default {
         };
 
         if (existingVariable) {
-          // Actualizar variable existente
-          await axios.put(`https://api.teamcomunicaciones.com.co/api/v1.0/variables/${existingVariable.id}`, variableData, {
+            await axios.put(`https://api.teamcomunicaciones.com.co/api/v1.0/variables/${existingVariable.id}/`, variableData, { // <-- MIRA LA BARRA AÑADIDA AQUÍ
             headers: {
               'Authorization': `Bearer ${token}`
             }
           });
           Swal.fire('Actualizado', 'La variable ha sido actualizada exitosamente.', 'success');
         } else {
-          // Crear nueva variable
           await axios.post('https://api.teamcomunicaciones.com.co/api/v1.0/variables', variableData, {
             headers: {
               'Authorization': `Bearer ${token}`
@@ -774,7 +734,7 @@ export default {
           Swal.fire('Guardado', 'La variable ha sido guardada exitosamente.', 'success');
         }
 
-        await this.fetchVariables(); 
+        await this.fetchVariables();
         const modal = bootstrap.Modal.getInstance(document.getElementById('addVariableModal'));
         modal.hide();
       } catch (error) {
@@ -797,8 +757,8 @@ export default {
           }
         });
         Swal.fire('Actualizado', 'La variable ha sido actualizada exitosamente.', 'success');
-        await this.fetchVariables(); 
-        this.selectedVariable = {}; 
+        await this.fetchVariables();
+        this.selectedVariable = {};
         const modal = bootstrap.Modal.getInstance(document.getElementById('editVariableModal'));
         modal.hide();
       } catch (error) {
@@ -808,7 +768,7 @@ export default {
     },
     async deleteVariable() {
       const variableToDelete = this.variables.find(variable => variable.formula === this.newVariableFormula);
-      
+
       if (!variableToDelete) {
         Swal.fire('Error', 'No se encontró una variable con la fórmula especificada.', 'error');
         return;
@@ -837,9 +797,9 @@ export default {
               'Authorization': `Bearer ${token}`
             }
           });
-          await this.fetchVariables(); 
+          await this.fetchVariables();
           Swal.fire('Eliminado', 'La variable ha sido eliminada.', 'success');
-          this.selectedVariable = {}; 
+          this.selectedVariable = {};
           const modal = bootstrap.Modal.getInstance(document.getElementById('addVariableModal'));
           modal.hide();
         } catch (error) {

@@ -75,14 +75,18 @@
                     <div class="card-body py-2">
                       <span v-if="item.Promo" class="badge bg-danger mb-2">PROMO</span>
                       <ul v-if="esListaCosto(item)" class="list-group list-group-flush price-details">
-                        <li class="list-group-item"><span>Costo Principal</span><strong>{{ formatCurrency(item.costo) }}</strong></li>
-                        <li class="list-group-item"><span>Descuento</span><strong>- {{ formatCurrency(item.descuento) }}</strong></li>
+                          <li class="list-group-item"><span>Costo Principal</span><strong>{{ formatCurrency(item.costo) }}</strong></li>
+                          <li class="list-group-item"><span>Descuento</span><strong>- {{ formatCurrency(item.descuento) }}</strong></li>
                       </ul>
                       <ul v-else class="list-group list-group-flush price-details">
                           <li class="list-group-item"><span>Equipo sin IVA</span><span>{{ formatCurrency(item['equipo sin IVA']) }}</span></li>
                           <li class="list-group-item"><span>IVA Equipo</span><span>{{ formatCurrency(item['IVA equipo']) }}</span></li>
                           <li class="list-group-item"><span>Precio Simcard</span><span>{{ formatCurrency(item['precio simcard']) }}</span></li>
                           <li class="list-group-item"><span>IVA Simcard</span><span>{{ formatCurrency(item['IVA simcard']) }}</span></li>
+                          <li class="list-group-item" v-if="item.indicador !== 'neutral'">
+                            <span class="fw-bold" :class="getVariationTextColor(item.indicador)">Diferencia</span>
+                            <strong :class="getVariationTextColor(item.indicador)">{{ formatCurrency(item.diferencial) }}</strong>
+                          </li>
                           <template v-for="(kit, index) in item.kits" :key="index">
                               <li v-if="kit && kit.nombre && shouldShowKit(item.nombre_lista, kit.nombre)" class="list-group-item">
                                   <span>{{ kit.nombre }}</span><strong>{{ formatCurrency(kit.valor) }}</strong>
@@ -114,6 +118,10 @@
                       <li class="list-group-item"><span>IVA Equipo</span><span>{{ formatCurrency(item['IVA equipo']) }}</span></li>
                       <li class="list-group-item"><span>Precio Simcard</span><span>{{ formatCurrency(item['precio simcard']) }}</span></li>
                       <li class="list-group-item"><span>IVA Simcard</span><span>{{ formatCurrency(item['IVA simcard']) }}</span></li>
+                      <li class="list-group-item" v-if="item.indicador !== 'neutral'">
+                          <span class="fw-bold" :class="getVariationTextColor(item.indicador)">Diferencia</span>
+                          <strong :class="getVariationTextColor(item.indicador)">{{ formatCurrency(item.diferencial) }}</strong>
+                      </li>
                       <template v-for="(kit, index) in item.kits" :key="index">
                           <li v-if="kit && kit.nombre && shouldShowKit(item.nombre_lista, kit.nombre)" class="list-group-item">
                               <span>{{ kit.nombre }}</span><strong>{{ formatCurrency(kit.valor) }}</strong>
@@ -238,13 +246,12 @@ export default {
     calculateDynamicTotal(item) {
         if (!item) return 0;
         if (this.esListaCosto(item)) {
-            // Usa el valor del backend si está disponible, o recalcula
-            return item.total_kit_calculado || (item.costo - item.descuento - (item['precio simcard'] || 2000));
+            return item.costo - item.descuento;
         } else {
             const baseTotal = (item['equipo sin IVA'] || 0) +
-                              (item['IVA equipo'] || 0) +
-                              (item['precio simcard'] || 0) +
-                              (item['IVA simcard'] || 0);
+                                (item['IVA equipo'] || 0) +
+                                (item['precio simcard'] || 0) +
+                                (item['IVA simcard'] || 0);
             
             let kitTotal = 0;
             if (Array.isArray(item.kits)) {
@@ -261,7 +268,44 @@ export default {
       try {
         const path = backendRouter.data + 'lista-productos-prepago-equipo/';
         const response = await axios.post(path, { precio: item.nombre_lista, equipo: item.equipo });
-        this.historialActivo = { equipo: item.equipo, items: response.data.data };
+        
+        const historicoItems = response.data.data;
+
+        for (let i = 0; i < historicoItems.length; i++) {
+            const currentItem = historicoItems[i];
+            if (i === historicoItems.length - 1) {
+                currentItem.indicador = 'neutral';
+                currentItem.diferencial = 0;
+                currentItem.porcentaje = 0;
+                continue;
+            }
+
+            const previousItem = historicoItems[i + 1];
+
+            const totalActual = this.calculateDynamicTotal(currentItem);
+            const totalAnterior = this.calculateDynamicTotal(previousItem);
+
+            if (totalAnterior !== 0) {
+                const diferencial = totalActual - totalAnterior;
+                currentItem.diferencial = diferencial;
+                currentItem.porcentaje = Math.round((diferencial / totalAnterior) * 100);
+                
+                if (diferencial > 0) {
+                    currentItem.indicador = 'up';
+                } else if (diferencial < 0) {
+                    currentItem.indicador = 'down';
+                } else {
+                    currentItem.indicador = 'neutral';
+                }
+            } else {
+                currentItem.indicador = 'neutral';
+                currentItem.diferencial = totalActual;
+                currentItem.porcentaje = 0;
+            }
+        }
+        
+        this.historialActivo = { equipo: item.equipo, items: historicoItems };
+
         this.generateTableFields();
         this.vistaHistorico = true;
       } catch (e) { this.$swal('Error', 'No se pudo cargar el historial.', 'error'); } 
@@ -282,109 +326,149 @@ export default {
             return;
         }
 
-        const productosAgrupados = this.filteredItems.reduce((acc, item) => {
-            const equipo = item.equipo;
-            if (!acc[equipo]) {
-                acc[equipo] = [];
-            }
-            acc[equipo].push(item);
-            return acc;
-        }, {});
+        // ===== INICIO CAMBIO 2: Lógica condicional para exportar Excel =====
+        const isCostoOnly = this.filtros.listas_precios.length === 1 && this.filtros.listas_precios[0].id.toLowerCase() === 'costo';
 
-        const listasDePreciosUnicas = [...new Set(this.filteredItems.map(item => item.nombre_lista))];
-        const finalHeaders = ['Diferencial', 'Porcentaje', 'Indicador', 'Promo'];
-        
-        const header_principal = ['Equipo'];
-        const header_secundario = [''];
-        const merges = [];
-        const kitHeadersPorLista = {};
-        let colIndex = 1;
+        if (isCostoOnly) {
+            // --- Lógica para exportar solo la lista de Costo ---
+            const headers = ['Equipo', 'Costo Principal', 'Descuento', 'Total Kit', 'Diferencial', 'Porcentaje', 'Indicador', 'Promo'];
+            const dataRows = this.filteredItems.map(item => [
+                item.equipo,
+                item.costo,
+                item.descuento,
+                this.calculateDynamicTotal(item),
+                item.diferencial,
+                item.porcentaje > 0 ? item.porcentaje / 100 : 0,
+                item.indicador,
+                item.Promo ? 'Sí' : 'No'
+            ]);
 
-        listasDePreciosUnicas.forEach(lista => {
-            const subColumnasBase = ['Precio Simcard', 'IVA Simcard', 'Equipo sin IVA', 'IVA Equipo'];
-            let kitHeader = '';
-            
-            const representativeItem = this.filteredItems.find(i => i.nombre_lista === lista && Array.isArray(i.kits));
-            if (representativeItem) {
-                const visibleKit = representativeItem.kits.find(k => k && k.nombre && this.shouldShowKit(lista, k.nombre));
-                if (visibleKit) {
-                    kitHeader = visibleKit.nombre;
-                    kitHeadersPorLista[lista] = kitHeader;
+            const finalData = [headers, ...dataRows];
+            const worksheet = XLSX.utils.aoa_to_sheet(finalData);
+
+            // Aplicar formato a las celdas
+            for (let R = 1; R <= dataRows.length; ++R) {
+                for (let C = 0; C < headers.length; ++C) {
+                    const headerValue = headers[C];
+                    const cell = worksheet[XLSX.utils.encode_cell({c: C, r: R})];
+                    if (!cell || typeof cell.v !== 'number') continue;
+                    
+                    if (['Costo Principal', 'Descuento', 'Total Kit', 'Diferencial'].includes(headerValue)) {
+                        cell.z = '$ #,##0';
+                    } else if (headerValue === 'Porcentaje') {
+                        cell.z = '0.00%';
+                    }
                 }
             }
+
+            worksheet['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 10 }];
             
-            const subColumnas = [...subColumnasBase];
-            if (kitHeader) {
-                subColumnas.push(kitHeader);
-            }
-            subColumnas.push('Total Kit');
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte de Costos');
+            XLSX.writeFile(workbook, `Reporte_Costo_${new Date().toISOString().slice(0,10)}.xlsx`);
+
+        } else {
+            // --- Lógica existente para la comparación de múltiples listas ---
+            const productosAgrupados = this.filteredItems.reduce((acc, item) => {
+                const equipo = item.equipo;
+                if (!acc[equipo]) {
+                    acc[equipo] = [];
+                }
+                acc[equipo].push(item);
+                return acc;
+            }, {});
+
+            const listasDePreciosUnicas = [...new Set(this.filteredItems.map(item => item.nombre_lista))];
+            const finalHeaders = ['Diferencial', 'Porcentaje', 'Indicador', 'Promo'];
             
-            header_principal.push(lista, ...Array(subColumnas.length - 1).fill(''));
-            subColumnas.forEach(subCol => header_secundario.push(subCol));
-            merges.push({ s: { r: 0, c: colIndex }, e: { r: 0, c: colIndex + subColumnas.length - 1 } });
-            colIndex += subColumnas.length;
-        });
-        
-        finalHeaders.forEach(header => {
-            header_principal.push('');
-            header_secundario.push(header);
-        });
-        
-        const dataRows = Object.values(productosAgrupados).map(itemsDelEquipo => {
-            const firstItem = itemsDelEquipo[0];
-            const row = [firstItem.equipo];
+            const header_principal = ['Equipo'];
+            const header_secundario = [''];
+            const merges = [];
+            const kitHeadersPorLista = {};
+            let colIndex = 1;
 
             listasDePreciosUnicas.forEach(lista => {
-                const item = itemsDelEquipo.find(i => i.nombre_lista === lista);
-                const isCosto = lista.toLowerCase() === 'costo';
-
-                if (isCosto) {
-                    row.push(item ? item.costo : '');
-                    row.push(item ? item.descuento : '');
-                    row.push(item ? this.calculateDynamicTotal(item) : '');
-                } else {
-                    row.push(item ? item['precio simcard'] : '');
-                    row.push(item ? item['IVA simcard'] : '');
-                    row.push(item ? item['equipo sin IVA'] : '');
-                    row.push(item ? item['IVA equipo'] : '');
-                    
-                    const kitHeaderName = kitHeadersPorLista[lista];
-                    if (kitHeaderName) {
-                        let kitValor = '';
-                        if (item && Array.isArray(item.kits)) {
-                            const visibleKit = item.kits.find(k => k && k.nombre === kitHeaderName);
-                            if (visibleKit) {
-                                kitValor = visibleKit.valor;
-                            }
-                        }
-                        row.push(kitValor);
+                const subColumnasBase = ['Precio Simcard', 'IVA Simcard', 'Equipo sin IVA', 'IVA Equipo'];
+                let kitHeader = '';
+                
+                const representativeItem = this.filteredItems.find(i => i.nombre_lista === lista && Array.isArray(i.kits));
+                if (representativeItem) {
+                    const visibleKit = representativeItem.kits.find(k => k && k.nombre && this.shouldShowKit(lista, k.nombre));
+                    if (visibleKit) {
+                        kitHeader = visibleKit.nombre;
+                        kitHeadersPorLista[lista] = kitHeader;
                     }
-                    
-                    row.push(item ? this.calculateDynamicTotal(item) : '');
                 }
+                
+                const subColumnas = [...subColumnasBase];
+                if (kitHeader) {
+                    subColumnas.push(kitHeader);
+                }
+                subColumnas.push('Total Kit');
+                
+                header_principal.push(lista, ...Array(subColumnas.length - 1).fill(''));
+                subColumnas.forEach(subCol => header_secundario.push(subCol));
+                merges.push({ s: { r: 0, c: colIndex }, e: { r: 0, c: colIndex + subColumnas.length - 1 } });
+                colIndex += subColumnas.length;
+            });
+            
+            finalHeaders.forEach(header => {
+                header_principal.push('');
+                header_secundario.push(header);
+            });
+            
+            const dataRows = Object.values(productosAgrupados).map(itemsDelEquipo => {
+                const firstItem = itemsDelEquipo[0];
+                const row = [firstItem.equipo];
+
+                listasDePreciosUnicas.forEach(lista => {
+                    const item = itemsDelEquipo.find(i => i.nombre_lista === lista);
+                    const isCosto = lista.toLowerCase() === 'costo';
+
+                    if (isCosto) {
+                        row.push(item ? item.costo : '');
+                        row.push(item ? item.descuento : '');
+                        row.push(item ? this.calculateDynamicTotal(item) : '');
+                    } else {
+                        row.push(item ? item['precio simcard'] : '');
+                        row.push(item ? item['IVA simcard'] : '');
+                        row.push(item ? item['equipo sin IVA'] : '');
+                        row.push(item ? item['IVA equipo'] : '');
+                        
+                        const kitHeaderName = kitHeadersPorLista[lista];
+                        if (kitHeaderName) {
+                            let kitValor = '';
+                            if (item && Array.isArray(item.kits)) {
+                                const visibleKit = item.kits.find(k => k && k.nombre === kitHeaderName);
+                                if (visibleKit) {
+                                    kitValor = visibleKit.valor;
+                                }
+                            }
+                            row.push(kitValor);
+                        }
+                        
+                        row.push(item ? this.calculateDynamicTotal(item) : '');
+                    }
+                });
+
+                row.push(firstItem.diferencial);
+                row.push(firstItem.porcentaje > 0 ? firstItem.porcentaje / 100 : 0);
+                row.push(firstItem.indicador);
+                row.push(firstItem.Promo ? 'Sí' : 'No');
+                
+                return row;
             });
 
-            row.push(firstItem.diferencial);
-            row.push(firstItem.porcentaje > 0 ? firstItem.porcentaje / 100 : 0);
-            row.push(firstItem.indicador);
-            row.push(firstItem.Promo ? 'Sí' : 'No');
+            const finalData = [header_principal, header_secundario, ...dataRows];
+            const worksheet = XLSX.utils.aoa_to_sheet(finalData);
+            worksheet['!merges'] = merges;
             
-            return row;
-        });
+            for (let R = 1; R < finalData.length; ++R) {
+                for (let C = 0; C < header_secundario.length; ++C) {
+                    const headerValue = header_secundario[C];
+                    const cell = worksheet[XLSX.utils.encode_cell({c: C, r: R})];
+                    if (!cell || !headerValue || typeof cell.v !== 'number') continue;
 
-        const finalData = [header_principal, header_secundario, ...dataRows];
-        const worksheet = XLSX.utils.aoa_to_sheet(finalData);
-        worksheet['!merges'] = merges;
-        
-        const range = XLSX.utils.decode_range(worksheet['!ref']);
-        for (let R = 1; R < finalData.length; ++R) {
-            for (let C = 0; C < header_secundario.length; ++C) {
-                const headerValue = header_secundario[C];
-                const cell = worksheet[XLSX.utils.encode_cell({c: C, r: R})];
-                
-                if (!cell || !headerValue) continue;
-
-                if (typeof cell.v === 'number') {
                     if (['Diferencial', 'Total Kit', 'Precio Simcard', 'IVA Simcard', 'Equipo sin IVA', 'IVA Equipo', 'Costo Principal', 'Descuento'].includes(headerValue) || headerValue.includes('Kit')) {
                         cell.z = '$ #,##0';
                     } else if (headerValue === 'Porcentaje') {
@@ -392,15 +476,16 @@ export default {
                     }
                 }
             }
+
+            const colWidths = header_secundario.map(header => ({ wch: header.length > 15 ? header.length + 2 : 15 }));
+            colWidths[0] = { wch: 35 };
+            worksheet['!cols'] = colWidths;
+
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Comparativa de Precios');
+            XLSX.writeFile(workbook, `Comparativa_Precios_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
-
-        const colWidths = header_secundario.map(header => ({ wch: header.length > 15 ? header.length + 2 : 15 }));
-        colWidths[0] = { wch: 35 };
-        worksheet['!cols'] = colWidths;
-
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Comparativa de Precios');
-        XLSX.writeFile(workbook, `Comparativa_Precios_${new Date().toISOString().slice(0,10)}.xlsx`);
+        // ===== FIN CAMBIO 2 =====
     }, 
     exportToPDF() {
       if (this.filteredItems.length === 0) {
@@ -556,7 +641,10 @@ export default {
           }
         }
         
-        pdf.save(`Busqueda_Precios_${new Date().toISOString().slice(0,10)}.xlsx`);
+        // ===== INICIO CAMBIO 1: Corregir extensión del archivo PDF =====
+        pdf.save(`Busqueda_Precios_${new Date().toISOString().slice(0,10)}.pdf`);
+        // ===== FIN CAMBIO 1 =====
+
       } catch (error) {
         console.error("Error al generar el PDF:", error);
         this.$swal('Error', 'Ocurrió un error inesperado al generar el PDF.', 'error');
