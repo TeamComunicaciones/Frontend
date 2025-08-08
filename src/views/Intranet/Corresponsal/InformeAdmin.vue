@@ -159,16 +159,46 @@ export default {
     async filterSucursal() { if (this.sucursal === null) { this.resumen = {}; return; } this.isLoading = true; try { const path = backendRouter.data + 'resumen-corresponsal'; const response = await axios.post(path, { fecha: this.fecha, sucursal: this.sucursal }); this.resumen = response.data; } catch (error) { this.resumen = {}; console.error("Error en filterSucursal:", error); } finally { this.isLoading = false; } },
     descargarBanco() { const data = this.dataExcel; const fileName = 'reporte_banco.xlsx'; const workbook = XLSX.utils.book_new(); const worksheet = XLSX.utils.json_to_sheet(data); XLSX.utils.book_append_sheet(workbook, worksheet, 'Transacciones Banco'); XLSX.writeFile(workbook, fileName); },
     descargarCajero() {
-        if (!this.resumen.consignaciones || this.resumen.consignaciones.length === 0) { this.$swal('Aviso', 'No hay datos para descargar.', 'info'); return; }
-        const dataToExport = this.resumen.consignaciones.map(item => ({'Sucursal': item.sucursal_nombre, 'Categoría': item.banco, 'Valor': item.valor, 'Responsable': item.responsable, 'Estado': item.estado, 'Detalle': item.detalle, 'Detalle Categoría': item.detalle_categoria }));
-        const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-        const currencyColumns = ['Valor'];
-        const headers = Object.keys(dataToExport[0] || {});
-        const range = XLSX.utils.decode_range(worksheet['!ref']);
-        for (let R = range.s.r + 1; R <= range.e.r; ++R) { for (let C = range.s.c; C <= range.e.c; ++C) { if (currencyColumns.includes(headers[C])) { const cell = worksheet[XLSX.utils.encode_cell({ r: R, c: C })]; if (cell && cell.t === 'n') { cell.z = '$ #,##0'; } } } }
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, "Consignaciones");
-        XLSX.writeFile(workbook, "reporte_cajero.xlsx");
+      if (!this.resumen.consignaciones || this.resumen.consignaciones.length === 0) {
+        this.$swal('Aviso', 'No hay datos para descargar.', 'info');
+        return;
+      }
+
+      const dataToExport = this.resumen.consignaciones.map(item => ({
+        'ID': item.id,
+        'Valor': item.valor,
+        'Banco': item.banco,
+        'Fecha Consignacion': item.fecha_consignacion,
+        'Fecha Cierre': item.fecha,
+        'Responsable': item.responsable,
+        'Estado': item.estado,
+        'Detalle': item.detalle,
+        'URL Imagen': item.url,
+        'MIN': item.min || '',
+        'IMEI': item.imei || '',
+        'Planilla': item.planilla || ''
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const currencyColumns = ['Valor'];
+      const headers = Object.keys(dataToExport[0] || {});
+      const range = XLSX.utils.decode_range(worksheet['!ref']);
+
+      for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+        for (let C = range.s.c; C <= range.e.c; ++C) {
+          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+          if (currencyColumns.includes(headers[C])) {
+            const cell = worksheet[cellAddress];
+            if (cell && cell.t === 'n') {
+              cell.z = '$ #,##0';
+            }
+          }
+        }
+      }
+
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Consignaciones");
+      XLSX.writeFile(workbook, "reporte_cajero.xlsx");
     },
     mostrarInformacion(detalle) { this.isLoading = true; const path = backendRouter.data + 'get-imagen-corresponsal'; axios.post(path, detalle).then((response) => { this.imageBlob = response.data.image; this.imageContent = response.data.content_type; this.showImagenModal = true; }).finally(() => { this.isLoading = false; }); },
   },

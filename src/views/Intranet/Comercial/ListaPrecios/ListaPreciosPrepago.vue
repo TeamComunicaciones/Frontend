@@ -267,13 +267,14 @@ export default {
       if (!listName || !kitName) { return false; }
       const list = listName.toLowerCase();
       const kit = kitName.toLowerCase();
-      const keywords = ['addi', 'sub', 'fintech', 'valle'];
+      const keywords = ['addi', 'sub', 'fintech', 'valle','premium'];
       const hasKeyword = keywords.some(kw => kit.includes(kw));
       if (!hasKeyword) { return true; }
       if (kit.includes('addi') && list.includes('addi')) return true;
       if (kit.includes('sub') && list.includes('sub')) return true;
       if (kit.includes('fintech') && list.includes('fintech')) return true;
       if (kit.includes('valle') && list.includes('valle')) return true;
+      if (kit.includes('premium') && list.includes('premium')) return true; 
       return false;
     },
     esListaCosto(item) {

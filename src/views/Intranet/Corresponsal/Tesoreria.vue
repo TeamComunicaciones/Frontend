@@ -28,21 +28,23 @@
       <div v-if="sucursal !== null">
         <h3 class="mb-3">Gestionar Consignaciones Pendientes</h3>
         <div class="row">
-          <div class="col-lg-8 mb-3">
+          <div class="col-lg-9 mb-3">
             <div class="mb-3">
               <select class="form-select" v-model="bancoSeleccionado">
                 <option value="">-- Filtrar por categoría --</option>
                 <option v-for="banco in bancosDisponibles" :key="banco" :value="banco">{{ banco }}</option>
               </select>
             </div>
-            <DetalleConsignacionesTabla 
-              :consignaciones="filtradasPorBanco" 
-              :selectable="true" 
-              @view="mostrarInformacion" 
-              @selection-change="updateSeleccionados" 
+            <DetalleConsignacionesTabla
+              :key="tableKey"
+              :consignaciones="filtradasPorBanco"
+              :selectable="true"
+              :show-image-button="true"
+              @view="mostrarInformacion"
+              @selection-change="updateSeleccionados"
             />
           </div>
-          <div class="col-lg-4" v-if="seleccionados.length">
+          <div class="col-lg-3" v-if="seleccionados.length">
             <div class="p-3 border rounded bg-light shadow-sm">
               <h5 class="text-end fw-bold">Total: {{ formatCurrency(totalSeleccionados) }}</h5>
               <BButton variant="danger" class="w-100" @click="showSaldarModal = true">SALDAR</BButton>
@@ -138,6 +140,7 @@ export default {
         fechaConsignacion: '',
         detalle: '',
       },
+      tableKey: 0,
     };
   },
   computed: {
@@ -238,6 +241,7 @@ export default {
         this.showSaldarModal = false;
         this.seleccionados = [];
         this.saldar = { fechaConsignacion: '', detalle: '' };
+        this.tableKey += 1;
         await this.filterData();
       } catch (error) {
         const errorMsg = error.response?.data?.detail || 'Ocurrió un error al saldar.';
