@@ -6,8 +6,14 @@
       <div class="card shadow-sm filter-bar mb-4">
         <div class="card-body">
           <div class="row g-3 align-items-end">
-            <div class="col-lg-3 col-md-6"><label class="form-label fw-bold">Listas de Precios</label><VueMultiselect v-model="filtros.listas_precios" :options="opcionesFiltro.listas_precios" :multiple="true" :custom-label="opt => opt.nombre" track-by="id" placeholder="Seleccione listas" /></div>
-            <div class="col-lg-3 col-md-6"><label class="form-label fw-bold">Marcas</label><VueMultiselect v-model="filtros.marcas" :options="opcionesFiltro.marcas" :multiple="true" placeholder="Todas las marcas" /></div>
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label fw-bold">Listas de Precios</label>
+              <VueMultiselect v-model="filtros.listas_precios" :options="opcionesFiltro.listas_precios" :multiple="true" :custom-label="opt => opt.nombre" track-by="id" placeholder="Seleccione listas" />
+            </div>
+            <div class="col-lg-3 col-md-6">
+              <label class="form-label fw-bold">Marcas</label>
+              <VueMultiselect v-model="filtros.marcas" :options="opcionesFiltro.marcas" :multiple="true" placeholder="Todas las marcas" />
+            </div>
             <div class="col-lg-2 col-md-4">
               <label class="form-label fw-bold">Variación a Fecha</label>
               <select class="form-select" v-model="filtros.fecha_especifica">
@@ -17,53 +23,92 @@
                 </option>
               </select>
             </div>
-            <div class="col-lg-2 col-md-4"><label class="form-label fw-bold">Tendencia</label><select class="form-select" v-model="filtros.filtro_variacion"><option value="">Todas</option><option value="up">Aumentaron</option><option value="down">Bajaron</option><option value="neutral">Neutral</option></select></div>
-            <div class="col-lg-2 col-md-4 d-flex align-items-end justify-content-start"><div class="form-check form-switch fs-5 pt-2"><input class="form-check-input" type="checkbox" role="switch" id="promoCheck" v-model="filtros.filtro_promo"><label class="form-check-label" for="promoCheck">Solo Promo</label></div></div>
+            <div class="col-lg-2 col-md-4">
+              <label class="form-label fw-bold">Tendencia</label>
+              <select class="form-select" v-model="filtros.filtro_variacion">
+                <option value="">Todas</option>
+                <option value="up">Aumentaron</option>
+                <option value="down">Bajaron</option>
+                <option value="neutral">Neutral</option>
+              </select>
+            </div>
+            <div class="col-lg-2 col-md-4 d-flex align-items-end justify-content-start">
+              <div class="form-check form-switch fs-5 pt-2">
+                <input class="form-check-input" type="checkbox" role="switch" id="promoCheck" v-model="filtros.filtro_promo" />
+                <label class="form-check-label" for="promoCheck">Solo Promo</label>
+              </div>
+            </div>
           </div>
           <div class="row g-3 align-items-end mt-2">
             <div class="col-lg-10 col-md-8">
               <label class="form-label fw-bold">Referencia</label>
-              <input type="text" class="form-control" v-model="filtros.referencia" placeholder="Escriba la referencia a buscar...">
+              <input type="text" class="form-control" v-model="filtros.referencia" placeholder="Escriba la referencia a buscar..." />
             </div>
           </div>
-          <hr class="my-3">
+          <hr class="my-3" />
           <div class="d-flex justify-content-end gap-2">
-            <BButton variant="danger" @click="aplicarFiltros" :disabled="isLoading"><i class="bi bi-search me-2"></i>Buscar</BButton>
+            <BButton variant="danger" @click="aplicarFiltros" :disabled="isLoading">
+              <i class="bi bi-search me-2"></i>Buscar
+            </BButton>
           </div>
         </div>
       </div>
 
-      <div v-if="isLoading" class="text-center p-5"><div class="spinner-border text-danger" role="status"></div></div>
-      
+      <div v-if="isLoading" class="text-center p-5">
+        <div class="spinner-border text-danger" role="status"></div>
+      </div>
+
       <div v-else-if="vistaHistorico">
         <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 class="mb-0">Historial para: <strong>{{ historialActivo.equipo }}</strong></h3>
-            <BButton variant="secondary" @click="volverAProductos">← Volver</BButton>
+          <h3 class="mb-0">
+            Historial para: <strong>{{ historialActivo.equipo }}</strong>
+          </h3>
+          <BButton variant="secondary" @click="volverAProductos">← Volver</BButton>
         </div>
         <div class="table-responsive card">
-            <table class="table table-striped table-hover align-middle text-center mb-0">
-                <thead class="table-light"><tr><th v-for="field in fields" :key="field.key">{{ field.label }}</th></tr></thead>
-                <tbody>
-                    <tr v-for="item in historialActivo.items" :key="item.fecha">
-                        <td v-for="field in fields" :key="field.key">
-                            <template v-if="field.key === 'variation'"><div class="d-flex justify-content-center align-items-center gap-2" v-if="item.indicador !== 'neutral'"><span class="text-muted">{{ formatCurrency(item.diferencial) }}</span><span class="d-flex align-items-center gap-1" :class="getVariationTextColor(item.indicador)"><span>{{ item.porcentaje }}%</span><i :class="getVariationIcon(item.indicador)" class="fs-5 fw-bold"></i></span></div><span v-else class="text-warning fs-4">–</span></template>
-                            <template v-else>{{ formatCell(item[field.key], field.key) }}</template>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
+          <table class="table table-striped table-hover align-middle text-center mb-0">
+            <thead class="table-light">
+              <tr>
+                <th v-for="field in fields" :key="field.key">{{ field.label }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="item in historialActivo.items" :key="item.fecha">
+                <td v-for="field in fields" :key="field.key">
+                  <template v-if="field.key === 'variation'">
+                    <div class="d-flex justify-content-center align-items-center gap-2" v-if="item.indicador !== 'neutral'">
+                      <span class="text-muted">{{ formatCurrency(item.diferencial) }}</span>
+                      <span class="d-flex align-items-center gap-1" :class="getVariationTextColor(item.indicador)">
+                        <span>{{ item.porcentaje }}%</span>
+                        <i :class="getVariationIcon(item.indicador)" class="fs-5 fw-bold"></i>
+                      </span>
+                    </div>
+                    <span v-else class="text-warning fs-4">–</span>
+                  </template>
+                  <template v-else>{{ formatCell(item[field.key], field.key) }}</template>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
-      
+
       <div v-else>
         <div class="d-flex justify-content-between align-items-center mb-3">
-          <div v-if="items.length > 0" class="alert alert-light py-2 px-3 mb-0 border"><i class="bi bi-info-circle-fill me-2"></i>Mostrando <strong>{{ items.length }}</strong> resultados. <span v-if="fechaCarga"> Ref: <strong>{{ fechaCarga }}</strong>.</span></div>
-            <div v-if="items.length > 0" class="d-flex gap-2">
-              <BButton variant="success" @click="descargar"><i class="bi bi-file-earmark-excel-fill me-1"></i> Excel</BButton>
-              <BButton variant="danger" @click="exportToPDF"><i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF</BButton>
-            </div>
+          <div v-if="items.length > 0" class="alert alert-light py-2 px-3 mb-0 border">
+            <i class="bi bi-info-circle-fill me-2"></i>Mostrando <strong>{{ items.length }}</strong> resultados.
+            <span v-if="fechaCarga"> Ref: <strong>{{ fechaCarga }}</strong>.</span>
+          </div>
+          <div v-if="items.length > 0" class="d-flex gap-2">
+            <BButton variant="success" @click="descargar">
+              <i class="bi bi-file-earmark-excel-fill me-1"></i> Excel
+            </BButton>
+            <BButton variant="danger" @click="exportToPDF">
+              <i class="bi bi-file-earmark-pdf-fill me-1"></i> PDF
+            </BButton>
+          </div>
         </div>
-        
+
         <div v-if="filtros.listas_precios.length > 1 && items.length > 0">
           <BTabs content-class="mt-3" fill>
             <BTab v-for="(group, listName) in groupedItems" :key="listName" :title="listName">
@@ -71,74 +116,137 @@
               <div class="row mt-3">
                 <div v-for="item in group" :key="item.equipo + item.nombre_lista" class="col-md-6 col-lg-4 mb-4">
                   <div class="card product-card h-100">
-                    <div class="card-header"><h5 class="card-title mb-0">{{ item.equipo }}</h5><div class="variation-badge" :class="getVariationClass(item.indicador)"><i :class="getVariationIcon(item.indicador)"></i><span>{{ item.porcentaje }}%</span></div></div>
+                    <div class="card-header">
+                      <h5 class="card-title mb-0">{{ item.equipo }}</h5>
+                      <div class="variation-badge" :class="getVariationClass(item.indicador)">
+                        <i :class="getVariationIcon(item.indicador)"></i>
+                        <span>{{ item.porcentaje }}%</span>
+                      </div>
+                    </div>
                     <div class="card-body py-2">
                       <span v-if="item.Promo" class="badge bg-danger mb-2">PROMO</span>
                       <ul v-if="esListaCosto(item)" class="list-group list-group-flush price-details">
-                          <li class="list-group-item"><span>Costo Principal</span><strong>{{ formatCurrency(item.costo) }}</strong></li>
-                          <li class="list-group-item"><span>Descuento</span><strong>- {{ formatCurrency(item.descuento) }}</strong></li>
+                        <li class="list-group-item">
+                          <span>Costo Principal</span>
+                          <strong>{{ formatCurrency(item.costo) }}</strong>
+                        </li>
+                        <li class="list-group-item">
+                          <span>Descuento</span>
+                          <strong>- {{ formatCurrency(item.descuento) }}</strong>
+                        </li>
                       </ul>
                       <ul v-else class="list-group list-group-flush price-details">
-                          <li class="list-group-item"><span>Equipo sin IVA</span><span>{{ formatCurrency(item['equipo sin IVA']) }}</span></li>
-                          <li class="list-group-item"><span>IVA Equipo</span><span>{{ formatCurrency(item['IVA equipo']) }}</span></li>
-                          <li class="list-group-item"><span>Precio Simcard</span><span>{{ formatCurrency(item['precio simcard']) }}</span></li>
-                          <li class="list-group-item"><span>IVA Simcard</span><span>{{ formatCurrency(item['IVA simcard']) }}</span></li>
-                          <li class="list-group-item" v-if="item.indicador !== 'neutral'">
-                            <span class="fw-bold" :class="getVariationTextColor(item.indicador)">Diferencia</span>
-                            <strong :class="getVariationTextColor(item.indicador)">{{ formatCurrency(item.diferencial) }}</strong>
-                          </li>
-                          <template v-for="(kit, index) in item.kits" :key="index">
-                              <li v-if="kit && kit.nombre && shouldShowKit(item.nombre_lista, kit.nombre)" class="list-group-item">
-                                  <span>{{ kit.nombre }}</span><strong>{{ formatCurrency(kit.valor) }}</strong>
-                              </li>
-                          </template>
+                        <li class="list-group-item">
+                          <span>Equipo sin IVA</span>
+                          <span>{{ formatCurrency(item['equipo sin IVA']) }}</span>
+                        </li>
+                        <li class="list-group-item">
+                          <span>IVA Equipo</span>
+                          <span>{{ formatCurrency(item['IVA equipo']) }}</span>
+                        </li>
+                        <li class="list-group-item">
+                          <span>Precio Simcard</span>
+                          <span>{{ formatCurrency(item['precio simcard']) }}</span>
+                        </li>
+                        <li class="list-group-item">
+                          <span>IVA Simcard</span>
+                          <span>{{ formatCurrency(item['IVA simcard']) }}</span>
+                        </li>
+                        <li class="list-group-item" v-if="item.indicador !== 'neutral'">
+                          <span class="fw-bold" :class="getVariationTextColor(item.indicador)">Diferencia</span>
+                          <strong :class="getVariationTextColor(item.indicador)">{{ formatCurrency(item.diferencial) }}</strong>
+                        </li>
+                        <li v-if="getVisibleKit(item)" class="list-group-item">
+                          <span>{{ getVisibleKit(item).nombre }}</span>
+                          <strong>{{ formatCurrency(getVisibleKit(item).valor) }}</strong>
+                        </li>
                       </ul>
                     </div>
-                    <div class="card-footer"><div class="total-price">Total Kit: <span class="total-value">{{ formatCurrency(calculateDynamicTotal(item)) }}</span></div><BButton variant="outline-secondary" size="sm" @click="verHistorico(item)"><i class="bi bi-clock-history me-1"></i> Historial</BButton></div>
+                    <div class="card-footer">
+                      <div class="total-price">
+                        Total Kit:
+                        <span class="total-value">{{ formatCurrency(calculateDynamicTotal(item)) }}</span>
+                      </div>
+                      <BButton variant="outline-secondary" size="sm" @click="verHistorico(item)">
+                        <i class="bi bi-clock-history me-1"></i> Historial
+                      </BButton>
+                    </div>
                   </div>
                 </div>
               </div>
             </BTab>
           </BTabs>
         </div>
-        
+
         <div v-else>
           <div v-if="items.length > 0" class="row">
             <div v-for="item in paginatedItems" :key="item.equipo + item.nombre_lista" class="col-md-6 col-lg-4 mb-4">
               <div class="card product-card h-100">
-                <div class="card-header"><h5 class="card-title mb-0">{{ item.equipo }}</h5><div class="variation-badge" :class="getVariationClass(item.indicador)"><i :class="getVariationIcon(item.indicador)"></i><span>{{ item.porcentaje }}%</span></div></div>
+                <div class="card-header">
+                  <h5 class="card-title mb-0">{{ item.equipo }}</h5>
+                  <div class="variation-badge" :class="getVariationClass(item.indicador)">
+                    <i :class="getVariationIcon(item.indicador)"></i>
+                    <span>{{ item.porcentaje }}%</span>
+                  </div>
+                </div>
                 <div class="card-body py-2">
                   <span v-if="item.Promo" class="badge bg-danger mb-2">PROMO</span>
-                    <ul v-if="esListaCosto(item)" class="list-group list-group-flush price-details">
-                        <li class="list-group-item"><span>Costo Principal</span><strong>{{ formatCurrency(item.costo) }}</strong></li>
-                        <li class="list-group-item"><span>Descuento</span><strong>- {{ formatCurrency(item.descuento) }}</strong></li>
-                    </ul>
+                  <ul v-if="esListaCosto(item)" class="list-group list-group-flush price-details">
+                    <li class="list-group-item">
+                      <span>Costo Principal</span>
+                      <strong>{{ formatCurrency(item.costo) }}</strong>
+                    </li>
+                    <li class="list-group-item">
+                      <span>Descuento</span>
+                      <strong>- {{ formatCurrency(item.descuento) }}</strong>
+                    </li>
+                  </ul>
                   <ul v-else class="list-group list-group-flush price-details">
-                      <li class="list-group-item"><span>Equipo sin IVA</span><span>{{ formatCurrency(item['equipo sin IVA']) }}</span></li>
-                      <li class="list-group-item"><span>IVA Equipo</span><span>{{ formatCurrency(item['IVA equipo']) }}</span></li>
-                      <li class="list-group-item"><span>Precio Simcard</span><span>{{ formatCurrency(item['precio simcard']) }}</span></li>
-                      <li class="list-group-item"><span>IVA Simcard</span><span>{{ formatCurrency(item['IVA simcard']) }}</span></li>
-                      <li class="list-group-item" v-if="item.indicador !== 'neutral'">
-                          <span class="fw-bold" :class="getVariationTextColor(item.indicador)">Diferencia</span>
-                          <strong :class="getVariationTextColor(item.indicador)">{{ formatCurrency(item.diferencial) }}</strong>
-                      </li>
-                      <template v-for="(kit, index) in item.kits" :key="index">
-                          <li v-if="kit && kit.nombre && shouldShowKit(item.nombre_lista, kit.nombre)" class="list-group-item">
-                              <span>{{ kit.nombre }}</span><strong>{{ formatCurrency(kit.valor) }}</strong>
-                          </li>
-                      </template>
+                    <li class="list-group-item">
+                      <span>Equipo sin IVA</span>
+                      <span>{{ formatCurrency(item['equipo sin IVA']) }}</span>
+                    </li>
+                    <li class="list-group-item">
+                      <span>IVA Equipo</span>
+                      <span>{{ formatCurrency(item['IVA equipo']) }}</span>
+                    </li>
+                    <li class="list-group-item">
+                      <span>Precio Simcard</span>
+                      <span>{{ formatCurrency(item['precio simcard']) }}</span>
+                    </li>
+                    <li class="list-group-item">
+                      <span>IVA Simcard</span>
+                      <span>{{ formatCurrency(item['IVA simcard']) }}</span>
+                    </li>
+                    <li class="list-group-item" v-if="item.indicador !== 'neutral'">
+                      <span class="fw-bold" :class="getVariationTextColor(item.indicador)">Diferencia</span>
+                      <strong :class="getVariationTextColor(item.indicador)">{{ formatCurrency(item.diferencial) }}</strong>
+                    </li>
+                    <li v-if="getVisibleKit(item)" class="list-group-item">
+                      <span>{{ getVisibleKit(item).nombre }}</span>
+                      <strong>{{ formatCurrency(getVisibleKit(item).valor) }}</strong>
+                    </li>
                   </ul>
                 </div>
-                <div class="card-footer"><div class="total-price">Total Kit: <span class="total-value">{{ formatCurrency(calculateDynamicTotal(item)) }}</span></div><BButton variant="outline-secondary" size="sm" @click="verHistorico(item)"><i class="bi bi-clock-history me-1"></i> Historial</BButton></div>
+                <div class="card-footer">
+                  <div class="total-price">
+                    Total Kit:
+                    <span class="total-value">{{ formatCurrency(calculateDynamicTotal(item)) }}</span>
+                  </div>
+                  <BButton variant="outline-secondary" size="sm" @click="verHistorico(item)">
+                    <i class="bi bi-clock-history me-1"></i> Historial
+                  </BButton>
+                </div>
               </div>
             </div>
           </div>
-          <div v-else class="text-center text-muted mt-5 pt-5"><h4>No hay resultados. Por favor, ajusta los filtros y haz clic en "Buscar".</h4></div>
+          <div v-else class="text-center text-muted mt-5 pt-5">
+            <h4>No hay resultados. Por favor, ajusta los filtros y haz clic en "Buscar".</h4>
+          </div>
           <div class="d-flex justify-content-center mt-4" v-if="totalRows > perPage && filtros.listas_precios.length <= 1">
             <BPagination v-model="currentPage" :total-rows="totalRows" :per-page="perPage" />
           </div>
         </div>
-
       </div>
     </div>
   </div>
@@ -207,75 +315,60 @@ export default {
     getVariationTextColor(i) { if (i === 'up') return 'text-danger'; if (i === 'down') return 'text-success'; return 'text-muted';},
     formatCell(value, key) { if (key && key.toLowerCase().includes('fecha')) { const date = new Date(value); if (!isNaN(date)) { return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }); } } if (typeof value === 'number') { return this.formatCurrency(value); } return value; },
     async getFilterOptions() { this.isLoading = true; try { const path = backendRouter.data + 'get_filtros_precios/'; const token = this.$cookies.get('jwt'); const response = await axios.get(path, { headers: { 'Authorization': `Bearer ${token}` } }); this.opcionesFiltro = response.data; } catch (e) { this.$swal('Error', 'No se pudieron cargar las opciones de filtro.', 'error'); } finally { this.isLoading = false; } },
-    async aplicarFiltros() {
-      this.isLoading = true;
-      this.currentPage = 1;
-      this.vistaHistorico = false;
-      this.items = [];
-      this.fechaCarga = '';
-      
-      const payload = { ...this.filtros, listas_precios: this.filtros.listas_precios.map(l => l.id) };
-      const path = backendRouter.data + 'buscar-precios/';
+   async aplicarFiltros() {
+    this.isLoading = true;
+    this.currentPage = 1;
+    this.vistaHistorico = false;
+    this.items = [];
+    this.fechaCarga = '';
+    
+    const payload = { 
+      ...this.filtros, 
+      listas_precios: this.filtros.listas_precios.map(l => l.id) 
+    };
+    
+    const path = backendRouter.data + 'buscar-precios/';
 
-      try {
-        const response = await axios.post(path, {filtros: payload});
-        
-        const processedData = response.data.data.map(item => {
-            const ivaExcluidoBase = 1095578;
-            const valorAnterior = item.valor_anterior || 0;
-            
-            const previousItem = {
-                nombre_lista: item.nombre_lista,
-                costo: item.costo_anterior,
-                descuento: item.descuento_anterior,
-                'equipo sin IVA': valorAnterior,
-                'IVA equipo': valorAnterior > ivaExcluidoBase ? valorAnterior * 0.19 : 0,
-                'precio simcard': item['precio simcard'],
-                'IVA simcard': item['IVA simcard'],
-                kits: item.kits_anteriores || [],
-            };
-
-            const totalActual = this.calculateDynamicTotal(item);
-            const totalAnterior = this.calculateDynamicTotal(previousItem);
-
-            if (totalAnterior > 0) {
-                const diferencial = totalActual - totalAnterior;
-                item.diferencial = diferencial;
-                item.porcentaje = Math.round((diferencial / totalAnterior) * 100);
-                
-                if (diferencial > 0) item.indicador = 'up';
-                else if (diferencial < 0) item.indicador = 'down';
-                else item.indicador = 'neutral';
-            } else {
-                item.indicador = 'neutral';
-                item.diferencial = 0;
-                item.porcentaje = 0;
-            }
-            
-            return item;
-        });
-        
-        this.items = processedData;
-        this.fechaCarga = response.data.fecha_actual;
-      } catch (e) {
-        this.$swal('Error', 'No se pudieron cargar los productos.', 'error');
-      } finally {
-        this.isLoading = false;
-      }
-    },
+    try {
+      const response = await axios.post(path, { filtros: payload });
+      
+      // Asigna los datos directamente, sin recalcular nada.
+      // El backend ya calculó 'diferencial', 'porcentaje' e 'indicador'.
+      this.items = response.data.data;
+      this.fechaCarga = response.data.fecha_actual;
+    } catch (e) {
+      this.$swal('Error', 'No se pudieron cargar los productos.', 'error');
+    } finally {
+      this.isLoading = false;
+    }
+},
     shouldShowKit(listName, kitName) {
-      if (!listName || !kitName) { return false; }
-      const list = listName.toLowerCase();
-      const kit = kitName.toLowerCase();
-      const keywords = ['addi', 'sub', 'fintech', 'valle','premium'];
-      const hasKeyword = keywords.some(kw => kit.includes(kw));
-      if (!hasKeyword) { return true; }
-      if (kit.includes('addi') && list.includes('addi')) return true;
-      if (kit.includes('sub') && list.includes('sub')) return true;
-      if (kit.includes('fintech') && list.includes('fintech')) return true;
-      if (kit.includes('valle') && list.includes('valle')) return true;
-      if (kit.includes('premium') && list.includes('premium')) return true; 
-      return false;
+        if (!listName || !kitName) { return false; }
+        
+        const list = listName.toLowerCase();
+        const kit = kitName.toLowerCase();
+        const keywords = ['addi', 'sub', 'fintech', 'valle', 'premium'];
+        
+        const hasKeyword = keywords.some(kw => kit.includes(kw));
+        
+        // Si el kit no tiene una palabra clave especial, muéstralo siempre.
+        if (!hasKeyword) { return true; }
+
+        // Si tiene una palabra clave, asegúrate de que coincida con la lista de precios.
+        if (kit.includes('addi') && list.includes('addi')) return true;
+        if (kit.includes('sub') && list.includes('sub')) return true;
+        if (kit.includes('fintech') && list.includes('fintech')) return true;
+        if (kit.includes('valle') && list.includes('valle')) return true;
+        if (kit.includes('premium') && list.includes('premium')) return true; // <-- La línea clave
+
+        // Si no coincide, no lo muestres.
+        return false;
+    },
+    getVisibleKit(item) {
+        if (!item || !Array.isArray(item.kits)) {
+            return null;
+        }
+        return item.kits.find(k => k && k.nombre && this.shouldShowKit(item.nombre_lista, k.nombre));
     },
     esListaCosto(item) {
         return item && item.nombre_lista && item.nombre_lista.toLowerCase() === 'costo';

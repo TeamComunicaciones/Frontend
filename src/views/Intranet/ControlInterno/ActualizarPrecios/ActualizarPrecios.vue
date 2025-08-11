@@ -188,35 +188,35 @@ export default {
     },
 
     traducir() {
-      this.isLoading = true;
-      const dataForBackend = this.items.map(item => this.titulos.map(h => item[h]));
-      const path = backendRouter.data + 'translate-prepago';
+    this.isLoading = true;
+    const dataForBackend = this.items.map(item => this.titulos.map(h => item[h]));
+    const path = backendRouter.data + 'translate-prepago';
 
-      axios.post(path, dataForBackend).then((response) => {
-        this.isLoading = false;
-        if (!response.data.validate) {
-          this.missing = response.data.data;
-          this.cont = 0;
-          this.procesarSiguienteFaltante();
-        } else {
-          this.titulos = response.data.cabecera.map(item => item.text);
-          this.items = response.data.data.map(rowArray => {
-              const item = {};
-              this.titulos.forEach((header, index) => {
-                  item[header] = rowArray[index];
-              });
-              item.editing = false;
-              return item;
+    axios.post(path, dataForBackend).then((response) => {
+      this.isLoading = false;
+      if (!response.data.validate) {
+        this.missing = response.data.data;
+        this.cont = 0;
+        this.procesarSiguienteFaltante();
+      } else {
+        this.titulos = response.data.cabecera.map(item => item.text);
+        this.items = response.data.data.map(rowArray => {
+          const item = {};
+          this.titulos.forEach((header, index) => {
+            item[header] = rowArray[index];
           });
-          this.pasoTraduccionCompleto = true;
-          Swal.fire('Éxito', 'Todos los productos han sido traducidos.', 'success');
-        }
-      }).catch(error => {
-        this.isLoading = false;
-        Swal.fire('Error', 'Ocurrió un error durante la traducción.', 'error');
-        console.error(error);
-      });
-    },
+          item.editing = false;
+          return item;
+        });
+        this.pasoTraduccionCompleto = true;
+        Swal.fire('Éxito', 'Todos los productos han sido traducidos.', 'success');
+      }
+    }).catch(error => {
+      this.isLoading = false;
+      Swal.fire('Error', 'Ocurrió un error durante la traducción.', 'error');
+      console.error(error);
+    });
+  },
 
     procesarSiguienteFaltante() {
       if (this.cont >= this.missing.length) {

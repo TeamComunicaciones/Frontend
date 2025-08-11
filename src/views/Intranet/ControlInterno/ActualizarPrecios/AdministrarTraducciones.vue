@@ -192,21 +192,22 @@
         this.getTranslates();
       },
       confirmDeleteItem(item) {
-        Swal.fire({
-            title: '¿Estás seguro?',
-            text: `El producto "${item.producto}" será enviado a la lista negra (inactivado).`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#DF1115',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, ¡envíalo!',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                this.deleteItemBack(item.producto);
-            }
-        });
-      },
+          // item aquí debería tener la propiedad 'producto'
+          Swal.fire({
+              title: '¿Estás seguro?',
+              text: `El producto "${item.producto}" será enviado a la lista negra (inactivado).`,
+              icon: 'warning',
+              showCancelButton: true,
+              confirmButtonColor: '#DF1115',
+              cancelButtonColor: '#6c757d',
+              confirmButtonText: 'Sí, ¡envíalo!',
+              cancelButtonText: 'Cancelar'
+          }).then((result) => {
+              if (result.isConfirmed) {
+                  this.deleteItemBack(item);
+              }
+          });
+        },
       selectItem(data) {
         this.form.product = data.item.producto;
         this.form.stok = data.item.stok;
@@ -246,27 +247,34 @@
             });
         });
       },
-      deleteItemBack(equipo) {
-        this.isLoading = true;
-        const path = backendRouter.data + this.categoria + '/admin';
-        const data = { equipo };
-        axios.delete(path, { data }).then(response => {
-            this.isLoading = false;
-            this.getTranslates();
-            Swal.fire('¡Éxito!', response.data.message, 'success');
-        }).catch(error => {
-            this.isLoading = false;
-            Swal.fire({
-            icon: 'error',
-            title: 'Error',
-            text: error.response.data.detail,
-            customClass: {
-                confirmButton: 'btn btn-danger'
-            },
-            buttonsStyling: false
-            });
-        });
-      },
+        deleteItemBack(item) {
+  this.isLoading = true;
+  const path = backendRouter.data + 'black-list';
+  const data = {
+    // Aquí se asegura de que el valor de item.producto se pase a la clave 'product'
+    product: item.producto,
+    jwt: this.$cookies.get('jwt')
+  };
+
+  axios.post(path, data)
+    .then(response => {
+      this.isLoading = false;
+      this.getTranslates();
+      Swal.fire('¡Éxito!', 'Producto agregado a la lista negra.', 'success');
+    })
+    .catch(error => {
+      this.isLoading = false;
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: error.response.data.error || error.response.data.detail,
+        customClass: {
+          confirmButton: 'btn btn-danger'
+        },
+        buttonsStyling: false
+      });
+    });
+},
       getTranslates() {
         this.isLoading = true;
         const path = backendRouter.data + this.categoria;
