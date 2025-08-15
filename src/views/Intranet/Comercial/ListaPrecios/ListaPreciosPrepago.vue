@@ -17,6 +17,7 @@
             <div class="col-lg-2 col-md-4">
               <label class="form-label fw-bold">Variación a Fecha</label>
               <select class="form-select" v-model="filtros.fecha_especifica">
+                <option value="todas">Todas las referencias</option>
                 <option :value="null">Última variación</option>
                 <option v-for="fecha in opcionesFiltro.fechas_validas" :key="fecha.valor" :value="fecha.valor">
                   {{ fecha.texto }}
@@ -268,6 +269,7 @@ export default {
       isLoading: false,
       fullPage: true,
       items: [],
+      fecha_especifica: 'todas',   // <= importante
       fechaCarga: '',
       currentPage: 1,
       perPage: 12,
@@ -315,33 +317,38 @@ export default {
     getVariationTextColor(i) { if (i === 'up') return 'text-danger'; if (i === 'down') return 'text-success'; return 'text-muted';},
     formatCell(value, key) { if (key && key.toLowerCase().includes('fecha')) { const date = new Date(value); if (!isNaN(date)) { return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }); } } if (typeof value === 'number') { return this.formatCurrency(value); } return value; },
     async getFilterOptions() { this.isLoading = true; try { const path = backendRouter.data + 'get_filtros_precios/'; const token = this.$cookies.get('jwt'); const response = await axios.get(path, { headers: { 'Authorization': `Bearer ${token}` } }); this.opcionesFiltro = response.data; } catch (e) { this.$swal('Error', 'No se pudieron cargar las opciones de filtro.', 'error'); } finally { this.isLoading = false; } },
-   async aplicarFiltros() {
-    this.isLoading = true;
-    this.currentPage = 1;
-    this.vistaHistorico = false;
-    this.items = [];
-    this.fechaCarga = '';
-    
-    const payload = { 
-      ...this.filtros, 
-      listas_precios: this.filtros.listas_precios.map(l => l.id) 
-    };
-    
-    const path = backendRouter.data + 'buscar-precios/';
+    async aplicarFiltros() {
+      this.isLoading = true;
+      this.currentPage = 1;
+      this.vistaHistorico = false;
+      this.items = [];
+      this.fechaCarga = '';
 
-    try {
-      const response = await axios.post(path, { filtros: payload });
-      
-      // Asigna los datos directamente, sin recalcular nada.
-      // El backend ya calculó 'diferencial', 'porcentaje' e 'indicador'.
-      this.items = response.data.data;
-      this.fechaCarga = response.data.fecha_actual;
-    } catch (e) {
-      this.$swal('Error', 'No se pudieron cargar los productos.', 'error');
-    } finally {
-      this.isLoading = false;
-    }
-},
+      const payload = { 
+        ...this.filtros,
+        listas_precios: this.filtros.listas_precios.map(l => l.id ?? l) // por si a veces ya viene el id
+      };
+
+      // ❌ Quita cualquier lógica que hacía: if (payload.fecha_especifica === 'todas') delete payload.fecha_especifica;
+
+      try {
+        const { data } = await axios.post(backendRouter.data + 'buscar-precios/', { filtros: payload });
+        // (opcional) deduplicar por si acaso, por equipo+lista
+        const seen = new Set();
+        this.items = data.data.filter(it => {
+          const k = (it.equipo + '|' + it.nombre_lista).toLowerCase();
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+        this.fechaCarga = data.fecha_actual;
+      } catch (e) {
+        this.$swal('Error', 'No se pudieron cargar los productos.', 'error');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+
     shouldShowKit(listName, kitName) {
         if (!listName || !kitName) { return false; }
         
