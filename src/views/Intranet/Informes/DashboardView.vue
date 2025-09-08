@@ -101,7 +101,7 @@ import axios from 'axios';
 // --- RUTAS DE IMPORTACIÓN CORREGIDAS ---
 // El alias '@' normalmente apunta a la carpeta 'src'. Ajusta si tu configuración es diferente.
 import FileUploadComponent from '@/components/FileUploadComponent.vue'; 
-import BarChart from '@/components/intranet/SidebarMenu/BarChart.vue'; // <-- Ruta corregida según tu indicación
+import BarChart from '@/components/Intranet/SidebarMenu/BarChart.vue'; // <-- Ruta corregida según tu indicación
 
 // --- ESTADO REACTIVO ---
 const loading = ref(true);
