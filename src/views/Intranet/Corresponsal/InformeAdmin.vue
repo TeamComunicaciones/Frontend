@@ -1,115 +1,115 @@
-<template>
-  <div class="main-wrapper">
-    <div class="vld-parent">
-      <loading :active.sync="isLoading" :is-full-page="fullPage"></loading>
-    </div>
+    <template>
+      <div class="main-wrapper">
+        <div class="vld-parent">
+          <loading :active.sync="isLoading" :is-full-page="fullPage"></loading>
+        </div>
 
-    <div class="container py-4">
-      <h1 class="mb-4">Informe de Corresponsal</h1>
-      <div class="card shadow-sm filter-bar mb-4">
-        <div class="card-body">
-          <div class="row g-3 align-items-end">
-            <div class="col-auto">
-              <label class="form-label">Rango</label>
-              <BFormRadioGroup v-model="buttonsSelected" :options="buttonsOptions" button-variant="outline-danger" name="radios-btn-default" buttons />
-            </div>
-            <div class="col-auto">
-              <label class="form-label">{{ buttonsSelected === 'mes' ? 'Mes' : 'Día' }}</label>
-              <BFormInput v-if="buttonsSelected === 'mes'" type="month" v-model="fecha" @change="getData" class="form-control" />
-              <BFormInput v-else type="date" v-model="fecha" @change="getData" class="form-control" />
-            </div>
-            <div class="col-md-4">
-              <label class="form-label">Sucursal</label>
-              <BFormSelect v-if="fecha" v-model="sucursal" :options="[{ value: null, text: 'Seleccione sucursal' }, { value: '0', text: 'Todas' }, ...sucursales]" @change="filterSucursal" class="form-select" />
-            </div>
-            <div class="col-md-4 ms-auto text-end">
-                <BButton variant="danger" v-if="dataExcel.length" @click="descargarBanco" class="me-2">Trs. Banco</BButton>
-                <BButton variant="danger" v-if="resumen.consignaciones" @click="descargarCajero">Trs. Cajero</BButton>
+        <div class="container py-4">
+          <h1 class="mb-4">Informe de Corresponsal</h1>
+          <div class="card shadow-sm filter-bar mb-4">
+            <div class="card-body">
+              <div class="row g-3 align-items-end">
+                <div class="col-auto">
+                  <label class="form-label">Rango</label>
+                  <BFormRadioGroup v-model="buttonsSelected" :options="buttonsOptions" button-variant="outline-danger" name="radios-btn-default" buttons />
+                </div>
+                <div class="col-auto">
+                  <label class="form-label">{{ buttonsSelected === 'mes' ? 'Mes' : 'Día' }}</label>
+                  <BFormInput v-if="buttonsSelected === 'mes'" type="month" v-model="fecha" @change="getData" class="form-control" />
+                  <BFormInput v-else type="date" v-model="fecha" @change="getData" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                  <label class="form-label">Sucursal</label>
+                  <BFormSelect v-if="fecha" v-model="sucursal" :options="[{ value: null, text: 'Seleccione sucursal' }, { value: '0', text: 'Todas' }, ...sucursales]" @change="filterSucursal" class="form-select" />
+                </div>
+                <div class="col-md-4 ms-auto text-end">
+                    <BButton variant="danger" v-if="dataExcel.length" @click="descargarBanco" class="me-2">Trs. Banco</BButton>
+                    <BButton variant="danger" v-if="resumen.consignaciones" @click="descargarCajero">Trs. Cajero</BButton>
+                </div>
+              </div>
             </div>
           </div>
+
+          <div v-if="sucursal !== null && resumen.titulo" class="mb-4">
+            <h4 class="text-center text-muted mb-3">Mostrando resumen para: <strong>{{ resumen.titulo }}</strong></h4>
+            <b-row class="stats-row">
+              <b-col md="3"><b-card class="stat-card text-center"><h6 class="text-muted mb-1">Total en Cajero</h6><h2 class="mb-0">{{ formatCurrency(resumen.valor) }}</h2></b-card></b-col>
+              <b-col md="3"><b-card class="stat-card text-center"><h6 class="text-muted mb-1">Total Consignado</h6><h2 class="mb-0">{{ formatCurrency(resumen.consignacion) }}</h2></b-card></b-col>
+              <b-col md="3"><b-card class="stat-card text-center text-danger"><h6 class="text-muted mb-1">Pendiente por Saldar</h6><h2 class="mb-0">{{ formatCurrency(resumen.pendiente) }}</h2></b-card></b-col>
+              <b-col md="3"><b-card class="stat-card text-center"><h6 class="text-muted mb-1">Restante</h6><h2 class="mb-0">{{ formatCurrency(totalRestante) }}</h2></b-card></b-col>
+            </b-row>
+          </div>
+
+          <b-tabs active-nav-item-class="fw-bold text-uppercase text-danger" content-class="mt-3">
+            <b-tab title="Sucursales" active>
+              <div v-if="!consolidado.length && !isLoading" class="text-center text-muted mt-5"><p>Seleccione una Fecha para ver el consolidado.</p></div>
+              <div class="table-responsive card" v-if="consolidado.length">
+                <table class="table table-striped align-middle text-center mb-0">
+                  <thead class="table-light">
+                    <tr>
+                      <th>Sucursal</th><th># Transacciones</th><th>Valor Transado</th>
+                      <th>Pendiente</th><th>Saldado</th><th>Restante</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="row in consolidado" :key="row.codigo_incocredito">
+                      <td>{{ row.codigo_incocredito }}</td><td>{{ row.cuenta }}</td>
+                      <td>{{ formatCurrency(row.valor) }}</td><td>{{ formatCurrency(row.pendiente) }}</td>
+                      <td>{{ formatCurrency(row.saldado) }}</td><td>{{ formatCurrency(row.restante) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </b-tab>
+
+            <b-tab title="Todo">
+              <div v-if="!sucursal" class="text-center text-muted mt-5"><p>Seleccione una Sucursal para ver el detalle.</p></div>
+              <div v-else>
+                <div class="mb-3" style="max-width: 300px;">
+                  <select class="form-select" v-model="bancoSeleccionado">
+                    <option value="">-- Filtrar por categoría --</option>
+                    <option v-for="banco in bancosDisponibles" :key="banco" :value="banco">{{ banco }}</option>
+                  </select>
+                </div>
+                <DetalleConsignacionesTabla :consignaciones="paginatedTodo" :show-image-button="true" @view="mostrarInformacion" />
+                <div class="d-flex justify-content-center mt-3" v-if="totalTodoRows > perPage"><BPagination v-model="todoCurrentPage" :total-rows="totalTodoRows" :per-page="perPage" /></div>
+              </div>
+            </b-tab>
+
+            <b-tab title="Saldado">
+              <div v-if="!sucursal" class="text-center text-muted mt-5"><p>Seleccione una Sucursal para ver el detalle.</p></div>
+              <div v-else>
+                <DetalleConsignacionesTabla :consignaciones="paginatedSaldado" :show-image-button="true" @view="mostrarInformacion" />
+                <div class="d-flex justify-content-center mt-3" v-if="totalSaldadoRows > perPage"><BPagination v-model="saldadoCurrentPage" :total-rows="totalSaldadoRows" :per-page="perPage" /></div>
+              </div>
+            </b-tab>
+
+            <b-tab title="Resumen por Banco">
+              <div v-if="!sucursal" class="text-center text-muted mt-5"><p>Seleccione una Sucursal para ver el resumen.</p></div>
+              <div class="table-responsive card" v-if="sucursal && resumenPorBanco.length">
+                <table class="table table-bordered mb-0">
+                  <thead class="table-light">
+                    <tr><th>Categoría</th><th class="text-end">Total Pendiente</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(item, index) in resumenPorBanco" :key="index">
+                      <td>{{ item.banco }}</td><td class="text-end">{{ formatCurrency(item.total) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </b-tab>
+          </b-tabs>
+        </div>
+
+        <div v-if="showImagenModal" class="modal show d-block bg-dark bg-opacity-75">
+          <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content p-3">
+            <div class="modal-header border-0"><button type="button" class="btn-close" @click="showImagenModal = false"></button></div>
+            <div class="modal-body text-center"><vue-image-zoomer :regular="`data:${imageContent};base64,${imageBlob}`" :zoom="`data:${imageContent};base64,${imageBlob}`" /></div>
+          </div></div>
         </div>
       </div>
-
-      <div v-if="sucursal !== null && resumen.titulo" class="mb-4">
-        <h4 class="text-center text-muted mb-3">Mostrando resumen para: <strong>{{ resumen.titulo }}</strong></h4>
-        <b-row class="stats-row">
-          <b-col md="3"><b-card class="stat-card text-center"><h6 class="text-muted mb-1">Total en Cajero</h6><h2 class="mb-0">{{ formatCurrency(resumen.valor) }}</h2></b-card></b-col>
-          <b-col md="3"><b-card class="stat-card text-center"><h6 class="text-muted mb-1">Total Consignado</h6><h2 class="mb-0">{{ formatCurrency(resumen.consignacion) }}</h2></b-card></b-col>
-          <b-col md="3"><b-card class="stat-card text-center text-danger"><h6 class="text-muted mb-1">Pendiente por Saldar</h6><h2 class="mb-0">{{ formatCurrency(resumen.pendiente) }}</h2></b-card></b-col>
-          <b-col md="3"><b-card class="stat-card text-center"><h6 class="text-muted mb-1">Restante</h6><h2 class="mb-0">{{ formatCurrency(totalRestante) }}</h2></b-card></b-col>
-        </b-row>
-      </div>
-
-      <b-tabs active-nav-item-class="fw-bold text-uppercase text-danger" content-class="mt-3">
-        <b-tab title="Sucursales" active>
-          <div v-if="!consolidado.length && !isLoading" class="text-center text-muted mt-5"><p>Seleccione una Fecha para ver el consolidado.</p></div>
-          <div class="table-responsive card" v-if="consolidado.length">
-            <table class="table table-striped align-middle text-center mb-0">
-              <thead class="table-light">
-                <tr>
-                  <th>Sucursal</th><th># Transacciones</th><th>Valor Transado</th>
-                  <th>Pendiente</th><th>Saldado</th><th>Restante</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr v-for="row in consolidado" :key="row.codigo_incocredito">
-                  <td>{{ row.codigo_incocredito }}</td><td>{{ row.cuenta }}</td>
-                  <td>{{ formatCurrency(row.valor) }}</td><td>{{ formatCurrency(row.pendiente) }}</td>
-                  <td>{{ formatCurrency(row.saldado) }}</td><td>{{ formatCurrency(row.restante) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </b-tab>
-
-        <b-tab title="Todo">
-          <div v-if="!sucursal" class="text-center text-muted mt-5"><p>Seleccione una Sucursal para ver el detalle.</p></div>
-          <div v-else>
-            <div class="mb-3" style="max-width: 300px;">
-              <select class="form-select" v-model="bancoSeleccionado">
-                <option value="">-- Filtrar por categoría --</option>
-                <option v-for="banco in bancosDisponibles" :key="banco" :value="banco">{{ banco }}</option>
-              </select>
-            </div>
-            <DetalleConsignacionesTabla :consignaciones="paginatedTodo" :show-image-button="true" @view="mostrarInformacion" />
-            <div class="d-flex justify-content-center mt-3" v-if="totalTodoRows > perPage"><BPagination v-model="todoCurrentPage" :total-rows="totalTodoRows" :per-page="perPage" /></div>
-          </div>
-        </b-tab>
-
-        <b-tab title="Saldado">
-           <div v-if="!sucursal" class="text-center text-muted mt-5"><p>Seleccione una Sucursal para ver el detalle.</p></div>
-           <div v-else>
-            <DetalleConsignacionesTabla :consignaciones="paginatedSaldado" :show-image-button="true" @view="mostrarInformacion" />
-            <div class="d-flex justify-content-center mt-3" v-if="totalSaldadoRows > perPage"><BPagination v-model="saldadoCurrentPage" :total-rows="totalSaldadoRows" :per-page="perPage" /></div>
-           </div>
-        </b-tab>
-
-        <b-tab title="Resumen por Banco">
-          <div v-if="!sucursal" class="text-center text-muted mt-5"><p>Seleccione una Sucursal para ver el resumen.</p></div>
-          <div class="table-responsive card" v-if="sucursal && resumenPorBanco.length">
-            <table class="table table-bordered mb-0">
-              <thead class="table-light">
-                <tr><th>Categoría</th><th class="text-end">Total Pendiente</th></tr>
-              </thead>
-              <tbody>
-                <tr v-for="(item, index) in resumenPorBanco" :key="index">
-                  <td>{{ item.banco }}</td><td class="text-end">{{ formatCurrency(item.total) }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </b-tab>
-      </b-tabs>
-    </div>
-
-    <div v-if="showImagenModal" class="modal show d-block bg-dark bg-opacity-75">
-      <div class="modal-dialog modal-lg modal-dialog-centered"><div class="modal-content p-3">
-        <div class="modal-header border-0"><button type="button" class="btn-close" @click="showImagenModal = false"></button></div>
-        <div class="modal-body text-center"><vue-image-zoomer :regular="`data:${imageContent};base64,${imageBlob}`" :zoom="`data:${imageContent};base64,${imageBlob}`" /></div>
-      </div></div>
-    </div>
-  </div>
-</template>
+    </template>
 
 <script>
 import Loading from 'vue-loading-overlay';
@@ -159,47 +159,49 @@ export default {
     async filterSucursal() { if (this.sucursal === null) { this.resumen = {}; return; } this.isLoading = true; try { const path = backendRouter.data + 'resumen-corresponsal'; const response = await axios.post(path, { fecha: this.fecha, sucursal: this.sucursal }); this.resumen = response.data; } catch (error) { this.resumen = {}; console.error("Error en filterSucursal:", error); } finally { this.isLoading = false; } },
     descargarBanco() { const data = this.dataExcel; const fileName = 'reporte_banco.xlsx'; const workbook = XLSX.utils.book_new(); const worksheet = XLSX.utils.json_to_sheet(data); XLSX.utils.book_append_sheet(workbook, worksheet, 'Transacciones Banco'); XLSX.writeFile(workbook, fileName); },
     descargarCajero() {
-      if (!this.resumen.consignaciones || this.resumen.consignaciones.length === 0) {
-        this.$swal('Aviso', 'No hay datos para descargar.', 'info');
-        return;
-      }
+    // AHORA USAMOS LA NUEVA LISTA 'consignaciones_excel'
+    if (!this.resumen.consignaciones_excel || this.resumen.consignaciones_excel.length === 0) {
+      this.$swal('Aviso', 'No hay datos para descargar.', 'info');
+      return;
+    }
 
-      const dataToExport = this.resumen.consignaciones.map(item => ({
-        'ID': item.id,
-        'Valor': item.valor,
-        'Banco': item.banco,
-        'Fecha Consignacion': item.fecha_consignacion,
-        'Fecha Cierre': item.fecha,
-        'Responsable': item.responsable,
-        'Estado': item.estado,
-        'Detalle': item.detalle,
-        'URL Imagen': item.url,
-        'MIN': item.min || '',
-        'IMEI': item.imei || '',
-        'Planilla': item.planilla || ''
-      }));
+    // El resto del método usa la nueva lista y funciona igual
+    const dataToExport = this.resumen.consignaciones_excel.map(item => ({
+      'ID': item.id,
+      'Valor': item.valor,
+      'Banco': item.banco,
+      'Fecha Consignacion': item.fecha_consignacion,
+      'Fecha Cierre': item.fecha,
+      'Responsable': item.responsable,
+      'Estado': item.estado,
+      'Detalle': item.detalle,
+      'URL Imagen': item.url,
+      'MIN': item.min || '',
+      'IMEI': item.imei || '',
+      'Planilla': item.planilla || ''
+    }));
 
-      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-      const currencyColumns = ['Valor'];
-      const headers = Object.keys(dataToExport[0] || {});
-      const range = XLSX.utils.decode_range(worksheet['!ref']);
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const currencyColumns = ['Valor'];
+    const headers = Object.keys(dataToExport[0] || {});
+    const range = XLSX.utils.decode_range(worksheet['!ref']);
 
-      for (let R = range.s.r + 1; R <= range.e.r; ++R) {
-        for (let C = range.s.c; C <= range.e.c; ++C) {
-          const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
-          if (currencyColumns.includes(headers[C])) {
-            const cell = worksheet[cellAddress];
-            if (cell && cell.t === 'n') {
-              cell.z = '$ #,##0';
-            }
+    for (let R = range.s.r + 1; R <= range.e.r; ++R) {
+      for (let C = range.s.c; C <= range.e.c; ++C) {
+        const cellAddress = XLSX.utils.encode_cell({ r: R, c: C });
+        if (currencyColumns.includes(headers[C])) {
+          const cell = worksheet[cellAddress];
+          if (cell && cell.t === 'n') {
+            cell.z = '$ #,##0';
           }
         }
       }
+    }
 
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Consignaciones");
-      XLSX.writeFile(workbook, "reporte_cajero.xlsx");
-    },
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Consignaciones");
+    XLSX.writeFile(workbook, "reporte_cajero.xlsx");
+  },
     mostrarInformacion(detalle) { this.isLoading = true; const path = backendRouter.data + 'get-imagen-corresponsal'; axios.post(path, detalle).then((response) => { this.imageBlob = response.data.image; this.imageContent = response.data.content_type; this.showImagenModal = true; }).finally(() => { this.isLoading = false; }); },
   },
 };
