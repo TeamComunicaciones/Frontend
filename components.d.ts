@@ -7,8 +7,10 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    BarChart: typeof import('./src/components/Intranet/SidebarMenu/BarChart.vue')['default']
     Blog: typeof import('./src/components/MainPage/Blog/Blog.vue')['default']
     Carrito: typeof import('./src/components/MainPage/Carrito/Carrito.vue')['default']
+    FileUploadComponent: typeof import('./src/components/FileUploadComponent.vue')['default']
     IBiArrowRepeat: typeof import('~icons/bi/arrow-repeat')['default']
     IBiCart: typeof import('~icons/bi/cart')['default']
     IBiEnvelope: typeof import('~icons/bi/envelope')['default']

@@ -29,7 +29,8 @@ import ActaForm from '@/views/Intranet/Informes/ActaForm.vue';
 import ActasList from '@/views/Intranet/Informes/ActasList.vue';
 import patchNotes from '@/views/Intranet/Informes/patchNotes.vue';
 import UploadImage from '@/views/Intranet/Administrador/UploadImage.vue';
-import Tesoreria from '@/views/Intranet/Corresponsal/Tesoreria.vue'
+import Tesoreria from '@/views/Intranet/Corresponsal/Tesoreria.vue';
+import DashboardView from '@/views/Intranet/Informes/DashboardView.vue';
 
 
 
@@ -162,8 +163,8 @@ const router = createRouter({
     { path: '/actas', component: ActasList },
     { path: '/actas/nueva', component: ActaForm },
     { path: '/actas/:id/editar', component: ActaForm },   
-    { path: '/patch-notes', component: patchNotes }  
-
+    { path: '/patch-notes', component: patchNotes },  
+    { path: '/dashboard-view', component: DashboardView }  
   ],
 })
 

@@ -214,35 +214,26 @@ export default {
         this.$swal('Error', 'Debe seleccionar al menos una consignación.', 'error');
         return;
       }
-      const primeraSucursalNombre = this.seleccionados[0].sucursal_nombre;
-      const todasMismaSucursal = this.seleccionados.every(item => item.sucursal_nombre === primeraSucursalNombre);
-      if (!todasMismaSucursal) {
-        this.$swal('Error de Selección', 'Todas las consignaciones seleccionadas deben pertenecer a la misma sucursal.', 'error');
-        return;
-      }
-      const sucursalInfo = this.sucursales.find(s => s.text === primeraSucursalNombre);
-      if (!sucursalInfo) {
-        this.$swal('Error', `No se pudo encontrar el código para la sucursal: ${primeraSucursalNombre}`, 'error');
-        return;
-      }
-      const sucursalCodeParaEnviar = sucursalInfo.value;
+
       this.isLoading = true;
+
       const payload = {
         ids: this.seleccionados.map(item => item.id),
         saldar_data: this.saldar,
         jwt: this.$cookies.get('jwt'),
-        sucursal: sucursalCodeParaEnviar,
-        fecha: this.fecha,
       };
+
       try {
         const path = backendRouter.data + 'settle-invoice';
         await axios.post(path, payload);
+        
         this.$swal('Éxito', 'Consignaciones saldadas correctamente', 'success');
         this.showSaldarModal = false;
         this.seleccionados = [];
         this.saldar = { fechaConsignacion: '', detalle: '' };
         this.tableKey += 1;
         await this.filterData();
+
       } catch (error) {
         const errorMsg = error.response?.data?.detail || 'Ocurrió un error al saldar.';
         this.$swal('Error', errorMsg, 'error');

@@ -87,7 +87,15 @@
 import backendRouter from '@/components/BackendRouter/BackendRouter';
 import Loading from 'vue-loading-overlay';
 import axios from 'axios';
-import Chart from "chart.js";
+import { 
+  Chart as ChartJS, 
+  Title, 
+  Tooltip, 
+  Legend, 
+  BarElement, 
+  CategoryScale, 
+  LinearScale 
+} from 'chart.js'
 
   export default{
     data(){
