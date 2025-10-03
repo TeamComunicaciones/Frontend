@@ -148,7 +148,6 @@ import { authState } from '@/auth';
 export default {
   name: 'SidebarMenu',
   data() {
-    // ... tu data permanece igual
     return {
       isSidebarVisible: false,
       permisosCargados: false,
@@ -168,19 +167,7 @@ export default {
       form: { password: '', retrypassword: '' },
     };
   },
-  // --- AÑADIMOS UN WATCHER ---
-  watch: {
-    // Este observador se disparará cada vez que 'authState.isAuthenticated' cambie
-    'authState.isAuthenticated'(newValue, oldValue) {
-      console.log('Authentication state changed:', newValue);
-      // Si el nuevo valor es 'true' (el usuario acaba de iniciar sesión)
-      if (newValue === true && oldValue === false) {
-        this.validate(); // Volvemos a validar para cargar los permisos
-      }
-    }
-  },
   methods: {
-    // ... tus methods permanecen iguales
     toggleMenu(item) {
       this.menu[item] = !this.menu[item];
     },
@@ -194,7 +181,6 @@ export default {
         router.push('/login');
         return;
       }
-      this.permisosCargados = false; // Mostramos el spinner mientras carga
       axios.get(path, {
         headers: { 'Authorization': `Bearer ${token}` }
       }).then((response) => {
@@ -226,7 +212,7 @@ export default {
       });
     },
     logout() {
-      authState.logout(); // Ahora usamos el método centralizado
+      authState.logout();
       this.$router.push('/login');
     },
     getImageUrl(name) {
@@ -246,18 +232,10 @@ export default {
     },
   },
   created() {
-    // Si ya hay un token al cargar la página (caso F5), validamos
-    if (authState.isAuthenticated) {
-      this.validate();
-    }
+    this.validate();
   },
-  // --- AÑADIMOS ESTO PARA REFERENCIAR authState EN EL TEMPLATE SI FUERA NECESARIO ---
-  setup() {
-    return { authState };
-  }
 };
 </script>
-
 
 <style lang="scss" scoped>
 .sidebar {
