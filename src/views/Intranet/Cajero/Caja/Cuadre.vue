@@ -95,10 +95,11 @@
 
 <script>
 import Loading from 'vue-loading-overlay';
-import backendRouter from '@/components/BackendRouter/BackendRouter';
-import axios from 'axios';
+// Opcional: backendRouter ya no es necesario si todas las rutas son relativas a la baseURL de apiService
+// import backendRouter from '@/components/BackendRouter/BackendRouter'; 
 import Swal from 'sweetalert2';
 import { BFormInput, BButton, BPagination } from 'bootstrap-vue-next';
+import apiService from '@/services/apiService'; // ¡IMPORTANTE!
 
 export default {
   components: { Loading, BFormInput, BButton, BPagination },
@@ -116,7 +117,7 @@ export default {
       bancosPrincipales: [ 'Corresponsal Banco de Bogota', 'Saitemp', 'Proveedores', 'Otros bancos', 'Obligaciones financieras', 'Corresponsal Team (70981) Bancolombia', 'Corresponsal Elena (70988) Bancolombia', 'Impuestos', 'Volantes Sub', 'Volantes Agaval', 'Volantes venta grabada', 'Reclamaciones', 'Venta doble proposito' ],
       bancosDetalleOptions: ['Bancolombia', 'Bogotá', 'Caja social Team', 'Caja social NPA', 'Davivienda', 'Agrario', 'Adquirencias'],
       impuestosOptions: ['IVA', 'ReteIVA', 'Retefuente', 'ICA', 'Predial', 'Cámara de Comercio'],
-      proveedoresOptions: ['1Hora (HASTECK)', 'Polizas', 'Movictec Tecnología (Relojes)'],
+      proveedoresOptions: ['1Hora (HASTECK)', 'Polizas', 'Movictec Tecnología (Relojes)', 'Impresistem', 'Otros'],
       obligacionesOptions: ['Banco de Bogotá', 'Bancolombia', 'Caja Social', 'Davivienda', 'Banco Agrario'],
       detalleHeaders: [ { key: 'banco', label: 'Banco' }, { key: 'valor', label: 'Valor' }, { key: 'estado', label: 'Estado' }, ]
     };
@@ -135,20 +136,79 @@ export default {
     formatDate(dateString) { const options = { year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' }; return new Date(dateString).toLocaleDateString('es-CO', options); },
     toggleHistorico() { this.isHistoricoVisible = !this.isHistoricoVisible; },
     getHistoricoPendientes() {
-      const path = backendRouter.data + 'historico-pendientes-cajero';
-      const token = this.$cookies.get('jwt');
-      axios.get(path, { headers: { 'Authorization': `Bearer ${token}` } })
-      .then(response => { this.historicoPendientes = response.data; this.historicoCurrentPage = 1; })
-      .catch(error => { console.error("Error al obtener el histórico:", error); });
+      apiService.get('historico-pendientes-cajero')
+        .then(response => { this.historicoPendientes = response.data; this.historicoCurrentPage = 1; })
+        .catch(error => { console.error("Error al obtener el histórico:", error); });
     },
     toggleZoom(event) { if (!this.zoomed) { const rect = this.$refs.imagen.getBoundingClientRect(); const x = ((event.clientX - rect.left) / rect.width) * 100; const y = ((event.clientY - rect.top) / rect.height) * 100; this.zoomStyles = { transform: 'scale(2.5)', transformOrigin: `${x}% ${y}%` }; this.zoomed = true; } else { this.zoomStyles = {}; this.zoomed = false; } },
     panImage(event) { if (!this.zoomed) return; const rect = this.$refs.zoomContainer.getBoundingClientRect(); const x = ((event.clientX - rect.left) / rect.width) * 100; const y = ((event.clientY - rect.top) / rect.height) * 100; this.zoomStyles.transformOrigin = `${x}% ${y}%`; },
     cerrarImagenModal() { this.showImagenModal = false; this.zoomed = false; this.zoomStyles = {}; },
-    getData() { if (!this.fecha) return; this.isLoading = true; const path = backendRouter.data + 'select-datos-corresponsal-cajero'; const data = { fecha: this.fecha, jwt: this.$cookies.get('jwt') }; axios.post(path, data).then((response) => { this.total = response.data.total || 0; this.sucursal = response.data.sucursal; this.boton = true; this.getDataConsignaciones(); }).catch((error) => { this.$swal('Error', error.response?.data?.error || 'No se pudieron cargar los datos.', 'error'); this.isLoading = false; }); },
-    getDataConsignaciones() { if (!this.fecha || !this.sucursal) return; const path = backendRouter.data + 'select-consignaciones-corresponsal-cajero'; const data = { fecha: this.fecha, sucursal: this.sucursal }; axios.post(path, data).then((response) => { this.consignaciones = response.data.total || 0; this.detalleConsignaciones = response.data.detalles; }).catch(() => { this.$swal('Error', 'No se pudieron cargar los detalles de consignaciones.', 'error'); }).finally(() => { this.isLoading = false; }); },
-    mostrarInformacion(detalle) { this.isLoading = true; const path = backendRouter.data + 'get-imagen-corresponsal'; axios.post(path, detalle).then((response) => { this.imageBlob = response.data.image; this.imageContent = response.data.content_type; this.showImagenModal = true; }).finally(() => { this.isLoading = false; }); },
+    getData() {
+      if (!this.fecha) return;
+      this.isLoading = true;
+      const data = { fecha: this.fecha };
+      apiService.post('select-datos-corresponsal-cajero', data)
+        .then((response) => {
+          this.total = response.data.total || 0;
+          this.sucursal = response.data.sucursal;
+          this.boton = true;
+          this.getDataConsignaciones();
+        })
+        .catch((error) => {
+          this.$swal('Error', error.response?.data?.error || 'No se pudieron cargar los datos.', 'error');
+          this.isLoading = false;
+        });
+    },
+    getDataConsignaciones() {
+      if (!this.fecha || !this.sucursal) return;
+      const data = { fecha: this.fecha, sucursal: this.sucursal };
+      apiService.post('select-consignaciones-corresponsal-cajero', data)
+        .then((response) => {
+          this.consignaciones = response.data.total || 0;
+          this.detalleConsignaciones = response.data.detalles;
+        })
+        .catch(() => { this.$swal('Error', 'No se pudieron cargar los detalles de consignaciones.', 'error'); })
+        .finally(() => { this.isLoading = false; });
+    },
+    mostrarInformacion(detalle) {
+      this.isLoading = true;
+      apiService.post('get-imagen-corresponsal', detalle)
+        .then((response) => {
+          this.imageBlob = response.data.image;
+          this.imageContent = response.data.content_type;
+          this.showImagenModal = true;
+        })
+        .finally(() => { this.isLoading = false; });
+    },
     onFileChange(event) { this.image = event.target.files[0]; },
-    async uploadConsignacion() { if (this.consignacion.valor > this.total) { Swal.fire('Error', 'El valor a consignar no puede ser mayor al "Total en Cajero".', 'error'); return; } const specialCases = ['Reclamaciones', 'Corresponsal Banco de Bogota']; this.consignacion.estado = specialCases.includes(this.consignacion.banco) ? 'saldado' : 'pendiente'; if (this.consignacion.banco === 'Venta doble proposito' && (!this.consignacion.min || !this.consignacion.imei || !this.consignacion.planilla)) { Swal.fire('Error', 'Debe llenar los campos MIN, IMEI y planilla.', 'error'); return; } this.isSubmitting = true; this.isLoading = true; const formData = new FormData(); formData.append('image', this.image); formData.append('data', JSON.stringify(this.consignacion)); formData.append('fecha', this.fecha); formData.append('jwt', this.$cookies.get('jwt')); formData.append('sucursal', this.sucursal); const path = backendRouter.data + 'consignacion-corresponsal'; try { await axios.post(path, formData, { headers: { 'Content-Type': 'multipart/form-data' } }); this.showConsignacionModal = false; this.getData(); this.getHistoricoPendientes(); Swal.fire('Éxito', 'Consignación guardada con éxito', 'success'); } catch (error) { Swal.fire('Error', 'Ocurrió un error al guardar la consignación.', 'error'); } finally { this.isLoading = false; this.isSubmitting = false; } }
+    async uploadConsignacion() {
+      if (this.consignacion.valor > this.total) { Swal.fire('Error', 'El valor a consignar no puede ser mayor al "Total en Cajero".', 'error'); return; }
+      const specialCases = ['Reclamaciones', 'Corresponsal Banco de Bogota'];
+      this.consignacion.estado = specialCases.includes(this.consignacion.banco) ? 'saldado' : 'pendiente';
+      if (this.consignacion.banco === 'Venta doble proposito' && (!this.consignacion.min || !this.consignacion.imei || !this.consignacion.planilla)) { Swal.fire('Error', 'Debe llenar los campos MIN, IMEI y planilla.', 'error'); return; }
+      
+      this.isSubmitting = true;
+      this.isLoading = true;
+      
+      const formData = new FormData();
+      formData.append('image', this.image);
+      formData.append('data', JSON.stringify(this.consignacion));
+      formData.append('fecha', this.fecha);
+      formData.append('sucursal', this.sucursal);
+      
+      try {
+        await apiService.post('consignacion-corresponsal', formData);
+        this.showConsignacionModal = false;
+        this.getData();
+        this.getHistoricoPendientes();
+        Swal.fire('Éxito', 'Consignación guardada con éxito', 'success');
+      } catch (error) {
+        Swal.fire('Error', 'Ocurrió un error al guardar la consignación.', 'error');
+      } finally {
+        this.isLoading = false;
+        this.isSubmitting = false;
+      }
+    }
   },
   created() {
     this.getData();

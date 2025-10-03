@@ -1,30 +1,39 @@
 // src/services/apiService.js
 import axios from 'axios';
+import VueCookies from 'vue-cookies';
+import backendRoute from '@/components/BackendRouter/BackendRouter'; // 1. Se importa la ruta
 
-const apiService = {
-  get(url, token) {
-    return axios.get(url, {
-      headers: { Authorization: `Token ${token}` }
-    });
+// Creamos una instancia de Axios con la URL base DINÁMICA
+const apiClient = axios.create({
+  baseURL: backendRoute.data // 2. Se usa la ruta importada
+});
+
+// El interceptor permanece exactamente igual
+apiClient.interceptors.request.use(
+  (config) => {
+    const token = VueCookies.get('jwt');
+    if (token) {
+      config.headers['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  }, 
+  (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// La exportación de métodos permanece igual
+export default {
+  get(endpoint) {
+    return apiClient.get(endpoint);
   },
-
-  post(url, data, token) {
-    return axios.post(url, data, {
-      headers: { Authorization: `Token ${token}` }
-    });
+  post(endpoint, data) {
+    return apiClient.post(endpoint, data);
   },
-
-  put(url, data, token) {
-    return axios.put(url, data, {
-      headers: { Authorization: `Token ${token}` }
-    });
+  put(endpoint, data) {
+    return apiClient.put(endpoint, data);
   },
-
-  delete(url, token) {
-    return axios.delete(url, {
-      headers: { Authorization: `Token ${token}` }
-    });
+  delete(endpoint) {
+    return apiClient.delete(endpoint);
   }
 };
-
-export default apiService;

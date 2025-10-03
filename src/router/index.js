@@ -31,8 +31,9 @@ import patchNotes from '@/views/Intranet/Informes/patchNotes.vue';
 import UploadImage from '@/views/Intranet/Administrador/UploadImage.vue';
 import Tesoreria from '@/views/Intranet/Corresponsal/Tesoreria.vue';
 import DashboardView from '@/views/Intranet/Informes/DashboardView.vue';
-
-
+import ConsultaPDV from '@/views/Intranet/Consultas/ConsultaPDV.vue';
+import DashboardAsesor from '@/views/Intranet/Consultas/DashboardAsesor.vue';
+import PanelAdmin from '@/views/Intranet/Consultas/PanelAdmin.vue';
 
 
 const router = createRouter({
@@ -164,7 +165,10 @@ const router = createRouter({
     { path: '/actas/nueva', component: ActaForm },
     { path: '/actas/:id/editar', component: ActaForm },   
     { path: '/patch-notes', component: patchNotes },  
-    { path: '/dashboard-view', component: DashboardView }  
+    { path: '/dashboard-view', component: DashboardView },
+    { path: '/consulta-pdv', component: ConsultaPDV },
+    { path: '/dashboard-asesor', component: DashboardAsesor },
+    { path: '/Admin-consultas', component: PanelAdmin }
   ],
 })
 

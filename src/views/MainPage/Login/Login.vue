@@ -18,13 +18,6 @@
               <div class="form-group">
                 <input type="password" name="password" class="form-control input_pass" placeholder="Contraseña" v-model.trim="form.password">
               </div>
-              <!-- <div class="form-group d-flex justify-content-between align-items-center links-forgot">
-                <div class="d-flex align-items-center">
-                  <input type="checkbox" class="form-check-input" id="rememberMe">
-                  <label class="form-check-label ml-2" for="rememberMe">Recuérdame</label>
-                </div>
-                <a href="#" class="forgot-password">Olvidé mi contraseña</a>
-              </div> -->
               <button type="submit" name="button" class="btn login_btn">Ingresar</button>
             </form>
           </div>
@@ -38,7 +31,7 @@
       </div>
       <div class="col-md-6 col-12 d-flex flex-column h-100">
           <div class="img-destacada">
-           <img :src="form.imgUrl" alt="Imagen destacada del login" />
+            <img :src="form.imgUrl" alt="Imagen destacada del login" />
           </div>
       </div>
     </div>
@@ -46,11 +39,12 @@
 </template>
 
 <script>
-import axios from 'axios'
-import router from '../../../router'
-import Swal from 'sweetalert2'
-import backendRouter from '@/components/BackendRouter/BackendRouter'
-import { authState } from '@/auth';
+import axios from 'axios';
+import router from '../../../router'; // Asegúrate de que la ruta al router sea la correcta
+import Swal from 'sweetalert2';
+import backendRouter from '@/components/BackendRouter/BackendRouter';
+// La línea de authState ya no parece necesaria si el interceptor maneja el estado
+// import { authState } from '@/auth'; 
 
 export default {
   data() {
@@ -74,17 +68,28 @@ export default {
     }
   },
   methods: {
-    logineo() {
+    async logineo() {
       const path = backendRouter.data + 'login';
       const access = {
         email: this.form.username,
         password: this.form.password,
       };
-      axios.post(path, access).then((response) => {
-        this.$cookies.set('jwt', response.data.jwt);
-        authState.login();
-        router.push('/home');
-      }).catch((error) => {
+
+      try {
+        const response = await axios.post(path, access);
+        const token = response.data.jwt;
+
+        if (token) {
+          // 1. Guardamos el token en las cookies
+          this.$cookies.set('jwt', token);
+          
+          // 2. CAMBIO: Navegamos con el router de Vue para evitar recargar la página
+          router.push('/home');
+        } else {
+          throw new Error('No se recibió un token del servidor.');
+        }
+
+      } catch (error) {
         Swal.fire({
           icon: 'error',
           title: 'Error de autenticación',
@@ -94,7 +99,7 @@ export default {
           },
           buttonsStyling: false,
         });
-      });
+      }
     },
   },
 }
