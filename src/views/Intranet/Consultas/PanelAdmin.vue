@@ -16,6 +16,9 @@
           <li class="nav-item" role="presentation">
             <button class="nav-link" data-bs-toggle="tab" data-bs-target="#reportes-pane" type="button" role="tab">Reportes y Gráficas</button>
           </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" data-bs-toggle="tab" data-bs-target="#config-pane" type="button" role="tab">Configuración</button>
+          </li>
         </ul>
 
         <div class="tab-content p-4 p-md-5" id="adminTabContent">
@@ -125,12 +128,21 @@
                       <label for="filtroEstados" class="form-label fw-bold">Estados</label>
                       <v-select multiple id="filtroEstados" placeholder="Todos los estados" v-model="reportFilters.estados" :options="filterOptions.estados" />
                     </div>
-                    <div class="col-12 d-grid">
+                    
+                    <div class="col-md-6 d-grid">
                       <button class="btn btn-danger" @click="generarReporte">
                         <span v-if="isLoadingReports" class="spinner-border spinner-border-sm me-2"></span>
                         {{ isLoadingReports ? 'Generando...' : 'Generar Reporte' }}
                       </button>
                     </div>
+                    <div class="col-md-6 d-grid">
+                      <button class="btn btn-success" @click="exportarExcel" v-if="reportData" :disabled="isLoadingExport">
+                        <span v-if="isLoadingExport" class="spinner-border spinner-border-sm me-2"></span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-excel-fill me-1" viewBox="0 0 16 16"><path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1M5.884 6.68 8 9.219l2.116-2.54a.5.5 0 1 1 .768.641L8.651 10l2.233 2.68a.5.5 0 0 1-.768.64L8 10.781l-2.116 2.54a.5.5 0 0 1-.768-.641L7.349 10 5.116 7.32a.5.5 0 1 1 .768-.64z"/></svg>
+                        {{ isLoadingExport ? 'Exportando...' : 'Exportar a Excel' }}
+                      </button>
+                    </div>
+
                   </div>
                 </fieldset>
               </div>
@@ -171,6 +183,29 @@
                 </div>
               </div>
 
+              <div class="row g-4 mb-4">
+                <div class="col-lg-7">
+                  <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                      <h5 class="card-title text-muted mb-3">Valor Total por Método de Pago</h5>
+                      <div style="position: relative; height: 350px;">
+                        <Bar :data="metodoValorChartData" :options="chartOptions" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div class="col-lg-5">
+                  <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                      <h5 class="card-title text-muted mb-3">Distribución de Uso (Cantidad)</h5>
+                      <div style="position: relative; height: 350px;">
+                        <Doughnut :data="metodoCantidadChartData" :options="chartOptions" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div class="row g-4">
                 <div class="col-12">
                   <div class="card shadow-sm h-100">
@@ -190,6 +225,39 @@
               <p>Usa los filtros de arriba y haz clic en "Generar Reporte" para visualizar los datos.</p>
             </div>
           </div>
+
+          <div class="tab-pane fade" id="config-pane" role="tabpanel">
+            <h2 class="h3 mb-4">Ajustes Generales del Sistema</h2>
+            <div class="row">
+              <div class="col-md-8 col-lg-6">
+                <div class="card shadow-sm">
+                  <div class="card-body">
+                    <h5 class="card-title mb-1">Fecha de Corte Mensual</h5>
+                    <p class="card-text text-muted mb-3">Establece el día del mes en que se procesarán las comisiones. Este valor se repetirá mensualmente.</p>
+                    <div class="mb-3">
+                      <label for="diaCorte" class="form-label fw-bold">Día de Corte (1-31)</label>
+                      <input 
+                        type="number" 
+                        class="form-control" 
+                        id="diaCorte" 
+                        v-model.number="fechaCorteDia"
+                        min="1"
+                        max="31"
+                        placeholder="Ej: 25"
+                      >
+                    </div>
+                    <div class="d-grid">
+                      <button class="btn btn-danger" @click="guardarFechaCorte" :disabled="isSavingCorte">
+                        <span v-if="isSavingCorte" class="spinner-border spinner-border-sm me-2"></span>
+                        {{ isSavingCorte ? 'Guardando...' : 'Guardar Cambios' }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
@@ -250,6 +318,7 @@ const uploadFile = async () => {
   try {
     const response = await axios.post(path, formData, { headers });
     uploadResult.value = { success: true, message: response.data.mensaje };
+    Swal.fire('Éxito', response.data.mensaje, 'success');
   } catch (error) {
     if (error.response && error.response.data) {
       uploadResult.value = { success: false, errors: error.response.data.errores || [error.response.data.error] };
@@ -327,6 +396,7 @@ const updateAsesorRuta = async (user) => {
 
 // --- Lógica para Reportes y Gráficas ---
 const isLoadingReports = ref(false);
+const isLoadingExport = ref(false);
 const reportFilters = reactive({
   range: [new Date(new Date().setMonth(new Date().getMonth() - 1)), new Date()],
   rutas: [],
@@ -370,6 +440,96 @@ const generarReporte = async () => {
   }
 };
 
+const exportarExcel = async () => {
+  isLoadingExport.value = true;
+
+  const params = new URLSearchParams();
+  if (reportFilters.range && reportFilters.range[0] && reportFilters.range[1]) {
+    params.append('fecha_inicio', reportFilters.range[0].toISOString().split('T')[0]);
+    params.append('fecha_fin', reportFilters.range[1].toISOString().split('T')[0]);
+  }
+  reportFilters.rutas.forEach(ruta => params.append('rutas', ruta));
+  reportFilters.estados.forEach(estado => params.append('estados', estado));
+
+  try {
+    const path = `${backendRouter.data}admin/exportar-reporte/?${params.toString()}`;
+    
+    const response = await axios.get(path, { 
+      headers: authHeaders,
+      responseType: 'blob' 
+    });
+
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+
+    const contentDisposition = response.headers['content-disposition'];
+    let fileName = 'reporte_comisiones.xlsx';
+    if (contentDisposition) {
+        const fileNameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (fileNameMatch && fileNameMatch.length === 2)
+            fileName = fileNameMatch[1];
+    }
+    
+    link.setAttribute('download', fileName);
+    document.body.appendChild(link);
+    link.click();
+
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+
+  } catch (error) {
+    console.error("Error al exportar a Excel:", error);
+    Swal.fire('Error', 'No se pudo generar el archivo Excel.', 'error');
+  } finally {
+    isLoadingExport.value = false;
+  }
+};
+
+// --- Lógica para Configuración ---
+const fechaCorteDia = ref(25);
+const isSavingCorte = ref(false);
+
+const fetchFechaCorte = async () => {
+  try {
+    const path = `${backendRouter.data}admin/fecha-corte/`;
+    const response = await axios.get(path, { headers: authHeaders });
+    fechaCorteDia.value = parseInt(response.data.dia, 10);
+  } catch (error) {
+    console.error("Error al cargar la fecha de corte:", error);
+    Swal.fire('Error', 'No se pudo cargar la configuración de fecha de corte.', 'error');
+  }
+};
+
+const guardarFechaCorte = async () => {
+  if (!fechaCorteDia.value || fechaCorteDia.value < 1 || fechaCorteDia.value > 31) {
+    Swal.fire('Dato Inválido', 'Por favor, introduce un número entre 1 y 31.', 'warning');
+    return;
+  }
+  
+  isSavingCorte.value = true;
+  try {
+    const path = `${backendRouter.data}admin/fecha-corte/`;
+    const data = { dia: fechaCorteDia.value };
+    const response = await axios.post(path, data, { headers: authHeaders });
+
+    Swal.fire({
+      icon: 'success',
+      title: '¡Guardado!',
+      text: response.data.mensaje,
+      timer: 2000,
+      showConfirmButton: false
+    });
+  } catch (error) {
+    const errorMessage = error.response?.data?.error || 'Ocurrió un error inesperado al guardar.';
+    Swal.fire('Error', errorMessage, 'error');
+  } finally {
+    isSavingCorte.value = false;
+  }
+};
+
+
+// --- Computadas para Gráficos ---
 const chartOptions = { responsive: true, maintainAspectRatio: false };
 const lineChartOptions = computed(() => ({
   ...chartOptions,
@@ -423,11 +583,56 @@ const picosMensualesChartData = computed(() => {
   };
 });
 
+const metodoValorChartData = computed(() => {
+  const data = reportData.value?.charts?.metodos_pago || [];
+  return {
+    labels: data.map(item => item.metodo),
+    datasets: [{
+      label: 'Valor Total Pagado por Método',
+      data: data.map(item => item.total_valor),
+      backgroundColor: [
+        'rgba(223, 17, 21, 0.7)',
+        'rgba(23, 162, 184, 0.7)',
+        'rgba(40, 167, 69, 0.7)',
+        'rgba(255, 193, 7, 0.7)',
+        'rgba(108, 117, 125, 0.7)',
+      ],
+      borderColor: [
+        '#DF1115',
+        '#17a2b8',
+        '#28a745',
+        '#ffc107',
+        '#6c757d',
+      ],
+      borderWidth: 1
+    }]
+  };
+});
+
+const metodoCantidadChartData = computed(() => {
+  const data = reportData.value?.charts?.metodos_pago || [];
+  return {
+    labels: data.map(item => `${item.metodo} (${item.total_cantidad})`),
+    datasets: [{
+      data: data.map(item => item.total_cantidad),
+      backgroundColor: [
+        '#DF1115',
+        '#17a2b8',
+        '#28a745',
+        '#ffc107',
+        '#6c757d',
+      ],
+      hoverOffset: 4
+    }]
+  };
+});
+
 // --- Ciclo de Vida ---
 onMounted(() => {
   fetchPermissionsData().then(() => {
     fetchFilterOptions();
   });
+  fetchFechaCorte(); 
 });
 </script>
 
