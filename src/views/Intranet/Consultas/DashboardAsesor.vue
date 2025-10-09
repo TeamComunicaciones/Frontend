@@ -12,12 +12,19 @@
             <div class="row g-3 align-items-end">
               <div class="col-md-4">
                 <label for="filtroPdv" class="form-label fw-bold">Punto de Venta</label>
-                <select id="filtroPdv" class="form-select" v-model="filters.idpos">
-                  <option value="todos">-- Todos mis PDV --</option>
-                  <option v-for="pdv in puntosDeVenta" :key="pdv.idpos" :value="pdv.idpos">
-                    {{ pdv.punto_de_venta }} ({{ pdv.idpos }})
-                  </option>
-                </select>
+                <v-select
+                  id="filtroPdv"
+                  v-model="filters.idpos"
+                  placeholder="Buscar por nombre o ID..."
+                  :options="pdvOptions"
+                  :get-option-label="(option) => `${option.punto_de_venta} (${option.idpos})`"
+                  :reduce="(option) => option.idpos"
+                  :clearable="false"
+                >
+                  <template #no-options>
+                    No se encontraron puntos de venta.
+                  </template>
+                </v-select>
               </div>
               <div class="col-md-6">
                 <label for="filtroMes" class="form-label fw-bold">Mes del Reporte</label>
@@ -59,6 +66,28 @@
             </div>
         </div>
         
+        <div class="row g-4 mb-4">
+          <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h5 class="card-title text-muted">Valor Total por Método de Pago (Filtro)</h5>
+                <div style="position: relative; height: 300px;">
+                  <Bar :data="metodoValorChartData" :options="barChartOptions" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h5 class="card-title text-muted">Uso de Métodos de Pago (Filtro)</h5>
+                <div style="position: relative; height: 300px;">
+                  <Doughnut :data="metodoCantidadChartData" :options="pieChartOptions" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="row mb-4">
             <div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body"><h5 class="card-title text-muted">Comparativa Mes Actual vs Anterior</h5><div class="row g-2 align-items-end mb-3"><div class="col-md-10"><label for="pdvSelector" class="form-label small">Añadir Puntos de Venta a la Comparativa:</label><v-select id="pdvSelector" multiple placeholder="Busca y selecciona uno o más PDV..." v-model="comparativeFilters.selectedPdvs" :options="comparativeOptions" :get-option-label="(option) => option.punto_de_venta" :reduce="(option) => option.punto_de_venta"><template #no-options>No hay PDV para mostrar.</template></v-select></div><div class="col-md-2 d-grid"><button class="btn btn-secondary" @click="fetchComparativeData" :disabled="isLoadingComparative"><span v-if="isLoadingComparative" class="spinner-border spinner-border-sm"></span><span v-else>Actualizar</span></button></div></div><div v-if="comparativeChartData.labels.length > 0"><Bar :data="comparativeChartData" :options="comparativeChartOptions" /></div><div v-else class="text-center p-4 text-muted"><p>No hay datos comparativos para mostrar.</p></div></div></div></div>
         </div>
@@ -78,13 +107,13 @@
           </div>
           <div class="card-body pt-0">
             <div class="table-responsive">
-              <table class="table table-sm table-striped table-hover">
+              <table class="table table-hover">
                 <thead>
                   <tr>
                     <th class="text-center"><input type="checkbox" class="form-check-input" @change="toggleSelectAll" :checked="isAllSelected"></th>
                     <th>Mes Pago</th>
                     <th>Asesor</th>
-                    <th>Producto</th>
+                    <th>Detalle</th>
                     <th class="text-end">Valor Comisión</th>
                     <th class="text-center">Estado</th>
                   </tr>
@@ -122,41 +151,50 @@
     </div>
 
     <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="paymentModalLabel">Confirmar Pago de Comisiones</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="mb-3 p-3 border rounded bg-light">
-                        <div class="d-flex justify-content-between">
-                            <span>Total Comisiones Seleccionadas:</span>
-                            <strong>{{ formatCurrency(subtotalSeleccionado) }}</strong>
-                        </div>
-                        <hr class="my-2">
-                        <div class="d-flex justify-content-between">
-                            <span>Total Ingresado:</span>
-                            <strong>{{ formatCurrency(totalIngresado) }}</strong>
-                        </div>
-                        <hr class="my-2">
-                        <div class="d-flex justify-content-between fs-5" :class="restanteClass">
-                            <strong>Restante:</strong>
-                            <strong>{{ formatCurrency(restante) }}</strong>
+                    <div class="card bg-light border-0 mb-4">
+                        <div class="card-body p-2 p-md-3">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
+                                    <span>Total a Pagar:</span>
+                                    <strong class="fs-5">{{ formatCurrency(subtotalSeleccionado) }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
+                                    <span>Total Ingresado:</span>
+                                    <strong class="fs-5">{{ formatCurrency(totalIngresado) }}</strong>
+                                </li>
+                                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 fw-bold fs-5" :class="restanteClass">
+                                    <span>Restante:</span>
+                                    <span>{{ formatCurrency(restante) }}</span>
+                                </li>
+                            </ul>
                         </div>
                     </div>
-                    <h6 class="mt-4">Métodos de Pago</h6>
-                    <div v-for="(value, key) in paymentMethods" :key="key" class="input-group mb-2">
-                        <div class="input-group-text">
-                            <input class="form-check-input mt-0" type="checkbox" @change="togglePaymentMethod(key)" v-model="paymentMethodsEnabled[key]">
+                    
+                    <h6 class="mb-3">Desglose del Pago</h6>
+                    <div class="row">
+                        <div v-for="(value, key) in paymentMethods" :key="key" class="col-12 mb-3">
+                            <div class="input-group">
+                                <div class="input-group-text">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" role="switch" :id="'switch-' + key" v-model="paymentMethodsEnabled[key]" @change="togglePaymentMethod(key)">
+                                    </div>
+                                </div>
+                                <label :for="'switch-' + key" class="input-group-text flex-grow-1">{{ key }}</label>
+                                <input type="number" class="form-control" placeholder="0" v-model.number="paymentMethods[key]" :disabled="!paymentMethodsEnabled[key]">
+                            </div>
                         </div>
-                        <span class="input-group-text" style="width: 150px;">{{ key }}</span>
-                        <input type="number" class="form-control" v-model.number="paymentMethods[key]" :disabled="!paymentMethodsEnabled[key]">
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-success" @click="handlePayment" :disabled="isPaying">
+                    <button type="button" class="btn btn-success" @click="handlePayment">
                         <span v-if="isPaying" class="spinner-border spinner-border-sm"></span>
                         <span v-else>Confirmar y Pagar</span>
                     </button>
@@ -177,7 +215,6 @@ import 'vue-select/dist/vue-select.css';
 import { Bar, Doughnut } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale } from 'chart.js';
 
-// CAMBIO: Se importa el servicio centralizado de API en lugar de 'axios'
 import apiService from '@/services/apiService';
 import backendRouter from '@/components/BackendRouter/BackendRouter';
 
@@ -186,13 +223,9 @@ ChartJS.register(Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, 
 const { cookies } = useCookies();
 const router = useRouter();
 
-// Se mantiene la validación inicial. Si no hay token, se redirige.
 if (!cookies.get('jwt')) {
     router.push('/login');
 }
-
-// CAMBIO: Se elimina la creación manual de 'token' y 'headers'. 
-// El interceptor en 'apiService.js' lo maneja todo.
 
 const filters = reactive({ 
     idpos: 'todos', 
@@ -221,6 +254,13 @@ const paymentMethodsEnabled = reactive({
     'Sim card recargada': false, 'Recarga': false, 'Accesorios': false,
     'Equipos': false, 'Cartera': false, 'Acumulado': false
 });
+
+const resetPaymentForm = () => {
+    for (const key in paymentMethods) {
+        paymentMethods[key] = 0;
+        paymentMethodsEnabled[key] = false;
+    }
+};
 
 const togglePaymentMethod = (key) => {
     if (!paymentMethodsEnabled[key]) {
@@ -279,6 +319,11 @@ const comparativeOptions = computed(() => {
     return [totalRutaOption, ...puntosDeVenta.value];
 });
 
+const pdvOptions = computed(() => {
+  const todosOption = { punto_de_venta: '-- Todos mis PDV --', idpos: 'todos' };
+  return [todosOption, ...puntosDeVenta.value];
+});
+
 watch(() => [...comparativeFilters.selectedPdvs], (newSelection, oldSelection) => {
     if (newSelection.length === 0 || newSelection.length === oldSelection.length) return;
     const lastSelectedItem = newSelection.find(item => !oldSelection.includes(item));
@@ -304,6 +349,7 @@ const formatMonthYear = (dateString) => {
     return date.toLocaleDateString('es-CO', { month: 'long', year: 'numeric', timeZone: 'UTC' });
 };
 
+// --- INICIO: LÓGICA DE GRÁFICOS ---
 const baseFont = { family: 'Poppins', size: 12, weight: 500 };
 const doughnutChartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { ...baseFont } } }, cutout: '60%' };
 
@@ -326,6 +372,84 @@ const comparativeChartOptions = computed(() => ({
         }
     }
 }));
+
+const doughnutChartData = computed(() => {
+    const chartInfo = reportData.value?.chart_data?.distribucion_estado || [];
+    const colorMap = { 'Acumulada': '#17a2b8', 'Pagada': '#28a745', 'Pendiente': '#ffc107' };
+    const labels = chartInfo.map(item => item.estado);
+    return { labels, datasets: [{ label: 'Número de Comisiones', data: chartInfo.map(item => item.count), backgroundColor: labels.map(e => colorMap[e] || '#6c757d') }] };
+});
+
+const comparativeChartData = computed(() => {
+    const chartInfo = comparativeData.value || [];
+    return { labels: chartInfo.map(item => item.punto_de_venta), datasets: [{ label: 'Mes Anterior', data: chartInfo.map(item => item.total_mes_anterior || 0), backgroundColor: '#6c757d' }, { label: 'Mes Actual', data: chartInfo.map(item => item.total_mes_actual || 0), backgroundColor: '#DF1115' }] }
+});
+
+const barChartOptions = computed(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { display: false } },
+    scales: {
+        y: {
+            ticks: {
+                ...baseFont,
+                callback: (value) => new Intl.NumberFormat('es-CO', { notation: 'compact', compactDisplay: 'short' }).format(value)
+            },
+            grid: { color: '#e9ecef' }
+        },
+        x: {
+            ticks: { ...baseFont },
+            grid: { display: false }
+        }
+    }
+}));
+
+const pieChartOptions = computed(() => ({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+        legend: {
+            position: 'right',
+            labels: { ...baseFont }
+        }
+    }
+}));
+
+const metodoValorChartData = computed(() => {
+  const data = reportData.value?.chart_data?.metodos_pago || [];
+  return {
+    labels: data.map(item => item.metodo),
+    datasets: [{
+      label: 'Valor Total Pagado',
+      data: data.map(item => item.total_valor),
+      backgroundColor: [
+        'rgba(223, 17, 21, 0.7)',
+        'rgba(23, 162, 184, 0.7)',
+        'rgba(40, 167, 69, 0.7)',
+        'rgba(255, 193, 7, 0.7)',
+        'rgba(108, 117, 125, 0.7)',
+        'rgba(102, 16, 242, 0.7)',
+      ],
+      borderWidth: 1
+    }]
+  };
+});
+
+const metodoCantidadChartData = computed(() => {
+  const data = reportData.value?.chart_data?.metodos_pago || [];
+  return {
+    labels: data.map(item => `${item.metodo}`),
+    datasets: [{
+      data: data.map(item => item.total_cantidad),
+      backgroundColor: [
+        '#DF1115', '#17a2b8', '#28a745', '#ffc107', '#6c757d', '#6610f2'
+      ],
+      hoverOffset: 4
+    }]
+  };
+});
+// --- FIN: LÓGICA DE GRÁFICOS ---
+
 
 const fetchPdvFiltro = async () => {
     try {
@@ -377,18 +501,6 @@ const fetchComparativeData = async () => {
     finally { isLoadingComparative.value = false; }
 };
 
-const doughnutChartData = computed(() => {
-    const chartInfo = reportData.value?.chart_data?.distribucion_estado || [];
-    const colorMap = { 'Acumulada': '#17a2b8', 'Pagada': '#28a745', 'Pendiente': '#ffc107' };
-    const labels = chartInfo.map(item => item.estado);
-    return { labels, datasets: [{ label: 'Número de Comisiones', data: chartInfo.map(item => item.count), backgroundColor: labels.map(e => colorMap[e] || '#6c757d') }] };
-});
-
-const comparativeChartData = computed(() => {
-    const chartInfo = comparativeData.value || [];
-    return { labels: chartInfo.map(item => item.punto_de_venta), datasets: [{ label: 'Mes Anterior', data: chartInfo.map(item => item.total_mes_anterior || 0), backgroundColor: '#6c757d' }, { label: 'Mes Actual', data: chartInfo.map(item => item.total_mes_actual || 0), backgroundColor: '#DF1115' }] }
-});
-
 const handlePayment = async () => {
     isPaying.value = true;
     
@@ -418,7 +530,9 @@ const handlePayment = async () => {
         
         const modalEl = document.getElementById('paymentModal');
         const modal = bootstrap.Modal.getInstance(modalEl);
-        modal.hide();
+        if (modal) {
+            modal.hide();
+        }
 
         selectedComisiones.value = [];
         generarReporte(currentPage.value);
@@ -433,6 +547,11 @@ const handlePayment = async () => {
 onMounted(() => {
     fetchPdvFiltro();
     fetchComparativeData();
+
+    const paymentModalEl = document.getElementById('paymentModal');
+    if (paymentModalEl) {
+        paymentModalEl.addEventListener('hidden.bs.modal', resetPaymentForm);
+    }
 });
 
 const pagesToShow = computed(() => {
@@ -452,15 +571,147 @@ const getStatusClass = (estado) => {
 
 
 <style scoped>
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
-.bg-light { background-color: #f4f7f6 !important; min-height: 100vh; }
-.container { max-width: 1400px; }
-h1, h2, h3, h4, h5, h6, .form-label, .btn { font-family: 'Poppins', sans-serif; }
-h1 { font-weight: 700; color: #343a40; }
-.card { border-radius: 0.75rem; }
-.table { font-size: 0.9rem; }
-.table th, .table td { vertical-align: middle; }
-.row-grouped td { font-weight: 500; }
-.fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
-.fade-enter-from, .fade-leave-to { opacity: 0; }
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+
+/* --- General Layout & Typography --- */
+body {
+  font-family: 'Poppins', sans-serif;
+}
+
+.bg-light { 
+  background-color: #f8f9fa;
+}
+
+.container { 
+  max-width: 1400px; 
+}
+
+h1, h2, h3, h4, h5, h6, .form-label, .btn { 
+  font-family: 'Poppins', sans-serif; 
+}
+
+h1 { 
+  font-weight: 700; 
+  color: #343a40; 
+}
+
+/* --- Card Styling --- */
+.card { 
+  border-radius: 0.75rem; 
+  transition: all 0.2s ease-in-out;
+  border: none;
+}
+
+.card-body {
+  padding: 1.75rem;
+}
+
+.card-body.pt-0 {
+  padding-top: 0 !important;
+}
+
+
+/* --- KPI Stat Cards --- */
+.stat-value { 
+  font-size: 2.25rem; 
+  font-weight: 700; 
+  color: #DF1115; 
+}
+.stat-value.text-success { color: #198754 !important; }
+.stat-value.text-warning { color: #ffc107 !important; }
+
+/* --- Table Styling --- */
+.table { 
+  font-size: 0.9rem; 
+  border-collapse: separate;
+  border-spacing: 0 0.5rem;
+}
+.table th, .table td { 
+  vertical-align: middle; 
+  padding: 0.9rem 1rem;
+  background-color: #fff;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.table tr {
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.table td:first-child, .table th:first-child {
+  border-top-left-radius: 0.5rem;
+  border-bottom-left-radius: 0.5rem;
+}
+.table td:last-child, .table th:last-child {
+  border-top-right-radius: 0.5rem;
+  border-bottom-right-radius: 0.5rem;
+}
+
+
+.table thead th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.5px;
+  color: #6c757d;
+  border-bottom: 2px solid #dee2e6;
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+}
+
+.table-hover > tbody > tr {
+  transition: none;
+}
+.table-hover > tbody > tr:hover > * {
+  background-color: #fbf3f3;
+  color: #DF1115;
+}
+
+/* --- Pagination Styling --- */
+.pagination .page-link {
+  border-radius: 0.5rem;
+  margin: 0 0.25rem;
+  border: none;
+  color: #6c757d;
+  font-weight: 500;
+}
+.pagination .page-link:hover {
+  background-color: #e9ecef;
+}
+.pagination .page-item.active .page-link {
+  background-color: #DF1115;
+  border-color: #DF1115;
+  color: #fff;
+  box-shadow: 0 4px 8px rgba(223, 17, 21, 0.2);
+}
+.pagination .page-item.disabled .page-link {
+  color: #adb5bd;
+}
+
+/* --- vue-select Customization --- */
+:root {
+  --vs-border-color: #ced4da;
+  --vs-border-radius: 0.375rem;
+  --vs-font-size: 1rem;
+  --vs-dropdown-option--active-bg: #DF1115;
+  --vs-dropdown-option--active-color: #fff;
+}
+.v-select {
+  font-family: 'Poppins', sans-serif;
+}
+
+/* --- Transitions --- */
+.fade-enter-active, .fade-leave-active { 
+  transition: opacity 0.3s ease; 
+}
+.fade-enter-from, .fade-leave-to { 
+  opacity: 0; 
+}
+
+/* --- Modal Switch --- */
+.form-switch .form-check-input {
+    cursor: pointer;
+}
 </style>
+

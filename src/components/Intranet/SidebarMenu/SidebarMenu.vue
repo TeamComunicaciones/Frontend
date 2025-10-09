@@ -4,7 +4,7 @@
     <aside class="sidebar" :class="{ 'is-visible': isSidebarVisible }">
       <div class="sidebar-inner d-flex flex-column p-3">
         <div class="sidebar-header mb-4 text-center">
-          <img class="img-fluid" :src="getImageUrl('logo.png')" alt="logo" style="height: 40px;"/>
+          <img class="img-fluid" :src="getImageUrl('logo.png')" alt="logo" style="height: 40px;" />
         </div>
 
         <div v-if="!permisosCargados" class="text-center my-auto">
@@ -78,6 +78,18 @@
             </ul>
           </li>
 
+          <li v-if="true" class="nav-item">
+            <a @click.prevent="toggleMenu('consultas')" href="#" class="nav-link" :class="{active: menu.consultas}">
+              <i class="bi bi-search me-2"></i><span>Consultas</span>
+              <i class="bi bi-chevron-right ms-auto chevron" :class="{ rotated: menu.consultas }"></i>
+            </a>
+            <ul v-if="menu.consultas" class="submenu list-unstyled">
+              <li><a href="/consulta-pdv"><i class="bi bi-shop me-2"></i>Consulta PDV</a></li>
+              <li><a href="/dashboard-asesor"><i class="bi bi-person-video2 me-2"></i>Dashboard Asesor</a></li>
+              <li><a href="/Admin-consultas"><i class="bi bi-graph-up-arrow me-2"></i>Panel Admin</a></li>
+            </ul>
+          </li>
+
           <li v-if="permisos.corresponsal.main" class="nav-item">
             <a @click.prevent="toggleMenu('corresponsal')" href="#" class="nav-link" :class="{active: menu.corresponsal}">
               <i class="bi bi-person-badge-fill me-2"></i><span>Corresponsal</span>
@@ -130,8 +142,14 @@
     <div v-if="cambioClave" class="password-modal-backdrop">
       <div class="password-modal-content">
         <h4 class="mb-4 text-center">Debes cambiar tu contraseña</h4>
-        <div class="input-group"><label for="password">Nueva contraseña:</label><input type="password" id="password" v-model.trim="form.password"></div>
-        <div class="input-group"><label for="newPassword">Confirmar contraseña:</label><input type="password" id="newPassword" v-model.trim="form.retrypassword"></div>
+        <div class="input-group">
+          <label for="password">Nueva contraseña:</label>
+          <input type="password" id="password" v-model.trim="form.password">
+        </div>
+        <div class="input-group">
+          <label for="newPassword">Confirmar contraseña:</label>
+          <input type="password" id="newPassword" v-model.trim="form.retrypassword">
+        </div>
         <button class="btn btn-danger w-100 mt-3" @click="cambio">Actualizar Contraseña</button>
       </div>
     </div>
@@ -153,18 +171,32 @@ export default {
       permisosCargados: false,
       usuario: '',
       permisos: {
-        superadmin: false, administrador: { main: false },
-        informes: { main: false }, control_interno: { main: false },
-        comisiones: { main: false }, comercial: { main: false },
-        corresponsal: { main: false }, caja: { main: false },
+        superadmin: false,
+        administrador: { main: false },
+        informes: { main: false },
+        control_interno: { main: false },
+        comisiones: { main: false },
+        comercial: { main: false },
+        consultas: { main: false },
+        corresponsal: { main: false },
+        caja: { main: false },
       },
       menu: {
-        superadmin: false, administrador: false, informes: false,
-        control_interno: false, comisiones: false, comercial: false,
-        corresponsal: false, caja: false,
+        superadmin: false,
+        administrador: false,
+        informes: false,
+        control_interno: false,
+        comisiones: false,
+        comercial: false,
+        consultas: false,
+        corresponsal: false,
+        caja: false,
       },
       cambioClave: false,
-      form: { password: '', retrypassword: '' },
+      form: {
+        password: '',
+        retrypassword: ''
+      },
     };
   },
   methods: {
@@ -187,13 +219,14 @@ export default {
         if (response.data.cambioClave) {
           this.cambioClave = response.data.cambioClave;
         } else {
-          this.permisos = response.data.permisos;
+          const remotePermisos = response.data.permisos || {};
+          this.permisos = { ...this.permisos, ...remotePermisos };
           this.usuario = response.data.usuario;
         }
         this.permisosCargados = true;
       })
       .catch(() => {
-        this.permisosCargados = true; 
+        this.permisosCargados = true;
         this.logout();
       });
     },
@@ -208,7 +241,9 @@ export default {
         confirmButtonText: 'Sí, cerrar sesión',
         cancelButtonText: 'Cancelar'
       }).then((result) => {
-        if (result.isConfirmed) { this.logout(); }
+        if (result.isConfirmed) {
+          this.logout();
+        }
       });
     },
     logout() {
@@ -238,6 +273,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
+/* --- VARIABLES Y ESTILOS BASE --- */
+
 .sidebar {
   width: 260px;
   height: 100vh;
@@ -245,15 +282,17 @@ export default {
   top: 0;
   left: 0;
   background-color: #ffffff;
-  border-right: 1px solid #dee2e6;
+  border-right: 1px solid var(#dee2e6);
   z-index: 1045;
   transform: translateX(-100%);
   transition: transform 0.3s ease-in-out;
 }
+
 .sidebar.is-visible {
   transform: translateX(0);
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
 }
+
 .sidebar-backdrop {
   position: fixed;
   top: 0;
@@ -263,13 +302,15 @@ export default {
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 1040;
 }
+
 .main-container {
   width: 100%;
 }
+
 .top-header {
-  background-color: #ffffff;
+  background-color: var(#ffffff);
   padding: 0.75rem 1.5rem;
-  border-bottom: 1px solid #e0e0e0;
+  border-bottom: 1px solid var(#dee2e6);
   display: flex;
   align-items: center;
   gap: 1rem;
@@ -277,46 +318,93 @@ export default {
   top: 0;
   z-index: 1020;
 }
+
 .nav-menu {
   overflow-y: auto;
   flex-grow: 1;
 }
+
+/* --- ESTILOS DE ITEMS DEL MENÚ MEJORADOS --- */
+.nav-item {
+  margin-bottom: 4px;
+}
+
 .nav-link {
-  color: #495057;
-  padding: 12px 15px;
+  color: var(#495057);
+  padding: 10px 15px;
   display: flex;
   align-items: center;
-  border-radius: 0.375rem;
-  transition: all 0.2s;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
   font-weight: 500;
+  font-size: 0.95rem;
   cursor: pointer;
+  position: relative;
+  overflow: hidden;
 }
+
+.nav-link::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  height: 100%;
+  width: 4px;
+  background-color: var(#DF1115);
+  transform: translateX(-100%);
+  transition: transform 0.2s ease-in-out;
+}
+
+.nav-link:hover,
+.nav-link.active {
+  background-color: var(rgba(223, 17, 21, 0.07));
+  color: var(#DF1115);
+}
+
+.nav-link:hover::before,
+.nav-link.active::before {
+  transform: translateX(0);
+}
+
 .nav-link .chevron {
   transition: transform 0.2s ease-in-out;
 }
+
 .nav-link.active .chevron {
   transform: rotate(90deg);
 }
-.nav-link:hover, .nav-link.active {
-  background-color: rgba(223, 17, 21, 0.07);
-  color: #DF1115;
+
+/* --- ESTILOS DEL SUBMENÚ MEJORADOS --- */
+.submenu {
+  padding-left: 20px;
+  margin-top: 5px;
 }
+
 .submenu a {
-  padding: 10px 15px 10px 45px;
-  color: #6c757d;
+  padding: 8px 15px 8px 25px;
+  color: #495057;
   text-decoration: none;
   display: block;
   font-size: 0.9rem;
+  font-weight: 400;
+  border-radius: 6px;
+  transition: all 0.2s ease-in-out;
 }
+
 .submenu a:hover {
-  color: #DF1115;
+  color: var(#DF1115);
+  background-color: var(rgba(223, 17, 21, 0.07));
 }
+
+.submenu i {
+  font-size: 0.8rem;
+}
+
 .sidebar-footer {
-  border-top: 1px solid #e0e0e0;
+  border-top: 1px solid var(#dee2e6);
   padding-top: 1rem;
 }
 
-// Estilos mejorados para el botón del menú
 @keyframes pulse-once {
   0% {
     transform: scale(1);
@@ -335,7 +423,7 @@ export default {
 .menu-toggle-btn {
   background-color: transparent;
   border: none;
-  color: #495057;
+  color: var(#495057);
   padding: 0.5rem;
   border-radius: 50%;
   width: 44px;
@@ -351,10 +439,49 @@ export default {
     font-size: 1.75rem;
     line-height: 1;
   }
-
   &:hover {
     background-color: #f0f0f0;
-    color: #DF1115;
+    color: var(#DF1115);
   }
+}
+
+/* --- ESTILOS DEL MODAL DE CONTRASEÑA --- */
+.password-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.6);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.password-modal-content {
+  background-color: white;
+  padding: 2rem;
+  border-radius: 8px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+  width: 100%;
+  max-width: 400px;
+}
+
+.password-modal-content .input-group {
+  margin-bottom: 1rem;
+}
+
+.password-modal-content label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.password-modal-content input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
 }
 </style>

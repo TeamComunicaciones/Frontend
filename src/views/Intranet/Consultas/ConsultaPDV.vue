@@ -12,7 +12,7 @@
             <fieldset :disabled="isLoading">
               <div class="row g-3 align-items-end bg-light p-3 rounded mb-4">
                   <div class="col-md-5"><label for="filtroIdPos" class="form-label fw-bold">IDPOS*</label><input type="text" id="filtroIdPos" class="form-control" v-model="filters.idpos" placeholder="Campo obligatorio..."></div>
-                  <div class="col-md-4"><label for="filtroMes" class="form-label fw-bold">Mes del Reporte</label><input type="month" id="filtroMes" class="form-control" v-model="filters.mes"></div>
+                  <div class="col-md-4"><label for="filtroMes" class="form-label fw-bold">Mes de Pago</label><input type="month" id="filtroMes" class="form-control" v-model="filters.mes"></div>
                   <div class="col-md-3"><label for="filtroEstado" class="form-label">Estado</label><select id="filtroEstado" class="form-select" v-model="filters.estado"><option value="Todos">Todos</option><option value="Pagada">Pagada</option><option value="Acumulada">Acumulada</option><option value="Pendiente">Pendiente</option></select></div>
                   <div class="col-12 d-grid mt-3"><button class="btn btn-danger" @click="buscarComisiones"><span v-if="isLoading" class="spinner-border spinner-border-sm me-2"></span>Buscar Comisiones</button></div>
               </div>
@@ -34,6 +34,7 @@
                   <thead>
                     <tr>
                       <th scope="col">Mes Pago</th>
+                      <th scope="col">Fecha Transacción</th>
                       <th scope="col">Asesor</th>
                       <th scope="col">Producto</th>
                       <th scope="col" class="text-end">Valor Comisión</th>
@@ -43,6 +44,7 @@
                   <tbody>
                     <tr v-for="item in results" :key="item.id">
                       <td>{{ formatMonthYear(item.mes_pago) }}</td>
+                      <td>{{ formatDate(item.fecha_pago) }}</td>
                       <td>{{ item.asesor_identificador }}</td>
                       <td>{{ item.producto }}</td>
                       <td class="text-end fw-bold">{{ formatCurrency(item.comision_final) }}</td>
@@ -119,6 +121,17 @@ const formatCurrency = (value) => {
   return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
 };
 
+const formatDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString); 
+  return date.toLocaleDateString('es-CO', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    timeZone: 'UTC'
+  });
+};
+
 const formatMonthYear = (dateString) => {
   if (!dateString) return 'N/A';
   const date = new Date(dateString + 'T00:00:00'); 
@@ -139,3 +152,4 @@ const getStatusClass = (estado) => {
 .stat-card .stat-value { font-size: 1.5rem; font-weight: 600; color: #000; }
 .table { font-size: 0.9rem; }
 </style>
+

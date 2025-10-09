@@ -80,13 +80,11 @@
                 <input type="text" class="form-control" v-model="searchQuery" placeholder="Buscar usuario por nombre o email...">
               </div>
             </div>
-
             <div v-if="isLoadingPermissions" class="text-center p-5">
               <div class="spinner-border text-danger" role="status">
                 <span class="visually-hidden">Cargando...</span>
               </div>
             </div>
-
             <div v-else class="row">
               <div v-for="user in filteredUsers" :key="user.id" class="col-md-6 col-lg-4 mb-4">
                 <div class="card h-100 shadow-sm card-hover">
@@ -111,7 +109,6 @@
           
           <div class="tab-pane fade" id="reportes-pane" role="tabpanel">
             <h2 class="h3 mb-4">Dashboard de Comisiones Generales</h2>
-            
             <div class="card shadow-sm mb-4">
               <div class="card-body">
                 <fieldset :disabled="isLoadingReports">
@@ -128,7 +125,6 @@
                       <label for="filtroEstados" class="form-label fw-bold">Estados</label>
                       <v-select multiple id="filtroEstados" placeholder="Todos los estados" v-model="reportFilters.estados" :options="filterOptions.estados" />
                     </div>
-                    
                     <div class="col-md-6 d-grid">
                       <button class="btn btn-danger" @click="generarReporte">
                         <span v-if="isLoadingReports" class="spinner-border spinner-border-sm me-2"></span>
@@ -142,7 +138,6 @@
                         {{ isLoadingExport ? 'Exportando...' : 'Exportar a Excel' }}
                       </button>
                     </div>
-
                   </div>
                 </fieldset>
               </div>
@@ -155,9 +150,10 @@
             
             <div v-else-if="reportData" class="animate__animated animate__fadeIn">
               <div class="row g-4 mb-4">
-                <div class="col-md-4"><div class="card h-100 text-center shadow-sm"><div class="card-body"><h6>Valor Total Comisiones</h6><div class="stat-value">{{ formatCurrency(reportData.kpis.total) }}</div></div></div></div>
-                <div class="col-md-4"><div class="card h-100 text-center shadow-sm"><div class="card-body"><h6>Total Pagado</h6><div class="stat-value text-success">{{ formatCurrency(reportData.kpis.pagado) }}</div></div></div></div>
-                <div class="col-md-4"><div class="card h-100 text-center shadow-sm"><div class="card-body"><h6>Total Pendiente</h6><div class="stat-value text-warning">{{ formatCurrency(reportData.kpis.pendiente) }}</div></div></div></div>
+                <div class="col-md-3"><div class="card h-100 text-center shadow-sm"><div class="card-body"><h6>Valor Total</h6><div class="stat-value">{{ formatCurrency(reportData.kpis.total) }}</div></div></div></div>
+                <div class="col-md-3"><div class="card h-100 text-center shadow-sm"><div class="card-body"><h6>Total Pagado</h6><div class="stat-value text-success">{{ formatCurrency(reportData.kpis.pagado) }}</div></div></div></div>
+                <div class="col-md-3"><div class="card h-100 text-center shadow-sm"><div class="card-body"><h6>Total Pendiente</h6><div class="stat-value text-warning">{{ formatCurrency(reportData.kpis.pendiente) }}</div></div></div></div>
+                <div class="col-md-3"><div class="card h-100 text-center shadow-sm"><div class="card-body"><h6>Total Vencido</h6><div class="stat-value text-danger">{{ formatCurrency(reportData.kpis.vencido) }}</div></div></div></div>
               </div>
 
               <div class="row g-4 mb-4">
@@ -206,13 +202,26 @@
                 </div>
               </div>
 
-              <div class="row g-4">
+              <div class="row g-4 mb-4">
                 <div class="col-12">
                   <div class="card shadow-sm h-100">
                     <div class="card-body">
                       <h5 class="card-title text-muted mb-3">Picos Mensuales de Comisión (Total)</h5>
                       <div style="position: relative; height: 350px;">
                         <Line :data="picosMensualesChartData" :options="lineChartOptions"/>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+                      
+              <div class="row g-4">
+                <div class="col-12">
+                  <div class="card shadow-sm h-100">
+                    <div class="card-body">
+                      <h5 class="card-title text-muted mb-3">Picos Mensuales de Comisión (Pagado)</h5>
+                      <div style="position: relative; height: 350px;">
+                        <Line :data="picosMensualesPagadoChartData" :options="lineChartOptions"/>
                       </div>
                     </div>
                   </div>
@@ -257,7 +266,6 @@
               </div>
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -276,6 +284,7 @@ import DatePicker from 'vue-datepicker-next';
 import 'vue-datepicker-next/index.css';
 import { Bar, Doughnut, Line } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
+import * as XLSX from 'xlsx';
 
 ChartJS.register(Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale, PointElement, LineElement);
 
@@ -290,13 +299,40 @@ const isDragging = ref(false);
 const uploadResult = ref(null);
 const fileInput = ref(null);
 
-const handleFileChange = (event) => {
+const handleFileChange = async (event) => {
   const files = event.target.files || event.dataTransfer.files;
-  if (files.length > 0) {
-    selectedFile.value = files[0];
-    uploadResult.value = null;
+  if (files.length === 0) return;
+
+  const file = files[0];
+  uploadResult.value = null;
+
+  try {
+    const data = await file.arrayBuffer();
+    const workbook = XLSX.read(data);
+
+    if (workbook.SheetNames.length !== 1) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Archivo no válido',
+        text: 'El archivo Excel debe contener exactamente una hoja. Por favor, corrige el archivo y vuelve a intentarlo.',
+      });
+      clearFile();
+      return;
+    }
+
+    selectedFile.value = file;
+
+  } catch (error) {
+    console.error("Error al leer el archivo:", error);
+    Swal.fire({
+      icon: 'error',
+      title: 'Archivo dañado',
+      text: 'No se pudo leer el archivo. Asegúrate de que no esté corrupto y sea un archivo .xlsx válido.',
+    });
+    clearFile();
   }
 };
+
 const clearFile = () => {
   selectedFile.value = null;
   if (fileInput.value) fileInput.value.value = '';
@@ -309,7 +345,7 @@ const onDrop = (event) => { event.preventDefault(); isDragging.value = false; ha
 const uploadFile = async () => {
   if (!selectedFile.value) return;
   isLoading.value = true;
-  uploadResult.value = null;
+
   const formData = new FormData();
   formData.append('file', selectedFile.value);
   const path = backendRouter.data + 'comisiones/upload/';
@@ -317,17 +353,25 @@ const uploadFile = async () => {
 
   try {
     const response = await axios.post(path, formData, { headers });
-    uploadResult.value = { success: true, message: response.data.mensaje };
-    Swal.fire('Éxito', response.data.mensaje, 'success');
+    
+    // Alerta modificada para informar sobre el correo electrónico
+    Swal.fire({
+      title: 'Carga Iniciada con Éxito',
+      text: 'El archivo se está procesando en segundo plano. Recibirás un correo electrónico de confirmación cuando finalice.',
+      icon: 'info',
+    });
+    
+    clearFile();
+
   } catch (error) {
     if (error.response && error.response.data) {
-      uploadResult.value = { success: false, errors: error.response.data.errores || [error.response.data.error] };
+      const errorMessage = error.response.data.error || 'Ocurrió un error al iniciar la carga.';
+      Swal.fire('Error al Iniciar', errorMessage, 'error');
     } else {
-      uploadResult.value = { success: false, errors: ['Ocurrió un error inesperado.'] };
+      Swal.fire('Error Inesperado', 'No se pudo comunicar con el servidor para iniciar la carga.', 'error');
     }
   } finally {
     isLoading.value = false;
-    if (uploadResult.value?.success) clearFile();
   }
 };
 
@@ -404,7 +448,7 @@ const reportFilters = reactive({
 });
 const filterOptions = ref({
   rutas: [],
-  estados: ['Pendiente', 'Acumulada', 'Pagada', 'Consolidada']
+  estados: ['Pendiente', 'Acumulada', 'Pagada', 'Consolidada', 'Vencida']
 });
 const reportData = ref(null);
 
@@ -528,7 +572,6 @@ const guardarFechaCorte = async () => {
   }
 };
 
-
 // --- Computadas para Gráficos ---
 const chartOptions = { responsive: true, maintainAspectRatio: false };
 const lineChartOptions = computed(() => ({
@@ -564,7 +607,7 @@ const estadoChartData = computed(() => {
     labels: data.map(item => item.estado),
     datasets: [{
       data: data.map(item => item.total),
-      backgroundColor: ['#17a2b8', '#6c757d', '#28a745', '#ffc107'],
+      backgroundColor: ['#17a2b8', '#6c757d', '#28a745', '#ffc107', '#dc3545'],
     }]
   };
 });
@@ -575,9 +618,24 @@ const picosMensualesChartData = computed(() => {
     labels: data.map(item => item.mes),
     datasets: [{
       label: 'Total Comisiones por Mes',
-      data: data.map(item => item.total),
+      // Sumamos 'pagado' y 'pendiente' para obtener el total
+      data: data.map(item => (item.pagado || 0) + (item.pendiente || 0)), // <-- ESTA ES LA LÍNEA CORREGIDA
       borderColor: '#DF1115',
       backgroundColor: 'rgba(223, 17, 21, 0.1)',
+      fill: true,
+    }]
+  };
+});
+
+const picosMensualesPagadoChartData = computed(() => {
+  const data = reportData.value?.charts?.picos_mensuales || [];
+  return {
+    labels: data.map(item => item.mes),
+    datasets: [{
+      label: 'Total Pagado por Mes',
+      data: data.map(item => item.pagado),
+      borderColor: '#28a745',
+      backgroundColor: 'rgba(40, 167, 69, 0.1)',
       fill: true,
     }]
   };

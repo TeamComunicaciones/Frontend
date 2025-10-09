@@ -2,6 +2,8 @@
 import { RouterView } from 'vue-router'
 import SidebarMenu from '@/components/Intranet/SidebarMenu/SidebarMenu.vue'; // Asegúrate que la ruta sea correcta
 import { authState } from '@/auth';
+
+
 </script>
 
 <template>
