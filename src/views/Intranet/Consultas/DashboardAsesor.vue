@@ -3,7 +3,6 @@
     <div class="container py-5">
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Dashboard de Asesor</h1>
-        <span class="badge bg-primary fs-6">Rol: Supervisor</span>
       </div>
       
       <div class="card border-0 shadow-sm mb-4">
@@ -27,7 +26,7 @@
                 </v-select>
               </div>
               <div class="col-md-6">
-                <label for="filtroMes" class="form-label fw-bold">Mes del Reporte</label>
+                <label for="filtroMes" class="form-label fw-bold">Mes Pago</label>
                 <input type="month" id="filtroMes" class="form-control" v-model="filters.mes">
               </div>
               <div class="col-md-2 d-grid">
@@ -43,62 +42,18 @@
       
       <div v-if="isLoadingReport" class="text-center p-5">
         <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;"></div>
-        <p class="mt-2 text-muted">Generando reporte...</p>
+        <p class="mt-2">Generando reporte...</p>
       </div>
 
-      <div v-else-if="reportData && reportData.detalle.count > 0" class="mt-2 animate__animated animate__fadeIn">
-        <div class="row mb-4 g-4">
-            <div class="col-md-4"><div class="card h-100 shadow-sm border-0"><div class="card-body text-center d-flex flex-column justify-content-center"><h6>Valor Total (Filtro)</h6><div class="stat-value">{{ formatCurrency(reportData.kpis.totalComisiones) }}</div></div></div></div>
-            <div class="col-md-4"><div class="card h-100 shadow-sm border-0"><div class="card-body text-center d-flex flex-column justify-content-center"><h6>Comisiones Pagadas</h6><div class="stat-value text-success">{{ formatCurrency(reportData.kpis.totalPagado) }}</div></div></div></div>
-            <div class="col-md-4"><div class="card h-100 shadow-sm border-0"><div class="card-body text-center d-flex flex-column justify-content-center"><h6>Comisiones Pendientes</h6><div class="stat-value text-warning">{{ formatCurrency(reportData.kpis.totalPendiente) }}</div></div></div></div>
-        </div>
-        
-        <div class="row g-4 mb-4">
-            <div class="col-lg-12">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="card-title text-muted">Distribución por Estado (Filtro)</h5>
-                        <div style="position: relative; height: 300px;">
-                            <Doughnut :data="doughnutChartData" :options="doughnutChartOptions" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="row g-4 mb-4">
-          <div class="col-lg-7">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-body">
-                <h5 class="card-title text-muted">Valor Total por Método de Pago (Filtro)</h5>
-                <div style="position: relative; height: 300px;">
-                  <Bar :data="metodoValorChartData" :options="barChartOptions" />
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class="col-lg-5">
-            <div class="card border-0 shadow-sm h-100">
-              <div class="card-body">
-                <h5 class="card-title text-muted">Uso de Métodos de Pago (Filtro)</h5>
-                <div style="position: relative; height: 300px;">
-                  <Doughnut :data="metodoCantidadChartData" :options="pieChartOptions" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="row mb-4">
-            <div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body"><h5 class="card-title text-muted">Comparativa Mes Actual vs Anterior</h5><div class="row g-2 align-items-end mb-3"><div class="col-md-10"><label for="pdvSelector" class="form-label small">Añadir Puntos de Venta a la Comparativa:</label><v-select id="pdvSelector" multiple placeholder="Busca y selecciona uno o más PDV..." v-model="comparativeFilters.selectedPdvs" :options="comparativeOptions" :get-option-label="(option) => option.punto_de_venta" :reduce="(option) => option.punto_de_venta"><template #no-options>No hay PDV para mostrar.</template></v-select></div><div class="col-md-2 d-grid"><button class="btn btn-secondary" @click="fetchComparativeData" :disabled="isLoadingComparative"><span v-if="isLoadingComparative" class="spinner-border spinner-border-sm"></span><span v-else>Actualizar</span></button></div></div><div v-if="comparativeChartData.labels.length > 0"><Bar :data="comparativeChartData" :options="comparativeChartOptions" /></div><div v-else class="text-center p-4 text-muted"><p>No hay datos comparativos para mostrar.</p></div></div></div></div>
-        </div>
-
-        <div class="card border-0 shadow-sm">
+      <!-- SECCIÓN DE COMISIONES MOVIDA HACIA ARRIBA -->
+      <div v-else-if="reportData && reportData.detalle.count > 0" class="animate__animated animate__fadeIn">
+        <div class="card border-0 shadow-sm mb-4">
           <div class="card-header bg-transparent border-0 pt-4 d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Detalle de Comisiones ({{ reportData.detalle.count }} registros)</h4>
             <transition name="fade">
                 <div v-if="selectedComisiones.length > 0" class="d-flex align-items-center">
                     <div class="me-3">
-                        <span class="text-muted">Seleccionado:</span>
+                        <span>Seleccionado:</span>
                         <strong class="ms-2 fs-5">{{ formatCurrency(subtotalSeleccionado) }}</strong>
                     </div>
                     <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#paymentModal">Pagar</button>
@@ -137,14 +92,60 @@
             </nav>
           </div>
         </div>
+
+        <!-- SECCIÓN DE GRÁFICAS -->
+        <div class="row mb-4 g-4">
+            <div class="col-md-4"><div class="card h-100 shadow-sm border-0"><div class="card-body text-center d-flex flex-column justify-content-center"><h6>Total Comisiones</h6><div class="stat-value">{{ formatCurrency(reportData.kpis.totalComisiones) }}</div></div></div></div>
+            <div class="col-md-4"><div class="card h-100 shadow-sm border-0"><div class="card-body text-center d-flex flex-column justify-content-center"><h6>Comisiones Pagadas</h6><div class="stat-value text-success">{{ formatCurrency(reportData.kpis.totalPagado) }}</div></div></div></div>
+            <div class="col-md-4"><div class="card h-100 shadow-sm border-0"><div class="card-body text-center d-flex flex-column justify-content-center"><h6>Comisiones Pendientes</h6><div class="stat-value text-warning">{{ formatCurrency(reportData.kpis.totalPendiente) }}</div></div></div></div>
+        </div>
+        
+        <div class="row g-4 mb-4">
+            <div class="col-lg-12">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-body">
+                        <h5 class="card-title">Distribución por Estado (Filtro)</h5>
+                        <div style="position: relative; height: 300px;">
+                            <Doughnut :data="doughnutChartData" :options="doughnutChartOptions" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="row g-4 mb-4">
+          <div class="col-lg-7">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h5 class="card-title">Valor Total por Método de Pago (Filtro)</h5>
+                <div style="position: relative; height: 300px;">
+                  <Bar :data="metodoValorChartData" :options="barChartOptions" />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="col-lg-5">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h5 class="card-title">Uso de Métodos de Pago (Filtro)</h5>
+                <div style="position: relative; height: 300px;">
+                  <Doughnut :data="metodoCantidadChartData" :options="pieChartOptions" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="row mb-4">
+            <div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body"><h5 class="card-title">Comparativa Mes Actual vs Anterior</h5><div class="row g-2 align-items-end mb-3"><div class="col-md-10"><label for="pdvSelector" class="form-label small">Añadir Puntos de Venta a la Comparativa:</label><v-select id="pdvSelector" multiple placeholder="Busca y selecciona uno o más PDV..." v-model="comparativeFilters.selectedPdvs" :options="comparativeOptions" :get-option-label="(option) => option.punto_de_venta" :reduce="(option) => option.punto_de_venta"><template #no-options>No hay PDV para mostrar.</template></v-select></div><div class="col-md-2 d-grid"><button class="btn btn-secondary" @click="fetchComparativeData" :disabled="isLoadingComparative"><span v-if="isLoadingComparative" class="spinner-border spinner-border-sm"></span><span v-else>Actualizar</span></button></div></div><div v-if="comparativeChartData.labels.length > 0"><Bar :data="comparativeChartData" :options="comparativeChartOptions" /></div><div v-else class="text-center p-4"><p>No hay datos comparativos para mostrar.</p></div></div></div></div>
+        </div>
       </div>
 
-      <div v-else-if="reportData && reportData.detalle.count === 0" class="text-center p-5 text-muted border rounded bg-white mt-4">
+      <div v-else-if="reportData && reportData.detalle.count === 0" class="text-center p-5 border rounded bg-white mt-4">
         <p class="fs-4 mb-1">Sin Resultados</p>
         <p>No hay registros para este mes con los filtros seleccionados.</p>
       </div>
 
-      <div v-else class="text-center p-5 text-muted border rounded bg-white mt-4">
+      <div v-else class="text-center p-5 border rounded bg-white mt-4">
         <p class="fs-4 mb-1">Bienvenido al Dashboard</p>
         <p>Selecciona un mes y haz clic en "Generar" para ver los resultados.</p>
       </div>
@@ -586,13 +587,13 @@ body {
   max-width: 1400px; 
 }
 
-h1, h2, h3, h4, h5, h6, .form-label, .btn { 
+h1, h2, h3, h4, h5, h6, .form-label, .btn, p { 
   font-family: 'Poppins', sans-serif; 
+  color: #343a40; /* Color de texto más oscuro por defecto */
 }
 
 h1 { 
   font-weight: 700; 
-  color: #343a40; 
 }
 
 /* --- Card Styling --- */
@@ -654,7 +655,7 @@ h1 {
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.5px;
-  color: #6c757d;
+  color: #000; /* Color de texto de cabecera cambiado a negro */
   border-bottom: 2px solid #dee2e6;
   padding-top: 1rem;
   padding-bottom: 1rem;
@@ -673,7 +674,7 @@ h1 {
   border-radius: 0.5rem;
   margin: 0 0.25rem;
   border: none;
-  color: #6c757d;
+  color: #343a40; /* Color de paginación oscurecido */
   font-weight: 500;
 }
 .pagination .page-link:hover {
@@ -713,5 +714,7 @@ h1 {
 .form-switch .form-check-input {
     cursor: pointer;
 }
+.btn[data-v-cc5454fc]{
+  color: white !important;
+}
 </style>
-

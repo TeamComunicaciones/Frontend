@@ -1,6 +1,8 @@
 <template >
     <div >
+        <!-- Se llama al componente del menú para que se muestre en esta página -->
         <MenuLanding/>
+        
         <Carrito ref="carrito"/>
         <BCarousel controls>
             <BCarouselSlide  :img-src="getImageUrl('slide1.png')" />
@@ -51,16 +53,16 @@
         </div>
     </div>
     
-  </template>
-  
-  <script>
+</template>
+ 
+<script>
     import VueHorizontal from 'vue-horizontal';
     import MenuLanding from '../MenuLanding/MenuLanding.vue'
     import Carrito from '@/components/MainPage/Carrito/Carrito.vue'
     import backendRouter from '@/components/BackendRouter/BackendRouter';
     import axios from 'axios';
     import {ref} from 'vue'
-  export default{
+ export default{
     data(){
         return{
             imagenP: '../../../assets/asiSomos/complementaria.jpeg',
@@ -153,10 +155,10 @@
         this.getPlanes()
         this.getProductos()
     }, 
-  }
-  </script>
-  
-  <style scoped>
+ }
+</script>
+ 
+<style scoped>
     .red{
         background-color: red;
     }
@@ -174,5 +176,5 @@
     .clase-inactiva{
         transform: scale(1)
     }
-  
-  </style>
+ 
+</style>
