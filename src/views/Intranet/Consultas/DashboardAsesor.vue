@@ -714,7 +714,7 @@ h1 {
 .form-switch .form-check-input {
     cursor: pointer;
 }
-.btn-secondary, .btn-danger{
+.btn-secondary, .btn-danger, .btn-success{
   color: white !important;
 }
 </style>

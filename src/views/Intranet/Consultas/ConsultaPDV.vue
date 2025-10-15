@@ -294,7 +294,7 @@ h1 {
   background-color: #fbf3f3;
   color: #DF1115;
 }
-.btn-secondary, .btn-danger{
+.btn-secondary, .btn-danger, .btn-success{
   color: white !important;
 }
 </style>

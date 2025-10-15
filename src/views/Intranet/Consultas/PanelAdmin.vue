@@ -791,7 +791,7 @@ h1, h2, h3, h4, h5 {
 :deep(.v-select) {
   font-family: 'Poppins', sans-serif;
 }
-.btn-secondary, .btn-danger{
+.btn-secondary, .btn-danger, .btn-success{
   color: white !important;
 }
 </style>
