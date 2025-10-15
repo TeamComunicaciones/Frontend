@@ -294,7 +294,7 @@ h1 {
   background-color: #fbf3f3;
   color: #DF1115;
 }
-.btn[data-v-df06d7ec]{
+.btn-secondary{
   color: white !important;
 }
 </style>

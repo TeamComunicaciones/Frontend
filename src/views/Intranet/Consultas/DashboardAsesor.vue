@@ -714,7 +714,7 @@ h1 {
 .form-switch .form-check-input {
     cursor: pointer;
 }
-.btn[data-v-cc5454fc]{
+.btn-secondary{
   color: white !important;
 }
 </style>
