@@ -316,7 +316,8 @@ export default {
     getVariationIcon(i) { if (i === 'up') return 'bi bi-arrow-up-short'; if (i === 'down') return 'bi bi-arrow-down-short'; return 'bi bi-dash'; },
     getVariationTextColor(i) { if (i === 'up') return 'text-danger'; if (i === 'down') return 'text-success'; return 'text-muted';},
     formatCell(value, key) { if (key && key.toLowerCase().includes('fecha')) { const date = new Date(value); if (!isNaN(date)) { return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }); } } if (typeof value === 'number') { return this.formatCurrency(value); } return value; },
-    async getFilterOptions() { 
+    
+    async getFilterOptions() { 
         this.isLoading = true; 
         try { 
             const response = await apiService.get('/get_filtros_precios/'); 
@@ -746,6 +747,8 @@ export default {
   },
 };
 </script>
+
+
 
 
 <style src="vue-multiselect/dist/vue-multiselect.css"></style>
