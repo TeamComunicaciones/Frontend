@@ -254,8 +254,8 @@
 </template>
 
 <script>
-import axios from 'axios';
-import backendRouter from '@/components/BackendRouter/BackendRouter';
+// AÑADIDO: Se importa el servicio centralizado para manejar la API
+import apiService from '@/services/apiService'; 
 import Loading from 'vue-loading-overlay';
 import VueMultiselect from 'vue-multiselect';
 import * as XLSX from 'xlsx';
@@ -263,531 +263,491 @@ import jsPDF from 'jspdf';
 import { BButton, BPagination, BTabs, BTab } from 'bootstrap-vue-next';
 
 export default {
-  components: { Loading, BButton, BPagination, VueMultiselect, BTabs, BTab },
-  data() {
-    return {
-      isLoading: false,
-      fullPage: true,
-      items: [],
-      fecha_especifica: 'todas',   // <= importante
-      fechaCarga: '',
-      currentPage: 1,
-      perPage: 12,
-      vistaHistorico: false,
-      historialActivo: { equipo: '', items: [] },
-      fields: [],
-      opcionesFiltro: { listas_precios: [], marcas: [], fechas_validas: [] },
-      filtros: { listas_precios: [], marcas: [], fecha_especifica: null, filtro_variacion: '', filtro_promo: false, referencia: '' },
-    };
-  },
-  computed: {
-    totalRows() {
-      return this.filteredItems.length;
+  components: { Loading, BButton, BPagination, VueMultiselect, BTabs, BTab },
+  data() {
+    return {
+      isLoading: false,
+      fullPage: true,
+      items: [],
+      fecha_especifica: 'todas',
+      fechaCarga: '',
+      currentPage: 1,
+      perPage: 12,
+      vistaHistorico: false,
+      historialActivo: { equipo: '', items: [] },
+      fields: [],
+      opcionesFiltro: { listas_precios: [], marcas: [], fechas_validas: [] },
+      filtros: { listas_precios: [], marcas: [], fecha_especifica: null, filtro_variacion: '', filtro_promo: false, referencia: '' },
+    };
+  },
+  computed: {
+    totalRows() {
+      return this.filteredItems.length;
+    },
+    filteredItems() {
+      if (!this.filtros.referencia) {
+        return this.items;
+      }
+      const ref = this.filtros.referencia.toLowerCase();
+      return this.items.filter(item => item.equipo.toLowerCase().includes(ref));
+    },
+    paginatedItems() {
+      const start = (this.currentPage - 1) * this.perPage;
+      const end = start + this.perPage;
+      return this.filteredItems.slice(start, end);
+    },
+    groupedItems() {
+      return this.filteredItems.reduce((acc, item) => {
+        const listName = item.nombre_lista;
+        if (!acc[listName]) {
+            acc[listName] = [];
+        }
+        acc[listName].push(item);
+        return acc;
+      }, {});
+    },
+    isCostoSelected() {
+        return this.filtros.listas_precios.length === 1 && this.filtros.listas_precios[0].id === 'Costo';
+    }
+  },
+  methods: {
+    formatCurrency(v) { if (typeof v !== 'number') return '$0'; return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v); },
+    getVariationClass(i) { if (i === 'up') return 'bg-danger text-white'; if (i === 'down') return 'bg-success text-white'; return 'bg-light text-muted'; },
+    getVariationIcon(i) { if (i === 'up') return 'bi bi-arrow-up-short'; if (i === 'down') return 'bi bi-arrow-down-short'; return 'bi bi-dash'; },
+    getVariationTextColor(i) { if (i === 'up') return 'text-danger'; if (i === 'down') return 'text-success'; return 'text-muted';},
+    formatCell(value, key) { if (key && key.toLowerCase().includes('fecha')) { const date = new Date(value); if (!isNaN(date)) { return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }); } } if (typeof value === 'number') { return this.formatCurrency(value); } return value; },
+    async getFilterOptions() { 
+        this.isLoading = true; 
+        try { 
+            const response = await apiService.get('/get_filtros_precios/'); 
+            this.opcionesFiltro = response.data; 
+        } catch (e) { 
+            this.$swal('Error', 'No se pudieron cargar las opciones de filtro.', 'error'); 
+        } finally { 
+            this.isLoading = false; 
+        } 
     },
-    filteredItems() {
-      if (!this.filtros.referencia) {
-        return this.items;
-      }
-      const ref = this.filtros.referencia.toLowerCase();
-      return this.items.filter(item => item.equipo.toLowerCase().includes(ref));
-    },
-    paginatedItems() {
-      const start = (this.currentPage - 1) * this.perPage;
-      const end = start + this.perPage;
-      return this.filteredItems.slice(start, end);
-    },
-    groupedItems() {
-      return this.filteredItems.reduce((acc, item) => {
-        const listName = item.nombre_lista;
-        if (!acc[listName]) {
-            acc[listName] = [];
-        }
-        acc[listName].push(item);
-        return acc;
-      }, {});
-    },
-    isCostoSelected() {
-        return this.filtros.listas_precios.length === 1 && this.filtros.listas_precios[0].id === 'Costo';
-    }
-  },
-  methods: {
-    formatCurrency(v) { if (typeof v !== 'number') return '$0'; return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(v); },
-    getVariationClass(i) { if (i === 'up') return 'bg-danger text-white'; if (i === 'down') return 'bg-success text-white'; return 'bg-light text-muted'; },
-    getVariationIcon(i) { if (i === 'up') return 'bi bi-arrow-up-short'; if (i === 'down') return 'bi bi-arrow-down-short'; return 'bi bi-dash'; },
-    getVariationTextColor(i) { if (i === 'up') return 'text-danger'; if (i === 'down') return 'text-success'; return 'text-muted';},
-    formatCell(value, key) { if (key && key.toLowerCase().includes('fecha')) { const date = new Date(value); if (!isNaN(date)) { return date.toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }); } } if (typeof value === 'number') { return this.formatCurrency(value); } return value; },
-    async getFilterOptions() { this.isLoading = true; try { const path = backendRouter.data + 'get_filtros_precios/'; const token = this.$cookies.get('jwt'); const response = await axios.get(path, { headers: { 'Authorization': `Bearer ${token}` } }); this.opcionesFiltro = response.data; } catch (e) { this.$swal('Error', 'No se pudieron cargar las opciones de filtro.', 'error'); } finally { this.isLoading = false; } },
-    async aplicarFiltros() {
-      this.isLoading = true;
-      this.currentPage = 1;
-      this.vistaHistorico = false;
-      this.items = [];
-      this.fechaCarga = '';
+    async aplicarFiltros() {
+      this.isLoading = true;
+      this.currentPage = 1;
+      this.vistaHistorico = false;
+      this.items = [];
+      this.fechaCarga = '';
 
-      const payload = { 
-        ...this.filtros,
-        listas_precios: this.filtros.listas_precios.map(l => l.id ?? l) // por si a veces ya viene el id
-      };
+      const payload = { 
+        ...this.filtros,
+        listas_precios: this.filtros.listas_precios.map(l => l.id ?? l)
+      };
 
-      // ❌ Quita cualquier lógica que hacía: if (payload.fecha_especifica === 'todas') delete payload.fecha_especifica;
+      try {
+        const { data } = await apiService.post('/buscar-precios/', { filtros: payload });
+        const seen = new Set();
+        this.items = data.data.filter(it => {
+          const k = (it.equipo + '|' + it.nombre_lista).toLowerCase();
+          if (seen.has(k)) return false;
+          seen.add(k);
+          return true;
+        });
+        this.fechaCarga = data.fecha_actual;
+      } catch (e) {
+        this.$swal('Error', 'No se pudieron cargar los productos.', 'error');
+      } finally {
+        this.isLoading = false;
+      }
+    },
+    shouldShowKit(listName, kitName) {
+        if (!listName || !kitName) { return false; }
+        const list = listName.toLowerCase();
+        const kit = kitName.toLowerCase();
+        const keywords = ['addi', 'sub', 'fintech', 'valle', 'premium'];
+        const hasKeyword = keywords.some(kw => kit.includes(kw));
+        if (!hasKeyword) { return true; }
+        if (kit.includes('addi') && list.includes('addi')) return true;
+        if (kit.includes('sub') && list.includes('sub')) return true;
+        if (kit.includes('fintech') && list.includes('fintech')) return true;
+        if (kit.includes('valle') && list.includes('valle')) return true;
+        if (kit.includes('premium') && list.includes('premium')) return true;
+        return false;
+    },
+    getVisibleKit(item) {
+        if (!item || !Array.isArray(item.kits)) {
+            return null;
+        }
+        return item.kits.find(k => k && k.nombre && this.shouldShowKit(item.nombre_lista, k.nombre));
+    },
+    esListaCosto(item) {
+        return item && item.nombre_lista && item.nombre_lista.toLowerCase() === 'costo';
+    },
+    calculateDynamicTotal(item) {
+        if (!item) return 0;
+        if (this.esListaCosto(item)) {
+            return item.costo - item.descuento;
+        } else {
+            const baseTotal = (item['equipo sin IVA'] || 0) + (item['IVA equipo'] || 0) + (item['precio simcard'] || 0) + (item['IVA simcard'] || 0);
+            let kitTotal = 0;
+            if (Array.isArray(item.kits)) {
+                const visibleKit = item.kits.find(k => k && k.nombre && this.shouldShowKit(item.nombre_lista, k.nombre));
+                if (visibleKit) {
+                    kitTotal = visibleKit.valor || 0;
+                }
+            }
+            return baseTotal + kitTotal;
+        }
+    },
+    async verHistorico(item) {
+      this.isLoading = true;
+      try {
+        const response = await apiService.post('/lista-productos-prepago-equipo/', { precio: item.nombre_lista, equipo: item.equipo });
+        const historicoItems = response.data.data;
+        for (let i = 0; i < historicoItems.length; i++) {
+            const currentItem = historicoItems[i];
+            if (i === historicoItems.length - 1) {
+                currentItem.indicador = 'neutral';
+                currentItem.diferencial = 0;
+                currentItem.porcentaje = 0;
+                continue;
+            }
+            const previousItem = historicoItems[i + 1];
+            const totalActual = this.calculateDynamicTotal(currentItem);
+            const totalAnterior = this.calculateDynamicTotal(previousItem);
+            if (totalAnterior !== 0) {
+                const diferencial = totalActual - totalAnterior;
+                currentItem.diferencial = diferencial;
+                currentItem.porcentaje = Math.round((diferencial / totalAnterior) * 100);
+                if (diferencial > 0) {
+                    currentItem.indicador = 'up';
+                } else if (diferencial < 0) {
+                    currentItem.indicador = 'down';
+                } else {
+                    currentItem.indicador = 'neutral';
+                }
+            } else {
+                currentItem.indicador = 'neutral';
+                currentItem.diferencial = totalActual;
+                currentItem.porcentaje = 0;
+            }
+        }
+        this.historialActivo = { equipo: item.equipo, items: historicoItems };
+        this.generateTableFields();
+        this.vistaHistorico = true;
+      } catch (e) { this.$swal('Error', 'No se pudo cargar el historial.', 'error'); } 
+      finally { this.isLoading = false; }
+    },
+    volverAProductos() { this.vistaHistorico = false; this.historialActivo = { equipo: '', items: [] }; },
+    generateTableFields() {
+      const items = this.historialActivo.items; if (items.length === 0) { this.fields = []; return; }
+      const keysToHide = ['indicador', 'diferencial', 'porcentaje', 'Promo', 'nombre_lista', 'kits'];
+      const allKeys = new Set(Object.keys(items[0]));
+      const filteredKeys = [...allKeys].filter(key => !keysToHide.includes(key));
+      this.fields = filteredKeys.map(key => ({ key: key, label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }));
+      if (items.some(item => item.indicador)) { if (!this.fields.some(f => f.key === 'variation')) { this.fields.push({ key: 'variation', label: 'Variación' }); } }
+    },
+    descargar() {
+        if (this.filteredItems.length === 0) {
+            this.$swal('Aviso', 'No hay datos para exportar.', 'info');
+            return;
+        }
+        const isCostoOnly = this.filtros.listas_precios.length === 1 && this.filtros.listas_precios[0].id.toLowerCase() === 'costo';
+        if (isCostoOnly) {
+            const headers = ['Equipo', 'Costo Principal', 'Descuento', 'Total Kit', 'Diferencial', 'Porcentaje', 'Indicador', 'Promo'];
+            const dataRows = this.filteredItems.map(item => [
+                item.equipo,
+                item.costo,
+                item.descuento,
+                this.calculateDynamicTotal(item),
+                item.diferencial,
+                item.porcentaje > 0 ? item.porcentaje / 100 : 0,
+                item.indicador,
+                item.Promo ? 'Sí' : 'No'
+            ]);
+            const finalData = [headers, ...dataRows];
+            const worksheet = XLSX.utils.aoa_to_sheet(finalData);
+            for (let R = 1; R <= dataRows.length; ++R) {
+                for (let C = 0; C < headers.length; ++C) {
+                    const headerValue = headers[C];
+                    const cell = worksheet[XLSX.utils.encode_cell({c: C, r: R})];
+                    if (!cell || typeof cell.v !== 'number') continue;
+                    if (['Costo Principal', 'Descuento', 'Total Kit', 'Diferencial'].includes(headerValue)) {
+                        cell.z = '$ #,##0';
+                    } else if (headerValue === 'Porcentaje') {
+                        cell.z = '0.00%';
+                    }
+                }
+            }
+            worksheet['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 10 }];
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte de Costos');
+            XLSX.writeFile(workbook, `Reporte_Costo_${new Date().toISOString().slice(0,10)}.xlsx`);
+        } else {
+            const productosAgrupados = this.filteredItems.reduce((acc, item) => {
+                const equipo = item.equipo;
+                if (!acc[equipo]) {
+                    acc[equipo] = [];
+                }
+                acc[equipo].push(item);
+                return acc;
+            }, {});
+            const listasDePreciosUnicas = [...new Set(this.filteredItems.map(item => item.nombre_lista))];
+            const finalHeaders = ['Diferencial', 'Porcentaje', 'Indicador', 'Promo'];
+            const header_principal = ['Equipo'];
+            const header_secundario = [''];
+            const merges = [];
+            const kitHeadersPorLista = {};
+            let colIndex = 1;
+            listasDePreciosUnicas.forEach(lista => {
+                const subColumnasBase = ['Precio Simcard', 'IVA Simcard', 'Equipo sin IVA', 'IVA Equipo'];
+                let kitHeader = '';
+                const representativeItem = this.filteredItems.find(i => i.nombre_lista === lista && Array.isArray(i.kits));
+                if (representativeItem) {
+                    const visibleKit = representativeItem.kits.find(k => k && k.nombre && this.shouldShowKit(lista, k.nombre));
+                    if (visibleKit) {
+                        kitHeader = visibleKit.nombre;
+                        kitHeadersPorLista[lista] = kitHeader;
+                    }
+                }
+                const subColumnas = [...subColumnasBase];
+                if (kitHeader) {
+                    subColumnas.push(kitHeader);
+                }
+                subColumnas.push('Total Kit');
+                header_principal.push(lista, ...Array(subColumnas.length - 1).fill(''));
+                subColumnas.forEach(subCol => header_secundario.push(subCol));
+                merges.push({ s: { r: 0, c: colIndex }, e: { r: 0, c: colIndex + subColumnas.length - 1 } });
+                colIndex += subColumnas.length;
+            });
+            finalHeaders.forEach(header => {
+                header_principal.push('');
+                header_secundario.push(header);
+            });
+            const dataRows = Object.values(productosAgrupados).map(itemsDelEquipo => {
+                const firstItem = itemsDelEquipo[0];
+                const row = [firstItem.equipo];
+                listasDePreciosUnicas.forEach(lista => {
+                    const item = itemsDelEquipo.find(i => i.nombre_lista === lista);
+                    const isCosto = lista.toLowerCase() === 'costo';
+                    if (isCosto) {
+                        row.push(item ? item.costo : '');
+                        row.push(item ? item.descuento : '');
+                        row.push(item ? this.calculateDynamicTotal(item) : '');
+                    } else {
+                        row.push(item ? item['precio simcard'] : '');
+                        row.push(item ? item['IVA simcard'] : '');
+                        row.push(item ? item['equipo sin IVA'] : '');
+                        row.push(item ? item['IVA equipo'] : '');
+                        const kitHeaderName = kitHeadersPorLista[lista];
+                        if (kitHeaderName) {
+                            let kitValor = '';
+                            if (item && Array.isArray(item.kits)) {
+                                const visibleKit = item.kits.find(k => k && k.nombre === kitHeaderName);
+                                if (visibleKit) {
+                                    kitValor = visibleKit.valor;
+                                }
+                            }
+                            row.push(kitValor);
+                        }
+                        row.push(item ? this.calculateDynamicTotal(item) : '');
+                    }
+                });
+                row.push(firstItem.diferencial);
+                row.push(firstItem.porcentaje > 0 ? firstItem.porcentaje / 100 : 0);
+                row.push(firstItem.indicador);
+                row.push(firstItem.Promo ? 'Sí' : 'No');
+                return row;
+            });
+            const finalData = [header_principal, header_secundario, ...dataRows];
+            const worksheet = XLSX.utils.aoa_to_sheet(finalData);
+            worksheet['!merges'] = merges;
+            for (let R = 1; R < finalData.length; ++R) {
+                for (let C = 0; C < header_secundario.length; ++C) {
+                    const headerValue = header_secundario[C];
+                    const cell = worksheet[XLSX.utils.encode_cell({c: C, r: R})];
+                    if (!cell || !headerValue || typeof cell.v !== 'number') continue;
+                    if (['Diferencial', 'Total Kit', 'Precio Simcard', 'IVA Simcard', 'Equipo sin IVA', 'IVA Equipo', 'Costo Principal', 'Descuento'].includes(headerValue) || headerValue.includes('Kit')) {
+                        cell.z = '$ #,##0';
+                    } else if (headerValue === 'Porcentaje') {
+                        cell.z = '0.00%';
+                    }
+                }
+            }
+            const colWidths = header_secundario.map(header => ({ wch: header.length > 15 ? header.length + 2 : 15 }));
+            colWidths[0] = { wch: 35 };
+            worksheet['!cols'] = colWidths;
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Comparativa de Precios');
+            XLSX.writeFile(workbook, `Comparativa_Precios_${new Date().toISOString().slice(0,10)}.xlsx`);
+        }
+    }, 
+    exportToPDF() {
+      if (this.filteredItems.length === 0) {
+        this.$swal('Aviso', 'No hay datos para exportar.', 'info');
+        return;
+      }
+      this.isLoading = true;
+      try {
+        const pdf = new jsPDF('p', 'mm', 'a4');
+        const pageHeight = pdf.internal.pageSize.getHeight();
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        const margin = 10;
+        let y = 15;
+        pdf.setFontSize(18);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('Reporte de Precios y Variaciones', pageWidth / 2, y, { align: 'center' });
+        y += 8;
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Fecha de Referencia: ${this.fechaCarga}`, pageWidth / 2, y, { align: 'center' });
+        y += 12;
+        
+        const drawCard = (item, startX, startY) => {
+          const cardWidth = (pageWidth - margin * 3) / 2;
+          const lineSpacing = 4.5;
+          const sectionSpacing = 3;
+          let calculatedHeight = 0;
+          const titleLines = pdf.splitTextToSize(item.equipo, cardWidth - 28);
+          
+          calculatedHeight += 7;
+          calculatedHeight += titleLines.length * 5;
+          calculatedHeight += sectionSpacing;
+          if (item.Promo) calculatedHeight += 6;
+          
+          let detailsCount = 0;
+          let visibleKits = [];
 
-      try {
-        const { data } = await axios.post(backendRouter.data + 'buscar-precios/', { filtros: payload });
-        // (opcional) deduplicar por si acaso, por equipo+lista
-        const seen = new Set();
-        this.items = data.data.filter(it => {
-          const k = (it.equipo + '|' + it.nombre_lista).toLowerCase();
-          if (seen.has(k)) return false;
-          seen.add(k);
-          return true;
-        });
-        this.fechaCarga = data.fecha_actual;
-      } catch (e) {
-        this.$swal('Error', 'No se pudieron cargar los productos.', 'error');
-      } finally {
-        this.isLoading = false;
-      }
-    },
+          if (this.esListaCosto(item)) {
+            detailsCount = 2;
+          } else {
+            detailsCount = 4;
+            visibleKits = Array.isArray(item.kits) ? item.kits.filter(kit => this.shouldShowKit(item.nombre_lista, kit.nombre)) : [];
+          }
+          
+          calculatedHeight += detailsCount * lineSpacing;
+          calculatedHeight += visibleKits.length * lineSpacing;
+          calculatedHeight += 8;
+          calculatedHeight += 2;
+          
+          if (startY + calculatedHeight > pageHeight - margin) {
+            return 0;
+          }
 
-    shouldShowKit(listName, kitName) {
-        if (!listName || !kitName) { return false; }
-        
-        const list = listName.toLowerCase();
-        const kit = kitName.toLowerCase();
-        const keywords = ['addi', 'sub', 'fintech', 'valle', 'premium'];
-        
-        const hasKeyword = keywords.some(kw => kit.includes(kw));
-        
-        // Si el kit no tiene una palabra clave especial, muéstralo siempre.
-        if (!hasKeyword) { return true; }
+          let currentY = startY;
+          pdf.setDrawColor(222, 226, 230);
+          pdf.roundedRect(startX, startY, cardWidth, calculatedHeight, 3, 3, 'S');
+          pdf.setFontSize(9);
+          pdf.setFont('helvetica', 'bold');
+          pdf.setTextColor(52, 58, 64);
+          currentY += 7;
+          pdf.text(titleLines, startX + 5, currentY);
+          currentY += titleLines.length * 5;
+          
+          const badgeColor = item.indicador === 'up' ? [220, 53, 69] : item.indicador === 'down' ? [25, 135, 84] : [108, 117, 125];
+          pdf.setFillColor(...badgeColor);
+          pdf.roundedRect(startX + cardWidth - 22, startY + 4, 18, 5, 2, 2, 'F');
+          pdf.setFontSize(8);
+          pdf.setTextColor(255, 255, 255);
+          pdf.text(`${item.porcentaje}%`, startX + cardWidth - 13, startY + 7.5, { align: 'center'});
+          currentY += sectionSpacing;
+          
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(8);
+          
+          if(item.Promo){
+            pdf.setFillColor(220, 53, 69);
+            pdf.roundedRect(startX + 5, currentY - 2, 15, 5, 2, 2, 'F');
+            pdf.setTextColor(255, 255, 255);
+            pdf.text('PROMO', startX + 12.5, currentY + 1.5, { align: 'center' });
+            currentY += 6;
+          }
+          
+          pdf.setTextColor(108, 117, 125);
 
-        // Si tiene una palabra clave, asegúrate de que coincida con la lista de precios.
-        if (kit.includes('addi') && list.includes('addi')) return true;
-        if (kit.includes('sub') && list.includes('sub')) return true;
-        if (kit.includes('fintech') && list.includes('fintech')) return true;
-        if (kit.includes('valle') && list.includes('valle')) return true;
-        if (kit.includes('premium') && list.includes('premium')) return true; // <-- La línea clave
+          if (this.esListaCosto(item)) {
+              const details = [
+                  {label: 'Costo Principal:', value: this.formatCurrency(item.costo)},
+                  {label: 'Descuento:', value: `- ${this.formatCurrency(item.descuento)}`},
+              ];
+              details.forEach(detail => {
+                  pdf.text(detail.label, startX + 5, currentY);
+                  pdf.text(detail.value, startX + cardWidth - 5, currentY, { align: 'right' });
+                  currentY += lineSpacing;
+              });
+          } else {
+              const details = [
+                  {label: 'Equipo s/IVA:', value: this.formatCurrency(item['equipo sin IVA'])},
+                  {label: 'IVA Equipo:', value: this.formatCurrency(item['IVA equipo'])},
+                  {label: 'Simcard:', value: this.formatCurrency(item['precio simcard'])},
+                  {label: 'IVA Simcard:', value: this.formatCurrency(item['IVA simcard'])},
+              ];
+              details.forEach(detail => {
+                  pdf.text(detail.label, startX + 5, currentY);
+                  pdf.text(detail.value, startX + cardWidth - 5, currentY, { align: 'right' });
+                  currentY += lineSpacing;
+              });
+              visibleKits.forEach(kit => {
+                  pdf.setFont('helvetica', 'bold');
+                  pdf.text(`${kit.nombre}:`, startX + 5, currentY);
+                  pdf.text(this.formatCurrency(kit.valor), startX + cardWidth - 5, currentY, { align: 'right' });
+                  currentY += lineSpacing;
+                  pdf.setFont('helvetica', 'normal');
+              });
+          }
 
-        // Si no coincide, no lo muestres.
-        return false;
-    },
-    getVisibleKit(item) {
-        if (!item || !Array.isArray(item.kits)) {
-            return null;
-        }
-        return item.kits.find(k => k && k.nombre && this.shouldShowKit(item.nombre_lista, k.nombre));
-    },
-    esListaCosto(item) {
-        return item && item.nombre_lista && item.nombre_lista.toLowerCase() === 'costo';
-    },
-    calculateDynamicTotal(item) {
-        if (!item) return 0;
-        if (this.esListaCosto(item)) {
-            return item.costo - item.descuento;
-        } else {
-            const baseTotal = (item['equipo sin IVA'] || 0) +
-                                (item['IVA equipo'] || 0) +
-                                (item['precio simcard'] || 0) +
-                                (item['IVA simcard'] || 0);
-            
-            let kitTotal = 0;
-            if (Array.isArray(item.kits)) {
-                const visibleKit = item.kits.find(k => k && k.nombre && this.shouldShowKit(item.nombre_lista, k.nombre));
-                if (visibleKit) {
-                    kitTotal = visibleKit.valor || 0;
-                }
-            }
-            return baseTotal + kitTotal;
-        }
-    },
-    async verHistorico(item) {
-      this.isLoading = true;
-      try {
-        const path = backendRouter.data + 'lista-productos-prepago-equipo/';
-        const response = await axios.post(path, { precio: item.nombre_lista, equipo: item.equipo });
-        
-        const historicoItems = response.data.data;
+          const diffColor = item.indicador === 'up' ? [220, 53, 69] : item.indicador === 'down' ? [25, 135, 84] : [108, 117, 125];
+          pdf.setTextColor(...diffColor);
+          pdf.setFont('helvetica', 'bold');
+          pdf.text('Diferencial:', startX + 5, currentY);
+          pdf.text(this.formatCurrency(item.diferencial), startX + cardWidth - 5, currentY, { align: 'right' });
+          
+          currentY += 2;
+          pdf.setDrawColor(222, 226, 230);
+          pdf.line(startX, currentY, startX + cardWidth, currentY);
+          currentY += 5;
+          
+          pdf.setTextColor(52, 58, 64);
+          pdf.setFontSize(10);
+          pdf.text('Total Kit:', startX + 5, currentY);
+          pdf.setTextColor(223, 17, 21);
+          pdf.text(this.formatCurrency(this.calculateDynamicTotal(item)), startX + cardWidth - 5, currentY, { align: 'right' });
+          
+          return calculatedHeight;
+        }
 
-        for (let i = 0; i < historicoItems.length; i++) {
-            const currentItem = historicoItems[i];
-            if (i === historicoItems.length - 1) {
-                currentItem.indicador = 'neutral';
-                currentItem.diferencial = 0;
-                currentItem.porcentaje = 0;
-                continue;
-            }
+        let x = margin;
+        for (let i = 0; i < this.filteredItems.length; i++) {
+          const item = this.filteredItems[i];
+          let drawnHeight = drawCard(item, x, y);
+          
+          if (drawnHeight === 0) {
+            pdf.addPage();
+            y = margin + 10;
+            x = margin;
+            drawnHeight = drawCard(item, x, y);
+          }
+          
+          if (i % 2 === 0) {
+            x = margin + (pageWidth - margin * 3) / 2 + margin;
+          } else {
+            x = margin;
+            y += drawnHeight + 5;
+          }
+        }
+        
+        pdf.save(`Busqueda_Precios_${new Date().toISOString().slice(0,10)}.pdf`);
 
-            const previousItem = historicoItems[i + 1];
-
-            const totalActual = this.calculateDynamicTotal(currentItem);
-            const totalAnterior = this.calculateDynamicTotal(previousItem);
-
-            if (totalAnterior !== 0) {
-                const diferencial = totalActual - totalAnterior;
-                currentItem.diferencial = diferencial;
-                currentItem.porcentaje = Math.round((diferencial / totalAnterior) * 100);
-                
-                if (diferencial > 0) {
-                    currentItem.indicador = 'up';
-                } else if (diferencial < 0) {
-                    currentItem.indicador = 'down';
-                } else {
-                    currentItem.indicador = 'neutral';
-                }
-            } else {
-                currentItem.indicador = 'neutral';
-                currentItem.diferencial = totalActual;
-                currentItem.porcentaje = 0;
-            }
-        }
-        
-        this.historialActivo = { equipo: item.equipo, items: historicoItems };
-
-        this.generateTableFields();
-        this.vistaHistorico = true;
-      } catch (e) { this.$swal('Error', 'No se pudo cargar el historial.', 'error'); } 
-      finally { this.isLoading = false; }
-    },
-    volverAProductos() { this.vistaHistorico = false; this.historialActivo = { equipo: '', items: [] }; },
-    generateTableFields() {
-      const items = this.historialActivo.items; if (items.length === 0) { this.fields = []; return; }
-      const keysToHide = ['indicador', 'diferencial', 'porcentaje', 'Promo', 'nombre_lista', 'kits'];
-      const allKeys = new Set(Object.keys(items[0]));
-      const filteredKeys = [...allKeys].filter(key => !keysToHide.includes(key));
-      this.fields = filteredKeys.map(key => ({ key: key, label: key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }));
-      if (items.some(item => item.indicador)) { if (!this.fields.some(f => f.key === 'variation')) { this.fields.push({ key: 'variation', label: 'Variación' }); } }
-    },
-    descargar() {
-        if (this.filteredItems.length === 0) {
-            this.$swal('Aviso', 'No hay datos para exportar.', 'info');
-            return;
-        }
-
-        const isCostoOnly = this.filtros.listas_precios.length === 1 && this.filtros.listas_precios[0].id.toLowerCase() === 'costo';
-
-        if (isCostoOnly) {
-            const headers = ['Equipo', 'Costo Principal', 'Descuento', 'Total Kit', 'Diferencial', 'Porcentaje', 'Indicador', 'Promo'];
-            const dataRows = this.filteredItems.map(item => [
-                item.equipo,
-                item.costo,
-                item.descuento,
-                this.calculateDynamicTotal(item),
-                item.diferencial,
-                item.porcentaje > 0 ? item.porcentaje / 100 : 0,
-                item.indicador,
-                item.Promo ? 'Sí' : 'No'
-            ]);
-
-            const finalData = [headers, ...dataRows];
-            const worksheet = XLSX.utils.aoa_to_sheet(finalData);
-
-            for (let R = 1; R <= dataRows.length; ++R) {
-                for (let C = 0; C < headers.length; ++C) {
-                    const headerValue = headers[C];
-                    const cell = worksheet[XLSX.utils.encode_cell({c: C, r: R})];
-                    if (!cell || typeof cell.v !== 'number') continue;
-                    
-                    if (['Costo Principal', 'Descuento', 'Total Kit', 'Diferencial'].includes(headerValue)) {
-                        cell.z = '$ #,##0';
-                    } else if (headerValue === 'Porcentaje') {
-                        cell.z = '0.00%';
-                    }
-                }
-            }
-
-            worksheet['!cols'] = [{ wch: 35 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 15 }, { wch: 12 }, { wch: 12 }, { wch: 10 }];
-            
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Reporte de Costos');
-            XLSX.writeFile(workbook, `Reporte_Costo_${new Date().toISOString().slice(0,10)}.xlsx`);
-
-        } else {
-            const productosAgrupados = this.filteredItems.reduce((acc, item) => {
-                const equipo = item.equipo;
-                if (!acc[equipo]) {
-                    acc[equipo] = [];
-                }
-                acc[equipo].push(item);
-                return acc;
-            }, {});
-
-            const listasDePreciosUnicas = [...new Set(this.filteredItems.map(item => item.nombre_lista))];
-            const finalHeaders = ['Diferencial', 'Porcentaje', 'Indicador', 'Promo'];
-            
-            const header_principal = ['Equipo'];
-            const header_secundario = [''];
-            const merges = [];
-            const kitHeadersPorLista = {};
-            let colIndex = 1;
-
-            listasDePreciosUnicas.forEach(lista => {
-                const subColumnasBase = ['Precio Simcard', 'IVA Simcard', 'Equipo sin IVA', 'IVA Equipo'];
-                let kitHeader = '';
-                
-                const representativeItem = this.filteredItems.find(i => i.nombre_lista === lista && Array.isArray(i.kits));
-                if (representativeItem) {
-                    const visibleKit = representativeItem.kits.find(k => k && k.nombre && this.shouldShowKit(lista, k.nombre));
-                    if (visibleKit) {
-                        kitHeader = visibleKit.nombre;
-                        kitHeadersPorLista[lista] = kitHeader;
-                    }
-                }
-                
-                const subColumnas = [...subColumnasBase];
-                if (kitHeader) {
-                    subColumnas.push(kitHeader);
-                }
-                subColumnas.push('Total Kit');
-                
-                header_principal.push(lista, ...Array(subColumnas.length - 1).fill(''));
-                subColumnas.forEach(subCol => header_secundario.push(subCol));
-                merges.push({ s: { r: 0, c: colIndex }, e: { r: 0, c: colIndex + subColumnas.length - 1 } });
-                colIndex += subColumnas.length;
-            });
-            
-            finalHeaders.forEach(header => {
-                header_principal.push('');
-                header_secundario.push(header);
-            });
-            
-            const dataRows = Object.values(productosAgrupados).map(itemsDelEquipo => {
-                const firstItem = itemsDelEquipo[0];
-                const row = [firstItem.equipo];
-
-                listasDePreciosUnicas.forEach(lista => {
-                    const item = itemsDelEquipo.find(i => i.nombre_lista === lista);
-                    const isCosto = lista.toLowerCase() === 'costo';
-
-                    if (isCosto) {
-                        row.push(item ? item.costo : '');
-                        row.push(item ? item.descuento : '');
-                        row.push(item ? this.calculateDynamicTotal(item) : '');
-                    } else {
-                        row.push(item ? item['precio simcard'] : '');
-                        row.push(item ? item['IVA simcard'] : '');
-                        row.push(item ? item['equipo sin IVA'] : '');
-                        row.push(item ? item['IVA equipo'] : '');
-                        
-                        const kitHeaderName = kitHeadersPorLista[lista];
-                        if (kitHeaderName) {
-                            let kitValor = '';
-                            if (item && Array.isArray(item.kits)) {
-                                const visibleKit = item.kits.find(k => k && k.nombre === kitHeaderName);
-                                if (visibleKit) {
-                                    kitValor = visibleKit.valor;
-                                }
-                            }
-                            row.push(kitValor);
-                        }
-                        
-                        row.push(item ? this.calculateDynamicTotal(item) : '');
-                    }
-                });
-
-                row.push(firstItem.diferencial);
-                row.push(firstItem.porcentaje > 0 ? firstItem.porcentaje / 100 : 0);
-                row.push(firstItem.indicador);
-                row.push(firstItem.Promo ? 'Sí' : 'No');
-                
-                return row;
-            });
-
-            const finalData = [header_principal, header_secundario, ...dataRows];
-            const worksheet = XLSX.utils.aoa_to_sheet(finalData);
-            worksheet['!merges'] = merges;
-            
-            for (let R = 1; R < finalData.length; ++R) {
-                for (let C = 0; C < header_secundario.length; ++C) {
-                    const headerValue = header_secundario[C];
-                    const cell = worksheet[XLSX.utils.encode_cell({c: C, r: R})];
-                    if (!cell || !headerValue || typeof cell.v !== 'number') continue;
-
-                    if (['Diferencial', 'Total Kit', 'Precio Simcard', 'IVA Simcard', 'Equipo sin IVA', 'IVA Equipo', 'Costo Principal', 'Descuento'].includes(headerValue) || headerValue.includes('Kit')) {
-                        cell.z = '$ #,##0';
-                    } else if (headerValue === 'Porcentaje') {
-                        cell.z = '0.00%';
-                    }
-                }
-            }
-
-            const colWidths = header_secundario.map(header => ({ wch: header.length > 15 ? header.length + 2 : 15 }));
-            colWidths[0] = { wch: 35 };
-            worksheet['!cols'] = colWidths;
-
-            const workbook = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(workbook, worksheet, 'Comparativa de Precios');
-            XLSX.writeFile(workbook, `Comparativa_Precios_${new Date().toISOString().slice(0,10)}.xlsx`);
-        }
-    }, 
-    exportToPDF() {
-      if (this.filteredItems.length === 0) {
-        this.$swal('Aviso', 'No hay datos para exportar.', 'info');
-        return;
-      }
-      this.isLoading = true;
-      try {
-        const pdf = new jsPDF('p', 'mm', 'a4');
-        const pageHeight = pdf.internal.pageSize.getHeight();
-        const pageWidth = pdf.internal.pageSize.getWidth();
-        const margin = 10;
-        let y = 15;
-        pdf.setFontSize(18);
-        pdf.setFont('helvetica', 'bold');
-        pdf.text('Reporte de Precios y Variaciones', pageWidth / 2, y, { align: 'center' });
-        y += 8;
-        pdf.setFontSize(10);
-        pdf.setFont('helvetica', 'normal');
-        pdf.text(`Fecha de Referencia: ${this.fechaCarga}`, pageWidth / 2, y, { align: 'center' });
-        y += 12;
-        
-        const drawCard = (item, startX, startY) => {
-          const cardWidth = (pageWidth - margin * 3) / 2;
-          const lineSpacing = 4.5;
-          const sectionSpacing = 3;
-          let calculatedHeight = 0;
-          const titleLines = pdf.splitTextToSize(item.equipo, cardWidth - 28);
-          
-          calculatedHeight += 7;
-          calculatedHeight += titleLines.length * 5;
-          calculatedHeight += sectionSpacing;
-          if (item.Promo) calculatedHeight += 6;
-          
-          let detailsCount = 0;
-          let visibleKits = [];
-
-          if (this.esListaCosto(item)) {
-            detailsCount = 2;
-          } else {
-            detailsCount = 4;
-            visibleKits = Array.isArray(item.kits) ? item.kits.filter(kit => this.shouldShowKit(item.nombre_lista, kit.nombre)) : [];
-          }
-          
-          calculatedHeight += detailsCount * lineSpacing;
-          calculatedHeight += visibleKits.length * lineSpacing;
-          calculatedHeight += 8;
-          calculatedHeight += 2;
-          
-          if (startY + calculatedHeight > pageHeight - margin) {
-            return 0;
-          }
-
-          let currentY = startY;
-          pdf.setDrawColor(222, 226, 230);
-          pdf.roundedRect(startX, startY, cardWidth, calculatedHeight, 3, 3, 'S');
-          pdf.setFontSize(9);
-          pdf.setFont('helvetica', 'bold');
-          pdf.setTextColor(52, 58, 64);
-          currentY += 7;
-          pdf.text(titleLines, startX + 5, currentY);
-          currentY += titleLines.length * 5;
-          
-          const badgeColor = item.indicador === 'up' ? [220, 53, 69] : item.indicador === 'down' ? [25, 135, 84] : [108, 117, 125];
-          pdf.setFillColor(...badgeColor);
-          pdf.roundedRect(startX + cardWidth - 22, startY + 4, 18, 5, 2, 2, 'F');
-          pdf.setFontSize(8);
-          pdf.setTextColor(255, 255, 255);
-          pdf.text(`${item.porcentaje}%`, startX + cardWidth - 13, startY + 7.5, { align: 'center'});
-          currentY += sectionSpacing;
-          
-          pdf.setFont('helvetica', 'normal');
-          pdf.setFontSize(8);
-          
-          if(item.Promo){
-            pdf.setFillColor(220, 53, 69);
-            pdf.roundedRect(startX + 5, currentY - 2, 15, 5, 2, 2, 'F');
-            pdf.setTextColor(255, 255, 255);
-            pdf.text('PROMO', startX + 12.5, currentY + 1.5, { align: 'center' });
-            currentY += 6;
-          }
-          
-          pdf.setTextColor(108, 117, 125);
-
-          if (this.esListaCosto(item)) {
-              const details = [
-                  {label: 'Costo Principal:', value: this.formatCurrency(item.costo)},
-                  {label: 'Descuento:', value: `- ${this.formatCurrency(item.descuento)}`},
-              ];
-              details.forEach(detail => {
-                  pdf.text(detail.label, startX + 5, currentY);
-                  pdf.text(detail.value, startX + cardWidth - 5, currentY, { align: 'right' });
-                  currentY += lineSpacing;
-              });
-          } else {
-              const details = [
-                  {label: 'Equipo s/IVA:', value: this.formatCurrency(item['equipo sin IVA'])},
-                  {label: 'IVA Equipo:', value: this.formatCurrency(item['IVA equipo'])},
-                  {label: 'Simcard:', value: this.formatCurrency(item['precio simcard'])},
-                  {label: 'IVA Simcard:', value: this.formatCurrency(item['IVA simcard'])},
-              ];
-              details.forEach(detail => {
-                  pdf.text(detail.label, startX + 5, currentY);
-                  pdf.text(detail.value, startX + cardWidth - 5, currentY, { align: 'right' });
-                  currentY += lineSpacing;
-              });
-              visibleKits.forEach(kit => {
-                  pdf.setFont('helvetica', 'bold');
-                  pdf.text(`${kit.nombre}:`, startX + 5, currentY);
-                  pdf.text(this.formatCurrency(kit.valor), startX + cardWidth - 5, currentY, { align: 'right' });
-                  currentY += lineSpacing;
-                  pdf.setFont('helvetica', 'normal');
-              });
-          }
-
-          const diffColor = item.indicador === 'up' ? [220, 53, 69] : item.indicador === 'down' ? [25, 135, 84] : [108, 117, 125];
-          pdf.setTextColor(...diffColor);
-          pdf.setFont('helvetica', 'bold');
-          pdf.text('Diferencial:', startX + 5, currentY);
-          pdf.text(this.formatCurrency(item.diferencial), startX + cardWidth - 5, currentY, { align: 'right' });
-          
-          currentY += 2;
-          pdf.setDrawColor(222, 226, 230);
-          pdf.line(startX, currentY, startX + cardWidth, currentY);
-          currentY += 5;
-          
-          pdf.setTextColor(52, 58, 64);
-          pdf.setFontSize(10);
-          pdf.text('Total Kit:', startX + 5, currentY);
-          pdf.setTextColor(223, 17, 21);
-          pdf.text(this.formatCurrency(this.calculateDynamicTotal(item)), startX + cardWidth - 5, currentY, { align: 'right' });
-          
-          return calculatedHeight;
-        }
-
-        let x = margin;
-        for (let i = 0; i < this.filteredItems.length; i++) {
-          const item = this.filteredItems[i];
-          let drawnHeight = drawCard(item, x, y);
-          
-          if (drawnHeight === 0) {
-            pdf.addPage();
-            y = margin + 10;
-            x = margin;
-            drawnHeight = drawCard(item, x, y);
-          }
-          
-          if (i % 2 === 0) {
-            x = margin + (pageWidth - margin * 3) / 2 + margin;
-          } else {
-            x = margin;
-            y += drawnHeight + 5;
-          }
-        }
-        
-        pdf.save(`Busqueda_Precios_${new Date().toISOString().slice(0,10)}.pdf`);
-
-      } catch (error) {
-        console.error("Error al generar el PDF:", error);
-        this.$swal('Error', 'Ocurrió un error inesperado al generar el PDF.', 'error');
-      } finally {
-        this.isLoading = false;
-      }
-    }
-  },
-  created() {
-    this.getFilterOptions();
-  },
+      } catch (error) {
+        console.error("Error al generar el PDF:", error);
+        this.$swal('Error', 'Ocurrió un error inesperado al generar el PDF.', 'error');
+      } finally {
+        this.isLoading = false;
+      }
+    }
+  },
+  created() {
+    this.getFilterOptions();
+  },
 };
 </script>
+
+
 <style src="vue-multiselect/dist/vue-multiselect.css"></style>
 <style lang="scss" scoped>
 .filter-bar { 
