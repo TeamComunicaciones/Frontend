@@ -12,7 +12,8 @@
               <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#carga-pane" type="button" role="tab">Carga de Comisiones</button>
             </li>
             <li class="nav-item" role="presentation">
-              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#permisos-pane" type="button" role="tab">Asignación de Rutas</button>
+              <!-- *** CAMBIO: Título de la pestaña actualizado *** -->
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#permisos-pane" type="button" role="tab">Gestión de Asesores</button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#reportes-pane" type="button" role="tab">Reportes y Gráficas</button>
@@ -23,6 +24,8 @@
           </ul>
 
           <div class="tab-content p-4 p-md-5" id="adminTabContent">
+            
+            <!-- 1. Pestaña de Carga (Sin cambios) -->
             <div class="tab-pane fade show active" id="carga-pane" role="tabpanel">
               <h2 class="h3 mb-3">Importar Comisiones desde Excel</h2>
               <p class="mb-4">Sube el archivo .xlsx con los registros de comisiones. El sistema lo procesará en segundo plano.</p>
@@ -71,43 +74,89 @@
               </div>
             </div>
 
+            <!-- *** INICIO: PESTAÑA DE GESTIÓN DE ASESORES (ACTUALIZADA) *** -->
             <div class="tab-pane fade" id="permisos-pane" role="tabpanel">
+              <!-- Encabezado y Acciones -->
               <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
-                  <h2 class="h3 mb-1">Asignar Rutas a Asesores</h2>
-                  <p class="mb-0">Asigna una ruta para habilitar a un usuario como asesor. El cambio se guarda automáticamente.</p>
+                  <h2 class="h3 mb-1">Gestión de Asesores</h2>
+                  <p class="mb-0">Añade, edita, desactiva o elimina asesores del sistema.</p>
                 </div>
-                <div class="col-md-4">
-                  <input type="text" class="form-control" v-model="searchQuery" placeholder="Buscar usuario por nombre o email...">
-                </div>
+                <button class="btn btn-danger" @click="openModal('create')">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg me-1" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/></svg>
+                  Nuevo Asesor
+                </button>
               </div>
+
+              <!-- Filtro de Búsqueda -->
+              <div class="mb-3 col-md-4">
+                <input type="text" class="form-control" v-model="searchQuery" placeholder="Buscar asesor por documento o email...">
+              </div>
+
+              <!-- Loader -->
               <div v-if="isLoadingPermissions" class="text-center p-5">
                 <div class="spinner-border text-danger" role="status">
                   <span class="visually-hidden">Cargando...</span>
                 </div>
               </div>
-              <div v-else class="row">
-                <div v-for="user in filteredUsers" :key="user.id" class="col-md-6 col-lg-4 mb-4">
-                  <div class="card h-100 shadow-sm card-hover">
-                    <div class="card-body">
-                      <h5 class="card-title text-truncate">{{ user.username }}</h5>
-                      <p class="card-text text-truncate">{{ user.email }}</p>
-                      <select class="form-select" v-model="user.ruta_asignada" @change="updateAsesorRuta(user)">
-                        <option :value="null">-- Sin Asignar (No es Asesor) --</option>
-                        <option v-for="ruta in rutas" :key="ruta" :value="ruta">{{ ruta }}</option>
-                      </select>
-                      <div v-if="recentlySaved === user.id" class="save-indicator">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill" viewBox="0 0 16 16"><path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/></svg> Guardado
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div v-if="filteredUsers.length === 0 && !isLoadingPermissions" class="col-12 text-center mt-5">
-                  <h4>No se encontraron usuarios con ese criterio.</h4>
+
+              <!-- Tabla de Asesores -->
+              <div v-else class="card shadow-sm">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                      <tr>
+                        <th scope="col">Documento</th>
+                        <th scope="col">Email</th>
+                        <th scope="col" style="width: 200px;">Ruta Asignada</th>
+                        <th scope="col" class="text-center">Activo</th>
+                        <th scope="col" class="text-end">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="asesor in filteredAsesores" :key="asesor.id">
+                        <td><strong>{{ asesor.username }}</strong></td>
+                        <td>{{ asesor.email }}</td>
+                        <td>
+                          <!-- El select se mantiene, pero ahora es parte de la tabla -->
+                          <select class="form-select form-select-sm" 
+                                  v-model="asesor.ruta_asignada" 
+                                  @change="updateAsesorRuta(asesor)">
+                            <option :value="null">-- Sin Asignar --</option>
+                            <option v-for="ruta in rutas" :key="ruta" :value="ruta">{{ ruta }}</option>
+                          </select>
+                        </td>
+                        <td class="text-center">
+                          <div class="form-check form-switch d-flex justify-content-center">
+                            <input 
+                              class="form-check-input" 
+                              type="checkbox" 
+                              role="switch"
+                              :checked="asesor.is_active" 
+                              @change="toggleAsesorActivo(asesor)"
+                            >
+                          </div>
+                        </td>
+                        <td class="text-end">
+                          <button class="btn btn-sm btn-outline-secondary me-2" @click="openModal('edit', asesor)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468-1.5 1.5V13h1.5v-1.5z"/></svg>
+                          </button>
+                          <button class="btn btn-sm btn-outline-danger" @click="eliminarAsesor(asesor)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                          </button>
+                        </td>
+                      </tr>
+                      <tr v-if="filteredAsesores.length === 0 && !isLoadingPermissions">
+                        <td colspan="5" class="text-center p-4">No se encontraron asesores.</td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
               </div>
             </div>
+            <!-- *** FIN: PESTAÑA DE GESTIÓN DE ASESORES *** -->
             
+            <!-- 3. Pestaña de Reportes (Sin cambios) -->
             <div class="tab-pane fade" id="reportes-pane" role="tabpanel">
               <h2 class="h3 mb-4">Dashboard de Comisiones Generales</h2>
               <div class="card shadow-sm mb-4">
@@ -236,6 +285,7 @@
               </div>
             </div>
 
+            <!-- 4. Pestaña de Configuración (Sin cambios) -->
             <div class="tab-pane fade" id="config-pane" role="tabpanel">
               <h2 class="h3 mb-4">Ajustes Generales del Sistema</h2>
               <div class="row">
@@ -267,6 +317,7 @@
                 </div>
               </div>
             </div>
+
           </div>
         </div>
       </div>
@@ -275,6 +326,7 @@
 </template>
 
 <script setup>
+// *** CAMBIO: `reactive` importado ***
 import { ref, reactive, computed, onMounted } from 'vue';
 import Swal from 'sweetalert2';
 import axios from 'axios';
@@ -294,7 +346,7 @@ const { cookies } = useCookies();
 const token = cookies.get('jwt');
 const authHeaders = { 'Authorization': `Bearer ${token}` };
 
-// --- Lógica para Carga de Archivos ---
+// --- Lógica para Carga de Archivos (Sin cambios) ---
 const selectedFile = ref(null);
 const isLoading = ref(false);
 const isDragging = ref(false);
@@ -377,18 +429,28 @@ const uploadFile = async () => {
   }
 };
 
-// --- Lógica para Gestión de Permisos ---
+// --- *** INICIO: LÓGICA DE GESTIÓN DE ASESORES (ACTUALIZADA) *** ---
 const searchQuery = ref('');
-const users = ref([]);
+const asesores = ref([]); // Lista de asesores desde la API
 const rutas = ref([]);
 const isLoadingPermissions = ref(false);
-const recentlySaved = ref(null);
+const recentlySaved = ref(null); // Para el indicador "Guardado" en el select de ruta
 
-const filteredUsers = computed(() => {
-  if (!searchQuery.value) return users.value;
-  return users.value.filter(user =>
-    user.username.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchQuery.value.toLowerCase())
+// Nuevas variables para el modal
+const modalMode = ref('create'); // 'create' o 'edit'
+const currentAsesor = reactive({
+  id: null,
+  username: '',
+  email: '',
+  password: '', // Solo para 'create'
+  ruta_asignada: null,
+});
+
+const filteredAsesores = computed(() => {
+  if (!searchQuery.value) return asesores.value;
+  return asesores.value.filter(asesor =>
+    asesor.username.toLowerCase().includes(searchQuery.value.toLowerCase()) ||
+    asesor.email.toLowerCase().includes(searchQuery.value.toLowerCase())
   );
 });
 
@@ -401,46 +463,218 @@ const showSaveIndicator = (userId) => {
   }, 2000);
 };
 
+// Función de carga actualizada para obtener asesores
 const fetchPermissionsData = async () => {
   isLoadingPermissions.value = true;
   try {
-    const usersPath = backendRouter.data + 'admin/usuarios-con-ruta/';
+    // Nuevos endpoints del backend
+    const asesoresPath = backendRouter.data + 'admin/asesores/'; 
     const rutasPath = backendRouter.data + 'admin/rutas/';
 
-    const [usersResponse, rutasResponse] = await Promise.all([
-      axios.get(usersPath, { headers: authHeaders }),
+    const [asesoresResponse, rutasResponse] = await Promise.all([
+      axios.get(asesoresPath, { headers: authHeaders }),
       axios.get(rutasPath, { headers: authHeaders })
     ]);
 
-    users.value = usersResponse.data;
+    asesores.value = asesoresResponse.data;
     rutas.value = rutasResponse.data;
 
   } catch (error) {
-    Swal.fire('Error', 'No se pudieron cargar los datos de permisos.', 'error');
+    Swal.fire('Error', 'No se pudieron cargar los datos de asesores.', 'error');
     console.error("Error al cargar datos de permisos:", error);
   } finally {
     isLoadingPermissions.value = false;
   }
 };
 
-const updateAsesorRuta = async (user) => {
-  const newRuta = user.ruta_asignada;
-  const path = backendRouter.data + 'admin/asignar-ruta/';
-  const data = {
-    user_id: user.id,
-    ruta: newRuta
+// Función actualizada para usar el endpoint de edición
+const updateAsesorRuta = async (asesor) => {
+  const path = backendRouter.data + `admin/asesores/${asesor.id}/`;
+  const data = { 
+    // Enviamos solo la ruta para una actualización parcial (PATCH)
+    // O enviamos el objeto completo si tu backend espera PUT
+    // Asumiendo que el backend soporta PATCH solo para la ruta:
+    // ruta_asignada: asesor.ruta_asignada 
+    
+    // Asumiendo que el serializer espera PUT (como lo diseñamos):
+    username: asesor.username,
+    email: asesor.email,
+    ruta_asignada: asesor.ruta_asignada
   };
 
   try {
-    await axios.post(path, data, { headers: authHeaders });
-    showSaveIndicator(user.id);
+    // Usamos PUT ya que el serializador está diseñado para 'update'
+    await axios.put(path, data, { headers: authHeaders });
+    showSaveIndicator(asesor.id);
   } catch (error) {
-    Swal.fire('Error', `No se pudo actualizar la ruta para ${user.username}.`, 'error');
-    fetchPermissionsData();
+    Swal.fire('Error', `No se pudo actualizar la ruta para ${asesor.username}.`, 'error');
+    fetchPermissionsData(); // Recarga los datos por si falla
   }
 };
 
-// --- Lógica para Reportes y Gráficas ---
+// --- Nuevas Funciones CRUD ---
+
+const openModal = (mode, asesor = null) => {
+  modalMode.value = mode;
+  if (mode === 'create') {
+    // Resetea el formulario
+    Object.assign(currentAsesor, {
+      id: null,
+      username: '',
+      email: '',
+      password: '',
+      ruta_asignada: null,
+    });
+  } else if (mode === 'edit' && asesor) {
+    // Carga datos para editar
+    Object.assign(currentAsesor, {
+      id: asesor.id,
+      username: asesor.username,
+      email: asesor.email,
+      password: '', // No cargamos el password por seguridad
+      ruta_asignada: asesor.ruta_asignada,
+    });
+  }
+  
+  // Usamos SweetAlert como modal
+  showAsesorModal();
+};
+
+const showAsesorModal = () => {
+  Swal.fire({
+    title: modalMode.value === 'create' ? 'Nuevo Asesor' : 'Editar Asesor',
+    html: `
+      <input id="swal-username" class="swal2-input" placeholder="Número de documento" value="${currentAsesor.username}">
+      <input id="swal-email" type="email" class="swal2-input" placeholder="Email" value="${currentAsesor.email}">
+      ${modalMode.value === 'create' ? '<input id="swal-password" type="password" class="swal2-input" placeholder="Contraseña">' : ''}
+      <select id="swal-ruta" class="swal2-select">
+        <option value="">-- Sin Asignar --</option>
+        ${rutas.value.map(ruta => `<option value="${ruta}" ${currentAsesor.ruta_asignada === ruta ? 'selected' : ''}>${ruta}</option>`).join('')}
+      </select>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#DF1115',
+    preConfirm: () => {
+      // Recoge los valores del formulario de Swal
+      const username = document.getElementById('swal-username').value;
+      const email = document.getElementById('swal-email').value;
+      const password = modalMode.value === 'create' ? document.getElementById('swal-password').value : null;
+      const ruta_asignada = document.getElementById('swal-ruta').value || null;
+
+      if (!username || !email) {
+        Swal.showValidationMessage('El número de documento y el email son obligatorios');
+        return false;
+      }
+      if (modalMode.value === 'create' && !password) {
+         Swal.showValidationMessage('La contraseña es obligatoria para crear usuarios');
+        return false;
+      }
+
+      return { username, email, password, ruta_asignada: ruta_asignada === "" ? null : ruta_asignada };
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      // Si el formulario es válido y se confirma, guarda.
+      handleSaveAsesor(result.value);
+    }
+  });
+};
+
+const handleSaveAsesor = async (formData) => {
+  const data = {
+    username: formData.username,
+    email: formData.email,
+    ruta_asignada: formData.ruta_asignada,
+  };
+
+  try {
+    if (modalMode.value === 'create') {
+      // --- Llamada POST ---
+      data.password = formData.password;
+      const path = backendRouter.data + 'admin/asesores/';
+      await axios.post(path, data, { headers: authHeaders });
+      Swal.fire('¡Creado!', 'El asesor ha sido creado con éxito.', 'success');
+
+    } else {
+      // --- Llamada PUT ---
+      const path = backendRouter.data + `admin/asesores/${currentAsesor.id}/`;
+      await axios.put(path, data, { headers: authHeaders });
+      Swal.fire('¡Actualizado!', 'El asesor ha sido actualizado.', 'success');
+    }
+    
+    fetchPermissionsData(); // Recarga la lista de asesores
+
+  } catch (error) {
+    let errorMsg = 'No se pudo guardar el asesor.';
+    if (error.response && error.response.data) {
+        // Manejar errores de serializador (ej. email duplicado)
+        errorMsg = Object.values(error.response.data).flat().join(' ');
+    }
+    Swal.fire('Error', errorMsg, 'error');
+  }
+};
+
+const toggleAsesorActivo = async (asesor) => {
+  const nuevoEstado = !asesor.is_active;
+  // Endpoint de PATCH para activar/desactivar
+  const path = backendRouter.data + `admin/asesores/${asesor.id}/activar/`;
+  
+  try {
+    await axios.patch(path, { is_active: nuevoEstado }, { headers: authHeaders });
+    
+    // Actualiza el estado localmente para que el switch se refleje
+    asesor.is_active = nuevoEstado; 
+    
+    Swal.fire({
+      icon: 'success',
+      title: nuevoEstado ? 'Asesor Activado' : 'Asesor Desactivado',
+      timer: 1500,
+      showConfirmButton: false
+    });
+
+  } catch (error) {
+    Swal.fire('Error', 'No se pudo cambiar el estado del asesor.', 'error');
+    fetchPermissionsData(); // Recarga por si algo falla
+  }
+};
+
+const eliminarAsesor = async (asesor) => {
+  Swal.fire({
+    title: '¿Estás seguro?',
+    text: `Esta acción eliminará permanentemente a ${asesor.username}. ¡No se puede revertir!`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc3545',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Sí, ¡eliminar!',
+    cancelButtonText: 'Cancelar'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const path = backendRouter.data + `admin/asesores/${asesor.id}/`;
+        await axios.delete(path, { headers: authHeaders });
+        
+        Swal.fire(
+          '¡Eliminado!',
+          'El asesor ha sido eliminado.',
+          'success'
+        );
+        
+        fetchPermissionsData(); // Recarga la lista
+
+      } catch (error) {
+        Swal.fire('Error', 'No se pudo eliminar al asesor.', 'error');
+      }
+    }
+  });
+};
+// --- *** FIN: LÓGICA DE GESTIÓN DE ASESORES *** ---
+
+
+// --- Lógica para Reportes y Gráficas (Sin cambios) ---
 const isLoadingReports = ref(false);
 const isLoadingExport = ref(false);
 const reportFilters = reactive({
@@ -460,6 +694,8 @@ const formatCurrency = (value) => {
 };
 
 const fetchFilterOptions = async () => {
+  // Ahora 'rutas' se carga desde fetchPermissionsData, 
+  // así que solo necesitamos asignarlas aquí
   filterOptions.value.rutas = rutas.value;
 };
 
@@ -532,7 +768,7 @@ const exportarExcel = async () => {
   }
 };
 
-// --- Lógica para Configuración ---
+// --- Lógica para Configuración (Sin cambios) ---
 const fechaCorteDia = ref(25);
 const isSavingCorte = ref(false);
 
@@ -574,7 +810,7 @@ const guardarFechaCorte = async () => {
   }
 };
 
-// --- Computadas para Gráficos ---
+// --- Computadas para Gráficos (Sin cambios) ---
 const chartOptions = { responsive: true, maintainAspectRatio: false };
 const lineChartOptions = computed(() => ({
   ...chartOptions,
@@ -687,7 +923,7 @@ const metodoCantidadChartData = computed(() => {
   };
 });
 
-// --- Ciclo de Vida ---
+// --- Ciclo de Vida (Sin cambios) ---
 onMounted(() => {
   fetchPermissionsData().then(() => {
     fetchFilterOptions();
@@ -793,5 +1029,20 @@ h1, h2, h3, h4, h5 {
 }
 .btn-secondary, .btn-danger, .btn-success{
   color: white !important;
+}
+
+/* *** AÑADIDO: Estilo para el select en SweetAlert *** */
+:global(.swal2-select) {
+  display: block;
+  width: 80% !important;
+  margin: 1em auto 0;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #545454;
+  background-color: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 0.25rem;
 }
 </style>
