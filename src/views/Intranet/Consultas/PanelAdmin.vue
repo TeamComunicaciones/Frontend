@@ -163,7 +163,7 @@
                     <div class="row g-3 align-items-end">
                       <div class="col-md-4">
                         <label for="filtroFechas" class="form-label fw-bold">Rango de Fechas</label>
-                        <DatePicker v-model:value="reportFilters.range" range id="filtroFechas" placeholder="Selecciona un rango"/>
+                        <DatePicker v-model:value="reportFilters.range" range id="filtroFechas" placeholder="Selecciona un rango" :locale="es"/>
                       </div>
                       <div class="col-md-4">
                         <label for="filtroRutas" class="form-label fw-bold">Rutas</label>
@@ -312,7 +312,7 @@
                       
                       <div class="col-md-3">
                         <label for="filtroPagoFechas" class="form-label fw-bold">Rango de Fechas</label>
-                        <DatePicker v-model:value="pagosFilters.range" range id="filtroPagoFechas" placeholder="Selecciona un rango"/>
+                        <DatePicker v-model:value="pagosFilters.range" range id="filtroPagoFechas" placeholder="Selecciona un rango" :locale="es"/>
                       </div>
 
                       <div class="col-md-3 d-grid">
@@ -448,7 +448,7 @@ import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
 import DatePicker from 'vue-datepicker-next';
 import 'vue-datepicker-next/index.css';
-import 'vue-datepicker-next/locale/es'; // Importar locale español
+import es from 'vue-datepicker-next/locale/es'; // Importar locale español
 import { Bar, Doughnut, Line } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import * as XLSX from 'xlsx';
