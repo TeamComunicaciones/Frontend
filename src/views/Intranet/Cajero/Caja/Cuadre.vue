@@ -115,7 +115,7 @@ export default {
       historicoCurrentPage: 1, historicoPerPage: 10,
       consignacion: { valor: '', banco: '', bancoDetalle: '', proveedor: '', impuestoDetalle: '', fechaConsignacion: '', detalle: '', min: '', imei: '', planilla: '' },
       bancosPrincipales: [ 'Corresponsal Banco de Bogota', 'Saitemp', 'Proveedores', 'Otros bancos', 'Obligaciones financieras', 'Corresponsal Team (70981) Bancolombia', 'Corresponsal Elena (70988) Bancolombia', 'Impuestos', 'Volantes Sub', 'Volantes Agaval', 'Volantes venta grabada', 'Reclamaciones', 'Venta doble proposito' ],
-      bancosDetalleOptions: ['Bancolombia', 'Bogotá', 'Caja social Team', 'Caja social NPA', 'Davivienda', 'Agrario', 'Adquirencias'],
+      bancosDetalleOptions: ['Bancolombia', 'Bogotá', 'Caja social Team', 'Caja social NPA', 'Davivienda', 'Agrario', 'Adquirencias','Alianza'],
       impuestosOptions: ['IVA', 'ReteIVA', 'Retefuente', 'ICA', 'Predial', 'Cámara de Comercio'],
       proveedoresOptions: ['1Hora (HASTECK)', 'Polizas', 'Movictec Tecnología (Relojes)', 'Impresistem', 'Otros'],
       obligacionesOptions: ['Banco de Bogotá', 'Bancolombia', 'Caja Social', 'Davivienda', 'Banco Agrario'],

@@ -12,12 +12,16 @@
               <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#carga-pane" type="button" role="tab">Carga de Comisiones</button>
             </li>
             <li class="nav-item" role="presentation">
-              <!-- *** CAMBIO: Título de la pestaña actualizado *** -->
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#permisos-pane" type="button" role="tab">Gestión de Asesores</button>
             </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#reportes-pane" type="button" role="tab">Reportes y Gráficas</button>
             </li>
+            <!-- *** INICIO: Pestaña Gestión de Pagos (NUEVA) *** -->
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pagos-pane" type="button" role="tab">Gestión de Pagos</button>
+            </li>
+            <!-- *** FIN: Pestaña Gestión de Pagos (NUEVA) *** -->
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#config-pane" type="button" role="tab">Configuración</button>
             </li>
@@ -74,9 +78,8 @@
               </div>
             </div>
 
-            <!-- *** INICIO: PESTAÑA DE GESTIÓN DE ASESORES (ACTUALIZADA) *** -->
+            <!-- 2. Pestaña de Gestión de Asesores (Sin cambios) -->
             <div class="tab-pane fade" id="permisos-pane" role="tabpanel">
-              <!-- Encabezado y Acciones -->
               <div class="d-flex justify-content-between align-items-center mb-4">
                 <div>
                   <h2 class="h3 mb-1">Gestión de Asesores</h2>
@@ -88,19 +91,16 @@
                 </button>
               </div>
 
-              <!-- Filtro de Búsqueda -->
               <div class="mb-3 col-md-4">
                 <input type="text" class="form-control" v-model="searchQuery" placeholder="Buscar asesor por documento o email...">
               </div>
 
-              <!-- Loader -->
               <div v-if="isLoadingPermissions" class="text-center p-5">
                 <div class="spinner-border text-danger" role="status">
                   <span class="visually-hidden">Cargando...</span>
                 </div>
               </div>
 
-              <!-- Tabla de Asesores -->
               <div v-else class="card shadow-sm">
                 <div class="table-responsive">
                   <table class="table table-hover align-middle mb-0">
@@ -118,7 +118,6 @@
                         <td><strong>{{ asesor.username }}</strong></td>
                         <td>{{ asesor.email }}</td>
                         <td>
-                          <!-- El select se mantiene, pero ahora es parte de la tabla -->
                           <select class="form-select form-select-sm" 
                                   v-model="asesor.ruta_asignada" 
                                   @change="updateAsesorRuta(asesor)">
@@ -154,7 +153,6 @@
                 </div>
               </div>
             </div>
-            <!-- *** FIN: PESTAÑA DE GESTIÓN DE ASESORES *** -->
             
             <!-- 3. Pestaña de Reportes (Sin cambios) -->
             <div class="tab-pane fade" id="reportes-pane" role="tabpanel">
@@ -285,7 +283,122 @@
               </div>
             </div>
 
-            <!-- 4. Pestaña de Configuración (Sin cambios) -->
+            <!-- *** INICIO: Pestaña Gestión de Pagos (NUEVA Y ACTUALIZADA) *** -->
+            <div class="tab-pane fade" id="pagos-pane" role="tabpanel">
+              <h2 class="h3 mb-1">Gestión de Pagos</h2>
+              <p class="mb-4">Busca, edita o reversa pagos de comisiones registrados en el sistema.</p>
+              
+              <!-- Filtros de Pagos -->
+              <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                  <fieldset :disabled="isLoadingPagos || isLoadingPuntosDeVenta">
+                    <div class="row g-3 align-items-end">
+                      
+                      <div class="col-md-3">
+                        <label for="filtroPagoRuta" class="form-label fw-bold">Ruta</label>
+                        <v-select id="filtroPagoRuta" placeholder="Selecciona una ruta" v-model="pagosFilters.ruta" :options="rutas" />
+                      </div>
+
+                      <div class="col-md-3">
+                        <label for="filtroPagoPunto" class="form-label fw-bold">Punto de Venta</label>
+                        <v-select 
+                          id="filtroPagoPunto" 
+                          placeholder="Selecciona un punto" 
+                          v-model="pagosFilters.punto_de_venta" 
+                          :options="puntosDeVentaOptions"
+                          :disabled="!pagosFilters.ruta || isLoadingPuntosDeVenta"
+                        />
+                      </div>
+                      
+                      <div class="col-md-3">
+                        <label for="filtroPagoFechas" class="form-label fw-bold">Rango de Fechas</label>
+                        <DatePicker v-model:value="pagosFilters.range" range id="filtroPagoFechas" placeholder="Selecciona un rango"/>
+                      </div>
+
+                      <div class="col-md-3 d-grid">
+                        <button class="btn btn-danger" @click="buscarPagos">
+                          <span v-if="isLoadingPagos" class="spinner-border spinner-border-sm me-2"></span>
+                          {{ isLoadingPagos ? 'Buscando...' : 'Buscar Pagos' }}
+                        </button>
+                      </div>
+
+                    </div>
+                  </fieldset>
+                </div>
+              </div>
+
+              <!-- Loader -->
+              <div v-if="isLoadingPagos" class="text-center p-5">
+                <div class="spinner-border text-danger" role="status">
+                  <span class="visually-hidden">Cargando...</span>
+                </div>
+              </div>
+
+              <!-- Tabla de Pagos -->
+              <div v-else-if="pagosData.results.length > 0" class="card shadow-sm">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                      <tr>
+                        <th scope="col">ID POS</th> <!-- ¡AÑADIDO! -->
+                        <th scope="col">Asesor</th>
+                        <th scope="col">Fecha Pago</th>
+                        <th scope="col">Monto</th>
+                        <th scope="col">Método</th>
+                        <th scope="col">Observación</th>
+                        <th scope="col" class="text-end">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="pago in pagosData.results" :key="pago.id">
+                        <td><strong>{{ pago.idpos }}</strong></td> <!-- ¡AÑADIDO! -->
+                        <td><strong>{{ pago.asesor_username }}</strong></td>
+                        <td>{{ pago.fecha_pago }}</td>
+                        <td>{{ formatCurrency(pago.monto) }}</td>
+                        <td><span class="badge bg-secondary">{{ pago.metodo_pago }}</span></td>
+                        <td class="text-truncate" style="max-width: 200px;">{{ pago.observacion || 'N/A' }}</td>
+                        <td class="text-end">
+                          <button class="btn btn-sm btn-outline-secondary me-2" @click="openPagoModal('edit', pago)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468-1.5 1.5V13h1.5v-1.5z"/></svg>
+                          </button>
+                          <button class="btn btn-sm btn-outline-danger" @click="eliminarPago(pago)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+                <!-- Controles de Paginación -->
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                  <span class="text-muted">
+                    Mostrando {{ pagosData.results.length }} de {{ pagosData.count }} resultados
+                  </span>
+                  <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                      <li class="page-item" :class="{ 'disabled': pagosData.current_page === 1 }">
+                        <button class="page-link" @click="goToPagosPage(pagosData.current_page - 1)">Anterior</button>
+                      </li>
+                      <li class="page-item disabled">
+                        <span class="page-link">Página {{ pagosData.current_page }} de {{ pagosData.total_pages }}</span>
+                      </li>
+                      <li class="page-item" :class="{ 'disabled': pagosData.current_page === pagosData.total_pages }">
+                        <button class="page-link" @click="goToPagosPage(pagosData.current_page + 1)">Siguiente</button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+
+              <!-- Estado Vacío -->
+              <div v-else class="text-center p-5 border rounded bg-light mt-4">
+                <p class="fs-4 mb-1">No se encontraron pagos.</p>
+                <p>Usa los filtros de arriba y haz clic en "Buscar" para encontrar pagos.</p>
+              </div>
+            </div>
+            <!-- *** FIN: Pestaña Gestión de Pagos *** -->
+
+            <!-- 5. Pestaña de Configuración -->
             <div class="tab-pane fade" id="config-pane" role="tabpanel">
               <h2 class="h3 mb-4">Ajustes Generales del Sistema</h2>
               <div class="row">
@@ -326,8 +439,7 @@
 </template>
 
 <script setup>
-// *** CAMBIO: `reactive` importado ***
-import { ref, reactive, computed, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted, watch } from 'vue'; // Import 'watch'
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import { useCookies } from "vue3-cookies";
@@ -336,6 +448,7 @@ import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
 import DatePicker from 'vue-datepicker-next';
 import 'vue-datepicker-next/index.css';
+import 'vue-datepicker-next/locale/es'; // Importar locale español
 import { Bar, Doughnut, Line } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import * as XLSX from 'xlsx';
@@ -356,14 +469,11 @@ const fileInput = ref(null);
 const handleFileChange = async (event) => {
   const files = event.target.files || event.dataTransfer.files;
   if (files.length === 0) return;
-
   const file = files[0];
   uploadResult.value = null;
-
   try {
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data);
-
     if (workbook.SheetNames.length !== 1) {
       Swal.fire({
         icon: 'error',
@@ -373,9 +483,7 @@ const handleFileChange = async (event) => {
       clearFile();
       return;
     }
-
     selectedFile.value = file;
-
   } catch (error) {
     console.error("Error al leer el archivo:", error);
     Swal.fire({
@@ -386,7 +494,6 @@ const handleFileChange = async (event) => {
     clearFile();
   }
 };
-
 const clearFile = () => {
   selectedFile.value = null;
   if (fileInput.value) fileInput.value.value = '';
@@ -395,28 +502,21 @@ const clearFile = () => {
 const onDragOver = (event) => { event.preventDefault(); isDragging.value = true; };
 const onDragLeave = (event) => { event.preventDefault(); isDragging.value = false; };
 const onDrop = (event) => { event.preventDefault(); isDragging.value = false; handleFileChange(event); };
-
 const uploadFile = async () => {
   if (!selectedFile.value) return;
   isLoading.value = true;
-
   const formData = new FormData();
   formData.append('file', selectedFile.value);
   const path = backendRouter.data + 'comisiones/upload/';
   const headers = { ...authHeaders, 'Content-Type': 'multipart/form-data' };
-
   try {
-    const response = await axios.post(path, formData, { headers });
-    
-    // Alerta modificada para informar sobre el correo electrónico
+    await axios.post(path, formData, { headers });
     Swal.fire({
       title: 'Carga Iniciada con Éxito',
       text: 'El archivo se está procesando en segundo plano. Recibirás un correo electrónico de confirmación cuando finalice.',
       icon: 'info',
     });
-    
     clearFile();
-
   } catch (error) {
     if (error.response && error.response.data) {
       const errorMessage = error.response.data.error || 'Ocurrió un error al iniciar la carga.';
@@ -429,20 +529,17 @@ const uploadFile = async () => {
   }
 };
 
-// --- *** INICIO: LÓGICA DE GESTIÓN DE ASESORES (ACTUALIZADA) *** ---
+// --- Lógica de Gestión de Asesores (Sin cambios) ---
 const searchQuery = ref('');
-const asesores = ref([]); // Lista de asesores desde la API
+const asesores = ref([]);
 const rutas = ref([]);
 const isLoadingPermissions = ref(false);
-const recentlySaved = ref(null); // Para el indicador "Guardado" en el select de ruta
-
-// Nuevas variables para el modal
-const modalMode = ref('create'); // 'create' o 'edit'
+const modalMode = ref('create');
 const currentAsesor = reactive({
   id: null,
   username: '',
   email: '',
-  password: '', // Solo para 'create'
+  password: '',
   ruta_asignada: null,
 });
 
@@ -454,31 +551,17 @@ const filteredAsesores = computed(() => {
   );
 });
 
-const showSaveIndicator = (userId) => {
-  recentlySaved.value = userId;
-  setTimeout(() => {
-    if (recentlySaved.value === userId) {
-      recentlySaved.value = null;
-    }
-  }, 2000);
-};
-
-// Función de carga actualizada para obtener asesores
 const fetchPermissionsData = async () => {
   isLoadingPermissions.value = true;
   try {
-    // Nuevos endpoints del backend
     const asesoresPath = backendRouter.data + 'admin/asesores/'; 
     const rutasPath = backendRouter.data + 'admin/rutas/';
-
     const [asesoresResponse, rutasResponse] = await Promise.all([
       axios.get(asesoresPath, { headers: authHeaders }),
       axios.get(rutasPath, { headers: authHeaders })
     ]);
-
     asesores.value = asesoresResponse.data;
     rutas.value = rutasResponse.data;
-
   } catch (error) {
     Swal.fire('Error', 'No se pudieron cargar los datos de asesores.', 'error');
     console.error("Error al cargar datos de permisos:", error);
@@ -487,56 +570,29 @@ const fetchPermissionsData = async () => {
   }
 };
 
-// Función actualizada para usar el endpoint de edición
 const updateAsesorRuta = async (asesor) => {
   const path = backendRouter.data + `admin/asesores/${asesor.id}/`;
   const data = { 
-    // Enviamos solo la ruta para una actualización parcial (PATCH)
-    // O enviamos el objeto completo si tu backend espera PUT
-    // Asumiendo que el backend soporta PATCH solo para la ruta:
-    // ruta_asignada: asesor.ruta_asignada 
-    
-    // Asumiendo que el serializer espera PUT (como lo diseñamos):
     username: asesor.username,
     email: asesor.email,
     ruta_asignada: asesor.ruta_asignada
   };
-
   try {
-    // Usamos PUT ya que el serializador está diseñado para 'update'
     await axios.put(path, data, { headers: authHeaders });
-    showSaveIndicator(asesor.id);
+    Swal.fire({ icon: 'success', title: 'Ruta actualizada', timer: 1500, showConfirmButton: false });
   } catch (error) {
     Swal.fire('Error', `No se pudo actualizar la ruta para ${asesor.username}.`, 'error');
-    fetchPermissionsData(); // Recarga los datos por si falla
+    fetchPermissionsData();
   }
 };
-
-// --- Nuevas Funciones CRUD ---
 
 const openModal = (mode, asesor = null) => {
   modalMode.value = mode;
   if (mode === 'create') {
-    // Resetea el formulario
-    Object.assign(currentAsesor, {
-      id: null,
-      username: '',
-      email: '',
-      password: '',
-      ruta_asignada: null,
-    });
+    Object.assign(currentAsesor, { id: null, username: '', email: '', password: '', ruta_asignada: null });
   } else if (mode === 'edit' && asesor) {
-    // Carga datos para editar
-    Object.assign(currentAsesor, {
-      id: asesor.id,
-      username: asesor.username,
-      email: asesor.email,
-      password: '', // No cargamos el password por seguridad
-      ruta_asignada: asesor.ruta_asignada,
-    });
+    Object.assign(currentAsesor, { id: asesor.id, username: asesor.username, email: asesor.email, password: '', ruta_asignada: asesor.ruta_asignada });
   }
-  
-  // Usamos SweetAlert como modal
   showAsesorModal();
 };
 
@@ -558,12 +614,10 @@ const showAsesorModal = () => {
     cancelButtonText: 'Cancelar',
     confirmButtonColor: '#DF1115',
     preConfirm: () => {
-      // Recoge los valores del formulario de Swal
       const username = document.getElementById('swal-username').value;
       const email = document.getElementById('swal-email').value;
       const password = modalMode.value === 'create' ? document.getElementById('swal-password').value : null;
       const ruta_asignada = document.getElementById('swal-ruta').value || null;
-
       if (!username || !email) {
         Swal.showValidationMessage('El número de documento y el email son obligatorios');
         return false;
@@ -572,12 +626,10 @@ const showAsesorModal = () => {
          Swal.showValidationMessage('La contraseña es obligatoria para crear usuarios');
         return false;
       }
-
       return { username, email, password, ruta_asignada: ruta_asignada === "" ? null : ruta_asignada };
     }
   }).then((result) => {
     if (result.isConfirmed) {
-      // Si el formulario es válido y se confirma, guarda.
       handleSaveAsesor(result.value);
     }
   });
@@ -589,28 +641,21 @@ const handleSaveAsesor = async (formData) => {
     email: formData.email,
     ruta_asignada: formData.ruta_asignada,
   };
-
   try {
     if (modalMode.value === 'create') {
-      // --- Llamada POST ---
       data.password = formData.password;
       const path = backendRouter.data + 'admin/asesores/';
       await axios.post(path, data, { headers: authHeaders });
       Swal.fire('¡Creado!', 'El asesor ha sido creado con éxito.', 'success');
-
     } else {
-      // --- Llamada PUT ---
       const path = backendRouter.data + `admin/asesores/${currentAsesor.id}/`;
       await axios.put(path, data, { headers: authHeaders });
       Swal.fire('¡Actualizado!', 'El asesor ha sido actualizado.', 'success');
     }
-    
-    fetchPermissionsData(); // Recarga la lista de asesores
-
+    fetchPermissionsData();
   } catch (error) {
     let errorMsg = 'No se pudo guardar el asesor.';
     if (error.response && error.response.data) {
-        // Manejar errores de serializador (ej. email duplicado)
         errorMsg = Object.values(error.response.data).flat().join(' ');
     }
     Swal.fire('Error', errorMsg, 'error');
@@ -619,25 +664,19 @@ const handleSaveAsesor = async (formData) => {
 
 const toggleAsesorActivo = async (asesor) => {
   const nuevoEstado = !asesor.is_active;
-  // Endpoint de PATCH para activar/desactivar
   const path = backendRouter.data + `admin/asesores/${asesor.id}/activar/`;
-  
   try {
     await axios.patch(path, { is_active: nuevoEstado }, { headers: authHeaders });
-    
-    // Actualiza el estado localmente para que el switch se refleje
     asesor.is_active = nuevoEstado; 
-    
     Swal.fire({
       icon: 'success',
       title: nuevoEstado ? 'Asesor Activado' : 'Asesor Desactivado',
       timer: 1500,
       showConfirmButton: false
     });
-
   } catch (error) {
     Swal.fire('Error', 'No se pudo cambiar el estado del asesor.', 'error');
-    fetchPermissionsData(); // Recarga por si algo falla
+    fetchPermissionsData();
   }
 };
 
@@ -656,23 +695,14 @@ const eliminarAsesor = async (asesor) => {
       try {
         const path = backendRouter.data + `admin/asesores/${asesor.id}/`;
         await axios.delete(path, { headers: authHeaders });
-        
-        Swal.fire(
-          '¡Eliminado!',
-          'El asesor ha sido eliminado.',
-          'success'
-        );
-        
-        fetchPermissionsData(); // Recarga la lista
-
+        Swal.fire('¡Eliminado!', 'El asesor ha sido eliminado.', 'success');
+        fetchPermissionsData();
       } catch (error) {
         Swal.fire('Error', 'No se pudo eliminar al asesor.', 'error');
       }
     }
   });
 };
-// --- *** FIN: LÓGICA DE GESTIÓN DE ASESORES *** ---
-
 
 // --- Lógica para Reportes y Gráficas (Sin cambios) ---
 const isLoadingReports = ref(false);
@@ -694,15 +724,12 @@ const formatCurrency = (value) => {
 };
 
 const fetchFilterOptions = async () => {
-  // Ahora 'rutas' se carga desde fetchPermissionsData, 
-  // así que solo necesitamos asignarlas aquí
   filterOptions.value.rutas = rutas.value;
 };
 
 const generarReporte = async () => {
   isLoadingReports.value = true;
   reportData.value = null;
-  
   const params = new URLSearchParams();
   if (reportFilters.range && reportFilters.range[0] && reportFilters.range[1]) {
     params.append('fecha_inicio', reportFilters.range[0].toISOString().split('T')[0]);
@@ -710,7 +737,6 @@ const generarReporte = async () => {
   }
   reportFilters.rutas.forEach(ruta => params.append('rutas', ruta));
   reportFilters.estados.forEach(estado => params.append('estados', estado));
-
   try {
     const path = `${backendRouter.data}admin/reporte-general/?${params.toString()}`;
     const response = await axios.get(path, { headers: authHeaders });
@@ -724,7 +750,6 @@ const generarReporte = async () => {
 
 const exportarExcel = async () => {
   isLoadingExport.value = true;
-
   const params = new URLSearchParams();
   if (reportFilters.range && reportFilters.range[0] && reportFilters.range[1]) {
     params.append('fecha_inicio', reportFilters.range[0].toISOString().split('T')[0]);
@@ -732,19 +757,12 @@ const exportarExcel = async () => {
   }
   reportFilters.rutas.forEach(ruta => params.append('rutas', ruta));
   reportFilters.estados.forEach(estado => params.append('estados', estado));
-
   try {
     const path = `${backendRouter.data}admin/exportar-reporte/?${params.toString()}`;
-    
-    const response = await axios.get(path, { 
-      headers: authHeaders,
-      responseType: 'blob' 
-    });
-
+    const response = await axios.get(path, { headers: authHeaders, responseType: 'blob' });
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');
     link.href = url;
-
     const contentDisposition = response.headers['content-disposition'];
     let fileName = 'reporte_comisiones.xlsx';
     if (contentDisposition) {
@@ -752,14 +770,11 @@ const exportarExcel = async () => {
         if (fileNameMatch && fileNameMatch.length === 2)
             fileName = fileNameMatch[1];
     }
-    
     link.setAttribute('download', fileName);
     document.body.appendChild(link);
     link.click();
-
     document.body.removeChild(link);
     window.URL.revokeObjectURL(url);
-
   } catch (error) {
     console.error("Error al exportar a Excel:", error);
     Swal.fire('Error', 'No se pudo generar el archivo Excel.', 'error');
@@ -788,13 +803,11 @@ const guardarFechaCorte = async () => {
     Swal.fire('Dato Inválido', 'Por favor, introduce un número entre 1 y 31.', 'warning');
     return;
   }
-  
   isSavingCorte.value = true;
   try {
     const path = `${backendRouter.data}admin/fecha-corte/`;
     const data = { dia: fechaCorteDia.value };
     const response = await axios.post(path, data, { headers: authHeaders });
-
     Swal.fire({
       icon: 'success',
       title: '¡Guardado!',
@@ -809,6 +822,211 @@ const guardarFechaCorte = async () => {
     isSavingCorte.value = false;
   }
 };
+
+// --- *** INICIO: LÓGICA DE GESTIÓN DE PAGOS (NUEVA Y ACTUALIZADA) *** ---
+const isLoadingPagos = ref(false);
+const isLoadingPuntosDeVenta = ref(false);
+const puntosDeVentaOptions = ref([]);
+const pagosFilters = reactive({
+  ruta: null,
+  punto_de_venta: null,
+  range: [new Date(new Date().setMonth(new Date().getMonth() - 1)), new Date()],
+});
+const pagosData = ref({
+  results: [],
+  count: 0,
+  current_page: 1,
+  total_pages: 1
+});
+const pagosCurrentPage = ref(1);
+
+const metodosPagoOptions = ref(['Recarga', 'Cartera', 'Nequi', 'Daviplata', 'Ahorro a la Mano', 'Otro']); // Opciones para el modal
+
+const currentPago = reactive({
+  id: null,
+  monto: 0,
+  fecha_pago: '',
+  metodo_pago: '',
+  observacion: '',
+});
+
+// Watcher para el dropdown dependiente
+watch(() => pagosFilters.ruta, (newRuta) => {
+  pagosFilters.punto_de_venta = null;
+  puntosDeVentaOptions.value = [];
+  if (newRuta) {
+    fetchPuntosDeVenta(newRuta);
+  }
+});
+
+const fetchPuntosDeVenta = async (ruta) => {
+  isLoadingPuntosDeVenta.value = true;
+  try {
+    const path = `${backendRouter.data}admin/puntos-de-venta/?ruta=${encodeURIComponent(ruta)}`;
+    const response = await axios.get(path, { headers: authHeaders });
+    puntosDeVentaOptions.value = response.data;
+  } catch (error) {
+    console.error("Error al cargar puntos de venta:", error);
+    Swal.fire('Error', 'No se pudieron cargar los puntos de venta para esa ruta.', 'error');
+  } finally {
+    isLoadingPuntosDeVenta.value = false;
+  }
+};
+
+// Función de búsqueda (botón)
+const buscarPagos = () => {
+  pagosCurrentPage.value = 1;
+  fetchPagos(1);
+};
+
+// Función para cambiar de página
+const goToPagosPage = (page) => {
+  if (page < 1 || page > pagosData.value.total_pages) return;
+  fetchPagos(page);
+};
+
+// Función principal de fetch
+const fetchPagos = async (page = 1) => {
+  isLoadingPagos.value = true;
+  
+  const params = new URLSearchParams();
+  params.append('page', page);
+
+  if (pagosFilters.ruta) {
+    params.append('ruta', pagosFilters.ruta);
+  }
+  if (pagosFilters.punto_de_venta) {
+    params.append('punto_de_venta', pagosFilters.punto_de_venta);
+  }
+  if (pagosFilters.range && pagosFilters.range[0] && pagosFilters.range[1]) {
+    params.append('fecha_inicio', pagosFilters.range[0].toISOString().split('T')[0]);
+    params.append('fecha_fin', pagosFilters.range[1].toISOString().split('T')[0]);
+  }
+
+  try {
+    const path = `${backendRouter.data}admin/pagos/?${params.toString()}`;
+    const response = await axios.get(path, { headers: authHeaders });
+    pagosData.value = response.data; // Almacena la respuesta paginada completa
+    pagosCurrentPage.value = response.data.current_page;
+  } catch (error) {
+    pagosData.value = { results: [], count: 0, current_page: 1, total_pages: 1 };
+    Swal.fire('Error', 'No se pudieron cargar los pagos.', 'error');
+  } finally {
+    isLoadingPagos.value = false;
+  }
+};
+
+const openPagoModal = (mode, pago = null) => {
+  // Solo soportamos editar por ahora
+  if (mode === 'edit' && pago) {
+    Object.assign(currentPago, {
+      id: pago.id,
+      monto: pago.monto,
+      fecha_pago: pago.fecha_pago,
+      metodo_pago: pago.metodo_pago,
+      observacion: pago.observacion || '',
+    });
+    showPagoModal();
+  }
+};
+
+const showPagoModal = () => {
+  Swal.fire({
+    title: 'Editar Pago',
+    html: `
+      <div class="text-start">
+        <label for="swal-fecha" class="form-label mt-2">Fecha de Pago</label>
+        <input id="swal-fecha" type="date" class="swal2-input" value="${currentPago.fecha_pago}">
+        
+        <label for="swal-monto" class="form-label mt-2">Monto</label>
+        <input id="swal-monto" type="number" class="swal2-input" placeholder="Monto" value="${currentPago.monto}">
+        
+        <label for="swal-metodo" class="form-label mt-2">Método de Pago</label>
+        <select id="swal-metodo" class="swal2-select">
+          ${metodosPagoOptions.value.map(metodo => `<option value="${metodo}" ${currentPago.metodo_pago === metodo ? 'selected' : ''}>${metodo}</option>`).join('')}
+        </select>
+        
+        <label for="swal-obs" class="form-label mt-2">Observación</label>
+        <textarea id="swal-obs" class="swal2-textarea" placeholder="Observación (opcional)...">${currentPago.observacion}</textarea>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar Cambios',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#DF1115',
+    preConfirm: () => {
+      const fecha_pago = document.getElementById('swal-fecha').value;
+      const monto = document.getElementById('swal-monto').value;
+      const metodo_pago = document.getElementById('swal-metodo').value;
+      const observacion = document.getElementById('swal-obs').value;
+
+      if (!fecha_pago || !monto || !metodo_pago) {
+        Swal.showValidationMessage('Fecha, Monto y Método de Pago son obligatorios');
+        return false;
+      }
+      return { fecha_pago, monto, metodo_pago, observacion };
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      handleSavePago(result.value);
+    }
+  });
+};
+
+const handleSavePago = async (formData) => {
+  const path = backendRouter.data + `admin/pagos/${currentPago.id}/`;
+  try {
+    await axios.put(path, formData, { headers: authHeaders });
+    Swal.fire('¡Actualizado!', 'El pago ha sido actualizado.', 'success');
+    
+    // Recarga la página actual de pagos y los reportes
+    fetchPagos(pagosCurrentPage.value);
+    generarReporte();
+
+  } catch (error) {
+    let errorMsg = 'No se pudo guardar el pago.';
+    if (error.response && error.response.data) {
+        errorMsg = Object.values(error.response.data).flat().join(' ');
+    }
+    Swal.fire('Error', errorMsg, 'error');
+  }
+};
+
+const eliminarPago = async (pago) => {
+  Swal.fire({
+    title: '¿Reversar este pago?',
+    text: `Esta acción eliminará el pago de ${formatCurrency(pago.monto)} y devolverá las comisiones asociadas a 'Pendiente'. ¡No se puede revertir!`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc3545',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Sí, ¡reversar!',
+    cancelButtonText: 'Cancelar'
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const path = backendRouter.data + `admin/pagos/${pago.id}/`;
+        await axios.delete(path, { headers: authHeaders });
+        
+        Swal.fire(
+          '¡Reversado!',
+          'El pago ha sido eliminado y las comisiones han sido liberadas.',
+          'success'
+        );
+        
+        // Recarga la página actual de pagos y los reportes
+        fetchPagos(pagosCurrentPage.value);
+        generarReporte();
+
+      } catch (error) {
+        Swal.fire('Error', 'No se pudo reversar el pago.', 'error');
+      }
+    }
+  });
+};
+// --- *** FIN: LÓGICA DE GESTIÓN DE PAGOS *** ---
+
 
 // --- Computadas para Gráficos (Sin cambios) ---
 const chartOptions = { responsive: true, maintainAspectRatio: false };
@@ -856,8 +1074,7 @@ const picosMensualesChartData = computed(() => {
     labels: data.map(item => item.mes),
     datasets: [{
       label: 'Total Comisiones por Mes',
-      // Sumamos 'pagado' y 'pendiente' para obtener el total
-      data: data.map(item => (item.pagado || 0) + (item.pendiente || 0)), // <-- ESTA ES LA LÍNEA CORREGIDA
+      data: data.map(item => (item.pagado || 0) + (item.pendiente || 0)),
       borderColor: '#DF1115',
       backgroundColor: 'rgba(223, 17, 21, 0.1)',
       fill: true,
@@ -923,12 +1140,14 @@ const metodoCantidadChartData = computed(() => {
   };
 });
 
-// --- Ciclo de Vida (Sin cambios) ---
+// --- Ciclo de Vida (Actualizado) ---
 onMounted(() => {
   fetchPermissionsData().then(() => {
-    fetchFilterOptions();
+    fetchFilterOptions(); // Carga las rutas en los filtros de reporte
   });
   fetchFechaCorte(); 
+  // Ya no llamamos a fetchPagos() aquí.
+  // Se llamará cuando el usuario presione "Buscar".
 });
 </script>
 
@@ -982,34 +1201,6 @@ h1, h2, h3, h4, h5 {
     color: #6c757d;
 }
 
-/* --- Cards --- */
-.card-hover {
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.card-hover:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-}
-
-/* --- Save Indicator --- */
-.save-indicator {
-  color: #198754;
-  font-weight: 500;
-  margin-top: 10px;
-  font-size: 0.9em;
-  opacity: 0;
-  animation: fadeInOut 2s ease-in-out;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-}
-
-@keyframes fadeInOut {
-  0%, 100% { opacity: 0; }
-  25%, 75% { opacity: 1; }
-}
-
 /* --- KPI Stat Cards --- */
 .stat-value {
   font-size: 2.2rem;
@@ -1031,10 +1222,10 @@ h1, h2, h3, h4, h5 {
   color: white !important;
 }
 
-/* *** AÑADIDO: Estilo para el select en SweetAlert *** */
+/* Estilo para el select en SweetAlert */
 :global(.swal2-select) {
   display: block;
-  width: 80% !important;
+  width: 90% !important;
   margin: 1em auto 0;
   padding: 0.375rem 0.75rem;
   font-size: 1rem;
@@ -1044,5 +1235,54 @@ h1, h2, h3, h4, h5 {
   background-color: #fff;
   border: 1px solid #d9d9d9;
   border-radius: 0.25rem;
+}
+
+/* Estilos para el modal de SweetAlert */
+:global(.swal2-textarea) {
+  display: block;
+  width: 90% !important;
+  margin: 1em auto 0;
+  padding: 0.375rem 0.75rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #545454;
+  background-color: #fff;
+  border: 1px solid #d9d9d9;
+  border-radius: 0.25rem;
+}
+
+:global(.swal2-input[type="date"]) {
+  width: 90% !important;
+  max-width: 90%;
+  padding: 0.375rem 0.75rem;
+  color: #545454;
+}
+
+:global(label.form-label) {
+  text-align: left;
+  display: block;
+  width: 90%;
+  margin: 0 auto;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Estilos para SweetAlert (Alineación de labels) */
+:global(.swal2-html-container .text-start) {
+  text-align: left;
+}
+
+:global(.swal2-html-container .form-label) {
+  display: block;
+  width: 90%;
+  margin: 1rem auto 0.25rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #343a40;
+}
+
+:global(.swal2-html-container .swal2-input[type="date"]) {
+  margin-top: 0 !important;
 }
 </style>
