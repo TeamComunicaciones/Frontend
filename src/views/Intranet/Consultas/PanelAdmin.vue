@@ -86,7 +86,7 @@
                   <p class="mb-0">Añade, edita, desactiva o elimina asesores del sistema.</p>
                 </div>
                 <button class="btn btn-danger" @click="openModal('create')">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg me-1" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"/></svg>
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg me-1" viewBox="0 0 16 16"><path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm5 5a.5.5 0 0 1-.5-.5h-5a.5.5 0 0 1 0 1h5v5a.5.5 0 0 1-1 0V8a.5.5 0 0 1 .5-.5z"/></svg>
                   Nuevo Asesor
                 </button>
               </div>
@@ -154,7 +154,7 @@
               </div>
             </div>
             
-            <!-- 3. Pestaña de Reportes (Sin cambios) -->
+            <!-- 3. Pestaña de Reportes -->
             <div class="tab-pane fade" id="reportes-pane" role="tabpanel">
               <h2 class="h3 mb-4">Dashboard de Comisiones Generales</h2>
               <div class="card shadow-sm mb-4">
@@ -163,7 +163,8 @@
                     <div class="row g-3 align-items-end">
                       <div class="col-md-4">
                         <label for="filtroFechas" class="form-label fw-bold">Rango de Fechas</label>
-                        <DatePicker v-model:value="reportFilters.range" range id="filtroFechas" placeholder="Selecciona un rango" :locale="es"/>
+                        <!-- SIN :locale -->
+                        <DatePicker v-model:value="reportFilters.range" range id="filtroFechas" placeholder="Selecciona un rango" />
                       </div>
                       <div class="col-md-4">
                         <label for="filtroRutas" class="form-label fw-bold">Rutas</label>
@@ -312,7 +313,8 @@
                       
                       <div class="col-md-3">
                         <label for="filtroPagoFechas" class="form-label fw-bold">Rango de Fechas</label>
-                        <DatePicker v-model:value="pagosFilters.range" range id="filtroPagoFechas" placeholder="Selecciona un rango" :locale="es"/>
+                        <!-- SIN :locale -->
+                        <DatePicker v-model:value="pagosFilters.range" range id="filtroPagoFechas" placeholder="Selecciona un rango" />
                       </div>
 
                       <div class="col-md-3 d-grid">
@@ -340,7 +342,7 @@
                   <table class="table table-hover align-middle mb-0">
                     <thead class="bg-light">
                       <tr>
-                        <th scope="col">ID POS</th> <!-- ¡AÑADIDO! -->
+                        <th scope="col">ID POS</th>
                         <th scope="col">Asesor</th>
                         <th scope="col">Fecha Pago</th>
                         <th scope="col">Monto</th>
@@ -351,7 +353,7 @@
                     </thead>
                     <tbody>
                       <tr v-for="pago in pagosData.results" :key="pago.id">
-                        <td><strong>{{ pago.idpos }}</strong></td> <!-- ¡AÑADIDO! -->
+                        <td><strong>{{ pago.idpos }}</strong></td>
                         <td><strong>{{ pago.asesor_username }}</strong></td>
                         <td>{{ pago.fecha_pago }}</td>
                         <td>{{ formatCurrency(pago.monto) }}</td>
@@ -362,7 +364,7 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16"><path d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207 2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207 2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207l6.5-6.5zm-7.468 7.468-1.5 1.5V13h1.5v-1.5z"/></svg>
                           </button>
                           <button class="btn btn-sm btn-outline-danger" @click="eliminarPago(pago)">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16"><path d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 0a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm3 .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 1 0V6z"/><path fill-rule="evenodd" d="M14.5 3a1 1 0 0 1-1 1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V4h-.5a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1 1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 4 4 4.059V13a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1V4.059L11.882 4H4.118zM2.5 3V2h11v1h-11z"/></svg>
                           </button>
                         </td>
                       </tr>
@@ -439,7 +441,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, watch } from 'vue'; // Import 'watch'
+import { ref, reactive, computed, onMounted, watch } from 'vue';
 import Swal from 'sweetalert2';
 import axios from 'axios';
 import { useCookies } from "vue3-cookies";
@@ -448,7 +450,7 @@ import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
 import DatePicker from 'vue-datepicker-next';
 import 'vue-datepicker-next/index.css';
-import es from 'vue-datepicker-next/locale/es'; // Importar locale español
+import 'vue-datepicker-next/locale/es'; // ✅ Import de efecto (sin variable)
 import { Bar, Doughnut, Line } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import * as XLSX from 'xlsx';
@@ -840,7 +842,7 @@ const pagosData = ref({
 });
 const pagosCurrentPage = ref(1);
 
-const metodosPagoOptions = ref(['Recarga', 'Cartera', 'Nequi', 'Daviplata', 'Ahorro a la Mano', 'Otro']); // Opciones para el modal
+const metodosPagoOptions = ref(['Recarga', 'Cartera', 'Nequi', 'Daviplata', 'Ahorro a la Mano', 'Otro']);
 
 const currentPago = reactive({
   id: null,
@@ -906,7 +908,7 @@ const fetchPagos = async (page = 1) => {
   try {
     const path = `${backendRouter.data}admin/pagos/?${params.toString()}`;
     const response = await axios.get(path, { headers: authHeaders });
-    pagosData.value = response.data; // Almacena la respuesta paginada completa
+    pagosData.value = response.data;
     pagosCurrentPage.value = response.data.current_page;
   } catch (error) {
     pagosData.value = { results: [], count: 0, current_page: 1, total_pages: 1 };
@@ -917,7 +919,6 @@ const fetchPagos = async (page = 1) => {
 };
 
 const openPagoModal = (mode, pago = null) => {
-  // Solo soportamos editar por ahora
   if (mode === 'edit' && pago) {
     Object.assign(currentPago, {
       id: pago.id,
@@ -979,11 +980,8 @@ const handleSavePago = async (formData) => {
   try {
     await axios.put(path, formData, { headers: authHeaders });
     Swal.fire('¡Actualizado!', 'El pago ha sido actualizado.', 'success');
-    
-    // Recarga la página actual de pagos y los reportes
     fetchPagos(pagosCurrentPage.value);
     generarReporte();
-
   } catch (error) {
     let errorMsg = 'No se pudo guardar el pago.';
     if (error.response && error.response.data) {
@@ -1008,17 +1006,9 @@ const eliminarPago = async (pago) => {
       try {
         const path = backendRouter.data + `admin/pagos/${pago.id}/`;
         await axios.delete(path, { headers: authHeaders });
-        
-        Swal.fire(
-          '¡Reversado!',
-          'El pago ha sido eliminado y las comisiones han sido liberadas.',
-          'success'
-        );
-        
-        // Recarga la página actual de pagos y los reportes
+        Swal.fire('¡Reversado!','El pago ha sido eliminado y las comisiones han sido liberadas.','success');
         fetchPagos(pagosCurrentPage.value);
         generarReporte();
-
       } catch (error) {
         Swal.fire('Error', 'No se pudo reversar el pago.', 'error');
       }
@@ -1026,7 +1016,6 @@ const eliminarPago = async (pago) => {
   });
 };
 // --- *** FIN: LÓGICA DE GESTIÓN DE PAGOS *** ---
-
 
 // --- Computadas para Gráficos (Sin cambios) ---
 const chartOptions = { responsive: true, maintainAspectRatio: false };
@@ -1143,11 +1132,10 @@ const metodoCantidadChartData = computed(() => {
 // --- Ciclo de Vida (Actualizado) ---
 onMounted(() => {
   fetchPermissionsData().then(() => {
-    fetchFilterOptions(); // Carga las rutas en los filtros de reporte
+    fetchFilterOptions();
   });
-  fetchFechaCorte(); 
-  // Ya no llamamos a fetchPagos() aquí.
-  // Se llamará cuando el usuario presione "Buscar".
+  fetchFechaCorte();
+  // fetchPagos() se ejecuta al pulsar "Buscar"
 });
 </script>
 
