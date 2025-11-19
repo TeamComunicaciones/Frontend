@@ -450,6 +450,7 @@ import vSelect from 'vue-select';
 import 'vue-select/dist/vue-select.css';
 import DatePicker from 'vue-datepicker-next';
 import 'vue-datepicker-next/index.css';
+ // ✅ Import de efecto (sin variable)
 import { Bar, Doughnut, Line } from 'vue-chartjs';
 import { Chart as ChartJS, Title, Tooltip, Legend, BarElement, ArcElement, CategoryScale, LinearScale, PointElement, LineElement } from 'chart.js';
 import * as XLSX from 'xlsx';
