@@ -45,19 +45,19 @@
         <p class="mt-2">Generando reporte...</p>
       </div>
 
-      <!-- SECCIÓN DE COMISIONES MOVIDA HACIA ARRIBA -->
+      <!-- SECCIÓN DE COMISIONES -->
       <div v-else-if="reportData && reportData.detalle.count > 0" class="animate__animated animate__fadeIn">
         <div class="card border-0 shadow-sm mb-4">
           <div class="card-header bg-transparent border-0 pt-4 d-flex justify-content-between align-items-center">
             <h4 class="mb-0">Detalle de Comisiones ({{ reportData.detalle.count }} registros)</h4>
             <transition name="fade">
-                <div v-if="selectedComisiones.length > 0" class="d-flex align-items-center">
-                    <div class="me-3">
-                        <span>Seleccionado:</span>
-                        <strong class="ms-2 fs-5">{{ formatCurrency(subtotalSeleccionado) }}</strong>
-                    </div>
-                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#paymentModal">Pagar</button>
+              <div v-if="selectedComisiones.length > 0" class="d-flex align-items-center">
+                <div class="me-3">
+                  <span>Seleccionado:</span>
+                  <strong class="ms-2 fs-5">{{ formatCurrency(subtotalSeleccionado) }}</strong>
                 </div>
+                <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#paymentModal">Pagar</button>
+              </div>
             </transition>
           </div>
           <div class="card-body pt-0">
@@ -65,52 +65,140 @@
               <table class="table table-hover">
                 <thead>
                   <tr>
-                    <th class="text-center"><input type="checkbox" class="form-check-input" @change="toggleSelectAll" :checked="isAllSelected"></th>
+                    <th class="text-center">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        @change="toggleSelectAll"
+                        :checked="isAllSelected"
+                      >
+                    </th>
                     <th>Mes Pago</th>
                     <th>Asesor</th>
                     <th>Detalle</th>
                     <th class="text-end">Valor Comisión</th>
+                    <th class="text-center">Soporte</th>
                     <th class="text-center">Estado</th>
                   </tr>
                 </thead>
                 <tbody>
                   <tr v-for="item in reportData.detalle.results" :key="item.id">
                     <td class="text-center">
-                      <input type="checkbox" class="form-check-input" :value="item.id" v-model="selectedComisiones" :disabled="item.estado !== 'Pendiente' && item.estado !== 'Acumulada'">
+                      <input
+                        type="checkbox"
+                        class="form-check-input"
+                        :value="item.id"
+                        v-model="selectedComisiones"
+                        :disabled="item.estado !== 'Pendiente' && item.estado !== 'Acumulada'"
+                      >
                     </td>
                     <td>{{ formatMonthYear(item.mes_pago) }}</td>
                     <td>{{ item.asesor_identificador }}</td>
                     <td>{{ item.producto }}</td>
                     <td class="text-end fw-bold">{{ formatCurrency(item.comision_final) }}</td>
-                    <td class="text-center"><span :class="['badge', getStatusClass(item.estado)]">{{ item.estado }}</span></td>
+                    <!-- Columna soporte / comprobante -->
+                    <td class="text-center">
+                      <button
+                        v-if="item.comprobante_url"
+                        class="btn btn-link p-0 text-decoration-none"
+                        @click="verComprobante(item)"
+                        title="Ver comprobante"
+                      >
+                        <i class="bi bi-image"></i>
+                      </button>
+                      <span v-else class="text-muted">—</span>
+                    </td>
+                    <td class="text-center">
+                      <span :class="['badge', getStatusClass(item.estado)]">{{ item.estado }}</span>
+                    </td>
                   </tr>
                 </tbody>
               </table>
             </div>
             <nav v-if="totalPages > 1" class="d-flex justify-content-center mt-3">
-              <ul class="pagination"><li class="page-item" :class="{ disabled: !reportData.detalle.previous }"><a class="page-link" href="#" @click.prevent="generarReporte(currentPage - 1)">Anterior</a></li><li v-for="page in pagesToShow" :key="page" class="page-item" :class="{ active: page === currentPage, disabled: page === '...' }"><a class="page-link" href="#" @click.prevent="generarReporte(page)">{{ page }}</a></li><li class="page-item" :class="{ disabled: !reportData.detalle.next }"><a class="page-link" href="#" @click.prevent="generarReporte(currentPage + 1)">Siguiente</a></li></ul>
+              <ul class="pagination">
+                <li
+                  class="page-item"
+                  :class="{ disabled: !reportData.detalle.previous }"
+                >
+                  <a
+                    class="page-link"
+                    href="#"
+                    @click.prevent="generarReporte(currentPage - 1)"
+                  >
+                    Anterior
+                  </a>
+                </li>
+                <li
+                  v-for="page in pagesToShow"
+                  :key="page"
+                  class="page-item"
+                  :class="{ active: page === currentPage, disabled: page === '...' }"
+                >
+                  <a
+                    class="page-link"
+                    href="#"
+                    @click.prevent="generarReporte(page)"
+                  >
+                    {{ page }}
+                  </a>
+                </li>
+                <li
+                  class="page-item"
+                  :class="{ disabled: !reportData.detalle.next }"
+                >
+                  <a
+                    class="page-link"
+                    href="#"
+                    @click.prevent="generarReporte(currentPage + 1)"
+                  >
+                    Siguiente
+                  </a>
+                </li>
+              </ul>
             </nav>
           </div>
         </div>
 
         <!-- SECCIÓN DE GRÁFICAS -->
         <div class="row mb-4 g-4">
-            <div class="col-md-4"><div class="card h-100 shadow-sm border-0"><div class="card-body text-center d-flex flex-column justify-content-center"><h6>Total Comisiones</h6><div class="stat-value">{{ formatCurrency(reportData.kpis.totalComisiones) }}</div></div></div></div>
-            <div class="col-md-4"><div class="card h-100 shadow-sm border-0"><div class="card-body text-center d-flex flex-column justify-content-center"><h6>Comisiones Pagadas</h6><div class="stat-value text-success">{{ formatCurrency(reportData.kpis.totalPagado) }}</div></div></div></div>
-            <div class="col-md-4"><div class="card h-100 shadow-sm border-0"><div class="card-body text-center d-flex flex-column justify-content-center"><h6>Comisiones Pendientes</h6><div class="stat-value text-warning">{{ formatCurrency(reportData.kpis.totalPendiente) }}</div></div></div></div>
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h6>Total Comisiones</h6>
+                <div class="stat-value">{{ formatCurrency(reportData.kpis.totalComisiones) }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h6>Comisiones Pagadas</h6>
+                <div class="stat-value text-success">{{ formatCurrency(reportData.kpis.totalPagado) }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card h-100 shadow-sm border-0">
+              <div class="card-body text-center d-flex flex-column justify-content-center">
+                <h6>Comisiones Pendientes</h6>
+                <div class="stat-value text-warning">{{ formatCurrency(reportData.kpis.totalPendiente) }}</div>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div class="row g-4 mb-4">
-            <div class="col-lg-12">
-                <div class="card border-0 shadow-sm h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Distribución por Estado (Filtro)</h5>
-                        <div style="position: relative; height: 300px;">
-                            <Doughnut :data="doughnutChartData" :options="doughnutChartOptions" />
-                        </div>
-                    </div>
+          <div class="col-lg-12">
+            <div class="card border-0 shadow-sm h-100">
+              <div class="card-body">
+                <h5 class="card-title">Distribución por Estado (Filtro)</h5>
+                <div style="position: relative; height: 300px;">
+                  <Doughnut :data="doughnutChartData" :options="doughnutChartOptions" />
                 </div>
+              </div>
             </div>
+          </div>
         </div>
         
         <div class="row g-4 mb-4">
@@ -135,12 +223,54 @@
             </div>
           </div>
         </div>
+        
         <div class="row mb-4">
-            <div class="col-12"><div class="card border-0 shadow-sm"><div class="card-body"><h5 class="card-title">Comparativa Mes Actual vs Anterior</h5><div class="row g-2 align-items-end mb-3"><div class="col-md-10"><label for="pdvSelector" class="form-label small">Añadir Puntos de Venta a la Comparativa:</label><v-select id="pdvSelector" multiple placeholder="Busca y selecciona uno o más PDV..." v-model="comparativeFilters.selectedPdvs" :options="comparativeOptions" :get-option-label="(option) => option.punto_de_venta" :reduce="(option) => option.punto_de_venta"><template #no-options>No hay PDV para mostrar.</template></v-select></div><div class="col-md-2 d-grid"><button class="btn btn-secondary" @click="fetchComparativeData" :disabled="isLoadingComparative"><span v-if="isLoadingComparative" class="spinner-border spinner-border-sm"></span><span v-else>Actualizar</span></button></div></div><div v-if="comparativeChartData.labels.length > 0"><Bar :data="comparativeChartData" :options="comparativeChartOptions" /></div><div v-else class="text-center p-4"><p>No hay datos comparativos para mostrar.</p></div></div></div></div>
+          <div class="col-12">
+            <div class="card border-0 shadow-sm">
+              <div class="card-body">
+                <h5 class="card-title">Comparativa Mes Actual vs Anterior</h5>
+                <div class="row g-2 align-items-end mb-3">
+                  <div class="col-md-10">
+                    <label for="pdvSelector" class="form-label small">Añadir Puntos de Venta a la Comparativa:</label>
+                    <v-select
+                      id="pdvSelector"
+                      multiple
+                      placeholder="Busca y selecciona uno o más PDV..."
+                      v-model="comparativeFilters.selectedPdvs"
+                      :options="comparativeOptions"
+                      :get-option-label="(option) => option.punto_de_venta"
+                      :reduce="(option) => option.punto_de_venta"
+                    >
+                      <template #no-options>No hay PDV para mostrar.</template>
+                    </v-select>
+                  </div>
+                  <div class="col-md-2 d-grid">
+                    <button
+                      class="btn btn-secondary"
+                      @click="fetchComparativeData"
+                      :disabled="isLoadingComparative"
+                    >
+                      <span v-if="isLoadingComparative" class="spinner-border spinner-border-sm"></span>
+                      <span v-else>Actualizar</span>
+                    </button>
+                  </div>
+                </div>
+                <div v-if="comparativeChartData.labels.length > 0">
+                  <Bar :data="comparativeChartData" :options="comparativeChartOptions" />
+                </div>
+                <div v-else class="text-center p-4">
+                  <p>No hay datos comparativos para mostrar.</p>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div v-else-if="reportData && reportData.detalle.count === 0" class="text-center p-5 border rounded bg-white mt-4">
+      <div
+        v-else-if="reportData && reportData.detalle.count === 0"
+        class="text-center p-5 border rounded bg-white mt-4"
+      >
         <p class="fs-4 mb-1">Sin Resultados</p>
         <p>No hay registros para este mes con los filtros seleccionados.</p>
       </div>
@@ -151,58 +281,140 @@
       </div>
     </div>
 
+    <!-- MODAL PAGO -->
     <div class="modal fade" id="paymentModal" tabindex="-1" aria-labelledby="paymentModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="paymentModalLabel">Confirmar Pago de Comisiones</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div class="card bg-light border-0 mb-4">
-                        <div class="card-body p-2 p-md-3">
-                            <ul class="list-group list-group-flush">
-                                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
-                                    <span>Total a Pagar:</span>
-                                    <strong class="fs-5">{{ formatCurrency(subtotalSeleccionado) }}</strong>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
-                                    <span>Total Ingresado:</span>
-                                    <strong class="fs-5">{{ formatCurrency(totalIngresado) }}</strong>
-                                </li>
-                                <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 fw-bold fs-5" :class="restanteClass">
-                                    <span>Restante:</span>
-                                    <span>{{ formatCurrency(restante) }}</span>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <h6 class="mb-3">Desglose del Pago</h6>
-                    <div class="row">
-                        <div v-for="(value, key) in paymentMethods" :key="key" class="col-12 mb-3">
-                            <div class="input-group">
-                                <div class="input-group-text">
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input" type="checkbox" role="switch" :id="'switch-' + key" v-model="paymentMethodsEnabled[key]" @change="togglePaymentMethod(key)">
-                                    </div>
-                                </div>
-                                <label :for="'switch-' + key" class="input-group-text flex-grow-1">{{ key }}</label>
-                                <input type="number" class="form-control" placeholder="0" v-model.number="paymentMethods[key]" :disabled="!paymentMethodsEnabled[key]">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="button" class="btn btn-success" @click="handlePayment">
-                        <span v-if="isPaying" class="spinner-border spinner-border-sm"></span>
-                        <span v-else>Confirmar y Pagar</span>
-                    </button>
-                </div>
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="paymentModalLabel">Confirmar Pago de Comisiones</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body">
+            <div class="card bg-light border-0 mb-4">
+              <div class="card-body p-2 p-md-3">
+                <ul class="list-group list-group-flush">
+                  <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
+                    <span>Total a Pagar:</span>
+                    <strong class="fs-5">{{ formatCurrency(subtotalSeleccionado) }}</strong>
+                  </li>
+                  <li class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0">
+                    <span>Total Ingresado:</span>
+                    <strong class="fs-5">{{ formatCurrency(totalIngresado) }}</strong>
+                  </li>
+                  <li
+                    class="list-group-item d-flex justify-content-between align-items-center bg-transparent px-0 fw-bold fs-5"
+                    :class="restanteClass"
+                  >
+                    <span>Restante:</span>
+                    <span>{{ formatCurrency(restante) }}</span>
+                  </li>
+                </ul>
+              </div>
             </div>
+            
+            <h6 class="mb-3">Desglose del Pago</h6>
+            <div class="row">
+              <div
+                v-for="(value, key) in paymentMethods"
+                :key="key"
+                class="col-12 mb-3"
+              >
+                <div class="input-group">
+                  <div class="input-group-text">
+                    <div class="form-check form-switch">
+                      <input
+                        class="form-check-input"
+                        type="checkbox"
+                        role="switch"
+                        :id="'switch-' + key"
+                        v-model="paymentMethodsEnabled[key]"
+                        @change="togglePaymentMethod(key)"
+                      >
+                    </div>
+                  </div>
+                  <label :for="'switch-' + key" class="input-group-text flex-grow-1">{{ key }}</label>
+                  <input
+                    type="number"
+                    class="form-control"
+                    placeholder="0"
+                    v-model.number="paymentMethods[key]"
+                    :disabled="!paymentMethodsEnabled[key]"
+                  >
+                </div>
+              </div>
+            </div>
+
+            <!-- NUEVA SECCIÓN: IMAGEN DE SOPORTE (OPCIONAL) -->
+            <h6 class="mb-3 mt-2">Comprobante de Pago (opcional)</h6>
+            <div class="mb-2">
+              <input
+                id="soporteFileInput"
+                type="file"
+                class="form-control"
+                accept="image/*"
+                @change="onSoporteChange"
+              >
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              data-bs-dismiss="modal"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              class="btn btn-success"
+              @click="handlePayment"
+              :disabled="isPaying"
+            >
+              <span v-if="isPaying" class="spinner-border spinner-border-sm"></span>
+              <span v-else>Confirmar y Pagar</span>
+            </button>
+          </div>
         </div>
+      </div>
     </div>
+
+    <!-- MODAL VISUALIZACIÓN COMPROBANTE -->
+    <div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="imageModalLabel">Comprobante de Pago</h5>
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="modal"
+              aria-label="Close"
+            ></button>
+          </div>
+          <div class="modal-body text-center">
+            <div v-if="isLoadingImage" class="p-4">
+              <div class="spinner-border text-danger mb-3"></div>
+              <p>Cargando comprobante...</p>
+            </div>
+            <div v-else>
+              <img
+                v-if="comprobanteActual"
+                :src="comprobanteActual"
+                alt="Comprobante de pago"
+                class="img-fluid rounded shadow-sm"
+              >
+              <p v-else class="mb-0">No hay comprobante para mostrar.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </div>
 </template>
 
@@ -225,12 +437,12 @@ const { cookies } = useCookies();
 const router = useRouter();
 
 if (!cookies.get('jwt')) {
-    router.push('/login');
+  router.push('/login');
 }
 
 const filters = reactive({ 
-    idpos: 'todos', 
-    mes: new Date().toISOString().slice(0, 7)
+  idpos: 'todos', 
+  mes: new Date().toISOString().slice(0, 7)
 });
 
 const puntosDeVenta = ref([]);
@@ -247,77 +459,96 @@ const isLoadingComparative = ref(false);
 const selectedComisiones = ref([]);
 const isPaying = ref(false);
 
+// NUEVOS estados para soporte / comprobante
+const soporteFile = ref(null);
+const comprobanteActual = ref(null);
+const isLoadingImage = ref(false);
+
 const paymentMethods = reactive({
-    'Sim card recargada': 0, 'Recarga': 0, 'Accesorios': 0,
-    'Equipos': 0, 'Cartera': 0, 'Acumulado': 0
+  'Sim card recargada': 0,
+  'Recarga': 0,
+  'Accesorios': 0,
+  'Equipos': 0,
+  'Cartera': 0,
+  'Acumulado': 0
 });
 const paymentMethodsEnabled = reactive({
-    'Sim card recargada': false, 'Recarga': false, 'Accesorios': false,
-    'Equipos': false, 'Cartera': false, 'Acumulado': false
+  'Sim card recargada': false,
+  'Recarga': false,
+  'Accesorios': false,
+  'Equipos': false,
+  'Cartera': false,
+  'Acumulado': false
 });
 
 const resetPaymentForm = () => {
-    for (const key in paymentMethods) {
-        paymentMethods[key] = 0;
-        paymentMethodsEnabled[key] = false;
-    }
+  for (const key in paymentMethods) {
+    paymentMethods[key] = 0;
+    paymentMethodsEnabled[key] = false;
+  }
+  // limpiar archivo de soporte
+  soporteFile.value = null;
+  const fileInput = document.getElementById('soporteFileInput');
+  if (fileInput) {
+    fileInput.value = '';
+  }
 };
 
 const togglePaymentMethod = (key) => {
-    if (!paymentMethodsEnabled[key]) {
-        paymentMethods[key] = 0;
-    }
+  if (!paymentMethodsEnabled[key]) {
+    paymentMethods[key] = 0;
+  }
 };
 
 const totalIngresado = computed(() => {
-    return Object.values(paymentMethods).reduce((sum, val) => sum + (Number(val) || 0), 0);
+  return Object.values(paymentMethods).reduce((sum, val) => sum + (Number(val) || 0), 0);
 });
 
 const subtotalSeleccionado = computed(() => {
-    if (!reportData.value || selectedComisiones.value.length === 0) return 0;
-    const selectedIds = new Set(selectedComisiones.value);
-    let total = 0;
-    reportData.value.detalle.results.forEach(group => {
-        if (selectedIds.has(group.id)) {
-            total += parseFloat(group.comision_final || 0);
-        }
-    });
-    return total;
+  if (!reportData.value || selectedComisiones.value.length === 0) return 0;
+  const selectedIds = new Set(selectedComisiones.value);
+  let total = 0;
+  reportData.value.detalle.results.forEach(group => {
+    if (selectedIds.has(group.id)) {
+      total += parseFloat(group.comision_final || 0);
+    }
+  });
+  return total;
 });
 
 const restante = computed(() => subtotalSeleccionado.value - totalIngresado.value);
 
 const restanteClass = computed(() => {
-    if (restante.value < 0) return 'text-danger';
-    if (restante.value > 0) return 'text-warning';
-    return 'text-success';
+  if (restante.value < 0) return 'text-danger';
+  if (restante.value > 0) return 'text-warning';
+  return 'text-success';
 });
 
 const isAllSelected = computed(() => {
-    if (!reportData.value || !reportData.value.detalle.results || reportData.value.detalle.results.length === 0) return false;
-    const selectableIds = reportData.value.detalle.results
-        .filter(item => item.estado === 'Pendiente' || item.estado === 'Acumulada')
-        .map(item => item.id);
-    return selectableIds.length > 0 && selectableIds.every(id => selectedComisiones.value.includes(id));
+  if (!reportData.value || !reportData.value.detalle.results || reportData.value.detalle.results.length === 0) return false;
+  const selectableIds = reportData.value.detalle.results
+    .filter(item => item.estado === 'Pendiente' || item.estado === 'Acumulada')
+    .map(item => item.id);
+  return selectableIds.length > 0 && selectableIds.every(id => selectedComisiones.value.includes(id));
 });
 
 const toggleSelectAll = (event) => {
-    if (!reportData.value) return;
-    const selectableIds = reportData.value.detalle.results
-        .filter(item => item.estado === 'Pendiente' || item.estado === 'Acumulada')
-        .map(item => item.id);
-    
-    if (event.target.checked) {
-        selectedComisiones.value = [...new Set([...selectedComisiones.value, ...selectableIds])];
-    } else {
-        const selectableIdsSet = new Set(selectableIds);
-        selectedComisiones.value = selectedComisiones.value.filter(id => !selectableIdsSet.has(id));
-    }
+  if (!reportData.value) return;
+  const selectableIds = reportData.value.detalle.results
+    .filter(item => item.estado === 'Pendiente' || item.estado === 'Acumulada')
+    .map(item => item.id);
+  
+  if (event.target.checked) {
+    selectedComisiones.value = [...new Set([...selectedComisiones.value, ...selectableIds])];
+  } else {
+    const selectableIdsSet = new Set(selectableIds);
+    selectedComisiones.value = selectedComisiones.value.filter(id => !selectableIdsSet.has(id));
+  }
 };
 
 const comparativeOptions = computed(() => {
-    const totalRutaOption = { punto_de_venta: 'TOTAL RUTA', idpos: 'total_ruta_key' };
-    return [totalRutaOption, ...puntosDeVenta.value];
+  const totalRutaOption = { punto_de_venta: 'TOTAL RUTA', idpos: 'total_ruta_key' };
+  return [totalRutaOption, ...puntosDeVenta.value];
 });
 
 const pdvOptions = computed(() => {
@@ -325,114 +556,177 @@ const pdvOptions = computed(() => {
   return [todosOption, ...puntosDeVenta.value];
 });
 
-watch(() => [...comparativeFilters.selectedPdvs], (newSelection, oldSelection) => {
+watch(
+  () => [...comparativeFilters.selectedPdvs],
+  (newSelection, oldSelection) => {
     if (newSelection.length === 0 || newSelection.length === oldSelection.length) return;
     const lastSelectedItem = newSelection.find(item => !oldSelection.includes(item));
     if (!lastSelectedItem) return;
     if (lastSelectedItem === 'TOTAL RUTA') {
-        comparativeFilters.selectedPdvs = ['TOTAL RUTA'];
+      comparativeFilters.selectedPdvs = ['TOTAL RUTA'];
     } else {
-        const selectionWithoutTotal = newSelection.filter(item => item !== 'TOTAL RUTA');
-        if (selectionWithoutTotal.length !== newSelection.length) {
-            comparativeFilters.selectedPdvs = selectionWithoutTotal;
-        }
+      const selectionWithoutTotal = newSelection.filter(item => item !== 'TOTAL RUTA');
+      if (selectionWithoutTotal.length !== newSelection.length) {
+        comparativeFilters.selectedPdvs = selectionWithoutTotal;
+      }
     }
-});
+  }
+);
 
 const formatCurrency = (value) => {
-    if (value === null || value === undefined) return 'N/A';
-    return new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', minimumFractionDigits: 0 }).format(value);
+  if (value === null || value === undefined) return 'N/A';
+  return new Intl.NumberFormat('es-CO', {
+    style: 'currency',
+    currency: 'COP',
+    minimumFractionDigits: 0
+  }).format(value);
 };
 
 const formatMonthYear = (dateString) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString + 'T00:00:00'); 
-    return date.toLocaleDateString('es-CO', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+  if (!dateString) return 'N/A';
+  const date = new Date(dateString + 'T00:00:00'); 
+  return date.toLocaleDateString('es-CO', {
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'UTC'
+  });
 };
 
 // --- INICIO: LÓGICA DE GRÁFICOS ---
 const baseFont = { family: 'Poppins', size: 12, weight: 500 };
-const doughnutChartOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { ...baseFont } } }, cutout: '60%' };
+const doughnutChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { position: 'right', labels: { ...baseFont } } },
+  cutout: '60%'
+};
 
 const comparativeChartMax = computed(() => {
-    if (!comparativeData.value || comparativeData.value.length === 0) return 100000;
-    const maxVal = Math.max(...comparativeData.value.map(item => Math.max(item.total_mes_anterior || 0, item.total_mes_actual || 0)));
-    return maxVal * 1.2;
+  if (!comparativeData.value || comparativeData.value.length === 0) return 100000;
+  const maxVal = Math.max(
+    ...comparativeData.value.map(item =>
+      Math.max(item.total_mes_anterior || 0, item.total_mes_actual || 0)
+    )
+  );
+  return maxVal * 1.2;
 });
 
 const comparativeChartOptions = computed(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { position: 'bottom', labels: { ...baseFont } } },
-    scales: {
-        x: { ticks: { ...baseFont, autoSkip: false, maxRotation: 45, minRotation: 45 }, grid: { display: false } },
-        y: {
-            ticks: { ...baseFont, callback: (value) => new Intl.NumberFormat('es-CO', { notation: 'compact', compactDisplay: 'short' }).format(value) },
-            grid: { color: '#e9ecef' },
-            suggestedMax: comparativeChartMax.value
-        }
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { position: 'bottom', labels: { ...baseFont } } },
+  scales: {
+    x: {
+      ticks: { ...baseFont, autoSkip: false, maxRotation: 45, minRotation: 45 },
+      grid: { display: false }
+    },
+    y: {
+      ticks: {
+        ...baseFont,
+        callback: (value) =>
+          new Intl.NumberFormat('es-CO', {
+            notation: 'compact',
+            compactDisplay: 'short'
+          }).format(value)
+      },
+      grid: { color: '#e9ecef' },
+      suggestedMax: comparativeChartMax.value
     }
+  }
 }));
 
 const doughnutChartData = computed(() => {
-    const chartInfo = reportData.value?.chart_data?.distribucion_estado || [];
-    const colorMap = { 'Acumulada': '#17a2b8', 'Pagada': '#28a745', 'Pendiente': '#ffc107' };
-    const labels = chartInfo.map(item => item.estado);
-    return { labels, datasets: [{ label: 'Número de Comisiones', data: chartInfo.map(item => item.count), backgroundColor: labels.map(e => colorMap[e] || '#6c757d') }] };
+  const chartInfo = reportData.value?.chart_data?.distribucion_estado || [];
+  const colorMap = {
+    'Acumulada': '#17a2b8',
+    'Pagada': '#28a745',
+    'Pendiente': '#ffc107'
+  };
+  const labels = chartInfo.map(item => item.estado);
+  return {
+    labels,
+    datasets: [
+      {
+        label: 'Número de Comisiones',
+        data: chartInfo.map(item => item.count),
+        backgroundColor: labels.map(e => colorMap[e] || '#6c757d')
+      }
+    ]
+  };
 });
 
 const comparativeChartData = computed(() => {
-    const chartInfo = comparativeData.value || [];
-    return { labels: chartInfo.map(item => item.punto_de_venta), datasets: [{ label: 'Mes Anterior', data: chartInfo.map(item => item.total_mes_anterior || 0), backgroundColor: '#6c757d' }, { label: 'Mes Actual', data: chartInfo.map(item => item.total_mes_actual || 0), backgroundColor: '#DF1115' }] }
+  const chartInfo = comparativeData.value || [];
+  return {
+    labels: chartInfo.map(item => item.punto_de_venta),
+    datasets: [
+      {
+        label: 'Mes Anterior',
+        data: chartInfo.map(item => item.total_mes_anterior || 0),
+        backgroundColor: '#6c757d'
+      },
+      {
+        label: 'Mes Actual',
+        data: chartInfo.map(item => item.total_mes_actual || 0),
+        backgroundColor: '#DF1115'
+      }
+    ]
+  };
 });
 
 const barChartOptions = computed(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: { legend: { display: false } },
-    scales: {
-        y: {
-            ticks: {
-                ...baseFont,
-                callback: (value) => new Intl.NumberFormat('es-CO', { notation: 'compact', compactDisplay: 'short' }).format(value)
-            },
-            grid: { color: '#e9ecef' }
-        },
-        x: {
-            ticks: { ...baseFont },
-            grid: { display: false }
-        }
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    y: {
+      ticks: {
+        ...baseFont,
+        callback: (value) =>
+          new Intl.NumberFormat('es-CO', {
+            notation: 'compact',
+            compactDisplay: 'short'
+          }).format(value)
+      },
+      grid: { color: '#e9ecef' }
+    },
+    x: {
+      ticks: { ...baseFont },
+      grid: { display: false }
     }
+  }
 }));
 
 const pieChartOptions = computed(() => ({
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-        legend: {
-            position: 'right',
-            labels: { ...baseFont }
-        }
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'right',
+      labels: { ...baseFont }
     }
+  }
 }));
 
 const metodoValorChartData = computed(() => {
   const data = reportData.value?.chart_data?.metodos_pago || [];
   return {
     labels: data.map(item => item.metodo),
-    datasets: [{
-      label: 'Valor Total Pagado',
-      data: data.map(item => item.total_valor),
-      backgroundColor: [
-        'rgba(223, 17, 21, 0.7)',
-        'rgba(23, 162, 184, 0.7)',
-        'rgba(40, 167, 69, 0.7)',
-        'rgba(255, 193, 7, 0.7)',
-        'rgba(108, 117, 125, 0.7)',
-        'rgba(102, 16, 242, 0.7)',
-      ],
-      borderWidth: 1
-    }]
+    datasets: [
+      {
+        label: 'Valor Total Pagado',
+        data: data.map(item => item.total_valor),
+        backgroundColor: [
+          'rgba(223, 17, 21, 0.7)',
+          'rgba(23, 162, 184, 0.7)',
+          'rgba(40, 167, 69, 0.7)',
+          'rgba(255, 193, 7, 0.7)',
+          'rgba(108, 117, 125, 0.7)',
+          'rgba(102, 16, 242, 0.7)',
+        ],
+        borderWidth: 1
+      }
+    ]
   };
 });
 
@@ -440,136 +734,220 @@ const metodoCantidadChartData = computed(() => {
   const data = reportData.value?.chart_data?.metodos_pago || [];
   return {
     labels: data.map(item => `${item.metodo}`),
-    datasets: [{
-      data: data.map(item => item.total_cantidad),
-      backgroundColor: [
-        '#DF1115', '#17a2b8', '#28a745', '#ffc107', '#6c757d', '#6610f2'
-      ],
-      hoverOffset: 4
-    }]
+    datasets: [
+      {
+        data: data.map(item => item.total_cantidad),
+        backgroundColor: [
+          '#DF1115',
+          '#17a2b8',
+          '#28a745',
+          '#ffc107',
+          '#6c757d',
+          '#6610f2'
+        ],
+        hoverOffset: 4
+      }
+    ]
   };
 });
 // --- FIN: LÓGICA DE GRÁFICOS ---
 
-
 const fetchPdvFiltro = async () => {
-    try {
-        const path = backendRouter.data + 'asesor/filtros/';
-        const response = await apiService.get(path);
-        puntosDeVenta.value = response.data.puntos_de_venta;
-    } catch (error) { Swal.fire('Error', 'No se pudieron cargar los filtros de Puntos de Venta.', 'error'); }
+  try {
+    const path = backendRouter.data + 'asesor/filtros/';
+    const response = await apiService.get(path);
+    puntosDeVenta.value = response.data.puntos_de_venta;
+  } catch (error) {
+    Swal.fire('Error', 'No se pudieron cargar los filtros de Puntos de Venta.', 'error');
+  }
 };
 
 const generarReporte = async (page = 1) => {
-    if (typeof page !== 'number' || page < 1) return;
-    isLoadingReport.value = true;
-    if (page === 1) {
-        reportData.value = null;
-        selectedComisiones.value = [];
+  if (typeof page !== 'number' || page < 1) return;
+  isLoadingReport.value = true;
+  if (page === 1) {
+    reportData.value = null;
+    selectedComisiones.value = [];
+  }
+  currentPage.value = page;
+  const params = new URLSearchParams();
+  if (filters.idpos !== 'todos') params.append('idpos', filters.idpos);
+  if (filters.mes) params.append('mes', filters.mes);
+  params.append('page', page);
+  try {
+    const path = `${backendRouter.data}asesor/reporte/?${params.toString()}`;
+    const response = await apiService.get(path);
+    reportData.value = response.data;
+    totalPages.value = Math.ceil(response.data.detalle.count / page_size);
+  } catch (error) {
+    reportData.value = null;
+    if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+      Swal.fire('Sesión Expirada', 'Tu sesión ha expirado, por favor inicia sesión de nuevo.', 'warning');
+      router.push('/login');
+    } else {
+      Swal.fire('Error', 'No se pudo generar el reporte.', 'error');
     }
-    currentPage.value = page;
-    const params = new URLSearchParams();
-    if (filters.idpos !== 'todos') params.append('idpos', filters.idpos);
-    if (filters.mes) params.append('mes', filters.mes);
-    params.append('page', page);
-    try {
-        const path = `${backendRouter.data}asesor/reporte/?${params.toString()}`;
-        const response = await apiService.get(path);
-        reportData.value = response.data;
-        totalPages.value = Math.ceil(response.data.detalle.count / page_size);
-    } catch (error) {
-        reportData.value = null;
-        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
-            Swal.fire('Sesión Expirada', 'Tu sesión ha expirado, por favor inicia sesión de nuevo.', 'warning');
-            router.push('/login');
-        } else {
-            Swal.fire('Error', 'No se pudo generar el reporte.', 'error');
-        }
-    } finally {
-        isLoadingReport.value = false;
-    }
+  } finally {
+    isLoadingReport.value = false;
+  }
 };
 
 const fetchComparativeData = async () => {
-    isLoadingComparative.value = true;
-    const params = new URLSearchParams();
-    comparativeFilters.selectedPdvs.forEach(pdv => { params.append('pdv', pdv); });
-    try {
-        const path = `${backendRouter.data}asesor/comparativa/?${params.toString()}`;
-        const response = await apiService.get(path);
-        comparativeData.value = response.data;
-    } catch (error) { Swal.fire('Error', 'No se pudieron cargar los datos comparativos.', 'error'); comparativeData.value = []; } 
-    finally { isLoadingComparative.value = false; }
+  isLoadingComparative.value = true;
+  const params = new URLSearchParams();
+  comparativeFilters.selectedPdvs.forEach(pdv => { params.append('pdv', pdv); });
+  try {
+    const path = `${backendRouter.data}asesor/comparativa/?${params.toString()}`;
+    const response = await apiService.get(path);
+    comparativeData.value = response.data;
+  } catch (error) {
+    Swal.fire('Error', 'No se pudieron cargar los datos comparativos.', 'error');
+    comparativeData.value = [];
+  } finally {
+    isLoadingComparative.value = false;
+  }
+};
+
+// cambio de archivo de soporte
+const onSoporteChange = (event) => {
+  const file = event.target.files ? event.target.files[0] : null;
+  soporteFile.value = file || null;
 };
 
 const handlePayment = async () => {
-    isPaying.value = true;
-    
-    const metodosPagoActivos = {};
-    for (const key in paymentMethods) {
-        if (paymentMethodsEnabled[key] && paymentMethods[key] > 0) {
-            metodosPagoActivos[key] = paymentMethods[key];
-        }
+  if (!reportData.value || selectedComisiones.value.length === 0) {
+    Swal.fire('Atención', 'Debes seleccionar al menos una comisión para pagar.', 'warning');
+    return;
+  }
+
+  isPaying.value = true;
+  
+  const metodosPagoActivos = {};
+  for (const key in paymentMethods) {
+    if (paymentMethodsEnabled[key] && paymentMethods[key] > 0) {
+      metodosPagoActivos[key] = paymentMethods[key];
+    }
+  }
+
+  const selectedGroupIds = new Set(selectedComisiones.value);
+  const individualIdsToPay = reportData.value.detalle.results
+    .filter(group => selectedGroupIds.has(group.id))
+    .flatMap(group => group.individual_ids || []) 
+    .filter(id => id !== null && id !== undefined);
+
+  try {
+    // 1. Subir imagen de soporte (si existe)
+    let soporteFilename = null;
+    if (soporteFile.value) {
+      const formData = new FormData();
+      formData.append('file', soporteFile.value);
+      // Ajusta esta ruta según tu backend de subida a SharePoint
+      const uploadPath = `${backendRouter.data}asesor/subir-comprobante/`;
+      const uploadResponse = await apiService.post(uploadPath, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      soporteFilename = uploadResponse.data.filename;  // ajusta a la clave que devuelva tu API
     }
 
-    const selectedGroupIds = new Set(selectedComisiones.value);
-    const individualIdsToPay = reportData.value.detalle.results
-        .filter(group => selectedGroupIds.has(group.id))
-        .flatMap(group => group.individual_ids || []) 
-        .filter(id => id !== null && id !== undefined);
-
+    // 2. Enviar pago con referencia al soporte (si lo hay)
     const payload = {
-        comision_ids: individualIdsToPay,
-        metodos_pago: metodosPagoActivos
+      comision_ids: individualIdsToPay,
+      metodos_pago: metodosPagoActivos,
+      soporte: soporteFilename    // el backend puede guardar esto y luego usarlo como "url" en get_image_corresponsal
     };
 
-    try {
-        const path = `${backendRouter.data}asesor/pagar-comisiones/`;
-        await apiService.post(path, payload);
+    const path = `${backendRouter.data}asesor/pagar-comisiones/`;
+    await apiService.post(path, payload);
 
-        Swal.fire('¡Éxito!', 'Las comisiones han sido pagadas.', 'success');
-        
-        const modalEl = document.getElementById('paymentModal');
-        const modal = bootstrap.Modal.getInstance(modalEl);
-        if (modal) {
-            modal.hide();
-        }
-
-        selectedComisiones.value = [];
-        generarReporte(currentPage.value);
-
-    } catch (error) {
-        Swal.fire('Error', 'No se pudo procesar el pago. ' + (error.response?.data?.error || ''), 'error');
-    } finally {
-        isPaying.value = false;
+    Swal.fire('¡Éxito!', 'Las comisiones han sido pagadas.', 'success');
+    
+    const modalEl = document.getElementById('paymentModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) {
+      modal.hide();
     }
+
+    selectedComisiones.value = [];
+    soporteFile.value = null;
+    generarReporte(currentPage.value);
+
+  } catch (error) {
+    Swal.fire('Error', 'No se pudo procesar el pago. ' + (error.response?.data?.error || ''), 'error');
+  } finally {
+    isPaying.value = false;
+  }
+};
+
+// ver comprobante en modal
+const verComprobante = async (item) => {
+  if (!item.comprobante_url) {
+    return;
+  }
+
+  comprobanteActual.value = null;
+  isLoadingImage.value = true;
+
+  const modalEl = document.getElementById('imageModal');
+  let modal = bootstrap.Modal.getInstance(modalEl);
+  if (!modal) {
+    modal = new bootstrap.Modal(modalEl);
+  }
+  modal.show();
+
+  try {
+    // Endpoint similar a tu get_image_corresponsal, adaptado para comisiones
+    const path = `${backendRouter.data}asesor/get-comprobante/`;
+    const response = await apiService.post(path, { url: item.comprobante_url });
+    const { image, content_type } = response.data;
+    comprobanteActual.value = `data:${content_type};base64,${image}`;
+  } catch (error) {
+    Swal.fire('Error', 'No se pudo cargar el comprobante.', 'error');
+    comprobanteActual.value = null;
+    const instance = bootstrap.Modal.getInstance(modalEl);
+    if (instance) {
+      instance.hide();
+    }
+  } finally {
+    isLoadingImage.value = false;
+  }
 };
 
 onMounted(() => {
-    fetchPdvFiltro();
-    fetchComparativeData();
+  fetchPdvFiltro();
+  fetchComparativeData();
 
-    const paymentModalEl = document.getElementById('paymentModal');
-    if (paymentModalEl) {
-        paymentModalEl.addEventListener('hidden.bs.modal', resetPaymentForm);
-    }
+  const paymentModalEl = document.getElementById('paymentModal');
+  if (paymentModalEl) {
+    paymentModalEl.addEventListener('hidden.bs.modal', resetPaymentForm);
+  }
 });
 
 const pagesToShow = computed(() => {
-    const pages = []; const maxPages = 7;
-    if (totalPages.value <= maxPages) { for (let i = 1; i <= totalPages.value; i++) pages.push(i); } 
-    else { pages.push(1); if (currentPage.value > 4) pages.push('...'); let start = Math.max(2, currentPage.value - 2); let end = Math.min(totalPages.value - 1, currentPage.value + 2); if (currentPage.value <= 4) end = 5; if (currentPage.value >= totalPages.value - 3) start = totalPages.value - 4; for (let i = start; i <= end; i++) pages.push(i); if (currentPage.value < totalPages.value - 3) pages.push('...'); pages.push(totalPages.value); }
-    return pages;
+  const pages = [];
+  const maxPages = 7;
+  if (totalPages.value <= maxPages) {
+    for (let i = 1; i <= totalPages.value; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage.value > 4) pages.push('...');
+    let start = Math.max(2, currentPage.value - 2);
+    let end = Math.min(totalPages.value - 1, currentPage.value + 2);
+    if (currentPage.value <= 4) end = 5;
+    if (currentPage.value >= totalPages.value - 3) start = totalPages.value - 4;
+    for (let i = start; i <= end; i++) pages.push(i);
+    if (currentPage.value < totalPages.value - 3) pages.push('...');
+    pages.push(totalPages.value);
+  }
+  return pages;
 });
 
 const getStatusClass = (estado) => {
-    if (estado === 'Pagada') return 'bg-success';
-    if (estado === 'Acumulada') return 'bg-info text-dark';
-    if (estado === 'Pendiente') return 'bg-warning text-dark';
-    return 'bg-secondary';
+  if (estado === 'Pagada') return 'bg-success';
+  if (estado === 'Acumulada') return 'bg-info text-dark';
+  if (estado === 'Pendiente') return 'bg-warning text-dark';
+  return 'bg-secondary';
 };
 </script>
-
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
@@ -589,7 +967,7 @@ body {
 
 h1, h2, h3, h4, h5, h6, .form-label, .btn, p { 
   font-family: 'Poppins', sans-serif; 
-  color: #343a40; /* Color de texto más oscuro por defecto */
+  color: #343a40;
 }
 
 h1 { 
@@ -610,7 +988,6 @@ h1 {
 .card-body.pt-0 {
   padding-top: 0 !important;
 }
-
 
 /* --- KPI Stat Cards --- */
 .stat-value { 
@@ -648,14 +1025,13 @@ h1 {
   border-bottom-right-radius: 0.5rem;
 }
 
-
 .table thead th {
   background-color: #f8f9fa;
   font-weight: 600;
   text-transform: uppercase;
   font-size: 0.75rem;
   letter-spacing: 0.5px;
-  color: #000; /* Color de texto de cabecera cambiado a negro */
+  color: #000;
   border-bottom: 2px solid #dee2e6;
   padding-top: 1rem;
   padding-bottom: 1rem;
@@ -674,7 +1050,7 @@ h1 {
   border-radius: 0.5rem;
   margin: 0 0.25rem;
   border: none;
-  color: #343a40; /* Color de paginación oscurecido */
+  color: #343a40;
   font-weight: 500;
 }
 .pagination .page-link:hover {
@@ -712,7 +1088,7 @@ h1 {
 
 /* --- Modal Switch --- */
 .form-switch .form-check-input {
-    cursor: pointer;
+  cursor: pointer;
 }
 .btn-secondary, .btn-danger, .btn-success{
   color: white !important;
