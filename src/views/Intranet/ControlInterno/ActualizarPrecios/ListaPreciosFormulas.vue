@@ -326,7 +326,7 @@ export default {
     async fetchPrices() {
       try {
         // CORREGIDO: Usa apiService y una ruta relativa. No necesita token/headers.
-        const response = await apiService.get('/prices');
+        const response = await apiService.get('/prices/');
         if (Array.isArray(response.data.data)) {
           this.prices = response.data.data.filter(price => price.state === true);
         } else {
@@ -339,7 +339,7 @@ export default {
     async fetchFormulas() {
       try {
         // CORREGIDO: Usa apiService y una ruta relativa.
-        const response = await apiService.get('/formulas');
+        const response = await apiService.get('/formulas/');
         if (Array.isArray(response.data.data)) {
           this.formulas = {};
           response.data.data.forEach(formula => {
@@ -358,7 +358,7 @@ export default {
     async fetchVariables() {
       try {
         // CORREGIDO: Usa apiService y una ruta relativa.
-        const response = await apiService.get('/variables');
+        const response = await apiService.get('/variables/');
         if (Array.isArray(response.data.data)) {
           this.variables = response.data.data;
           // Aprovechamos para popular las fórmulas de las variables
@@ -385,7 +385,7 @@ export default {
           state: true
         };
         // CORREGIDO: Usa apiService.
-        await apiService.post('/prices', newPrice);
+        await apiService.post('/prices/', newPrice);
         await this.fetchPrices();
         this.newPriceName = '';
         this.setActiveTab(0);
@@ -411,7 +411,7 @@ export default {
             this.isLoading = true;
             try {
                 // CORREGIDO: Usa apiService.
-                await apiService.delete(`/prices/${id}`);
+                await apiService.delete(`/prices/${id}/`);
                 await this.fetchPrices();
                 Swal.fire('Eliminado', 'El precio ha sido eliminado.', 'success');
             } catch (error) {
@@ -458,7 +458,7 @@ export default {
           formula: this.currentFormula
         };
         // CORREGIDO: Usa apiService.
-        const response = await apiService.post('/formulas', newFormula);
+        const response = await apiService.post('/formulas/', newFormula);
         const formulaId = response.data.data.id;
         this.formulas[priceName] = { id: formulaId, formula: this.currentFormula };
         Swal.fire('Guardado', 'La fórmula ha sido guardada exitosamente.', 'success');
@@ -482,7 +482,7 @@ export default {
           formula: this.currentFormula
         };
         // CORREGIDO: Usa apiService.
-        await apiService.put(`/formulas/${formulaId}`, updatedFormula);
+        await apiService.put(`/formulas/${formulaId}/`, updatedFormula);
         Swal.fire('Actualizado', 'La fórmula ha sido actualizada exitosamente.', 'success');
         await this.fetchFormulas();
         this.currentFormula = '';
@@ -505,11 +505,11 @@ export default {
         };
         if (existingVariable) {
           // CORREGIDO: Usa apiService.
-          await apiService.put(`/variables/${existingVariable.id}`, variableData);
+          await apiService.put(`/variables/${existingVariable.id}/`, variableData);
           Swal.fire('Actualizado', 'La variable ha sido actualizada exitosamente.', 'success');
         } else {
           // CORREGIDO: Usa apiService.
-          await apiService.post('/variables', variableData);
+          await apiService.post('/variables/', variableData);
           Swal.fire('Guardado', 'La variable ha sido guardada exitosamente.', 'success');
         }
         await this.fetchVariables();
@@ -531,7 +531,7 @@ export default {
         this.isLoading = true;
         try {
           // CORREGIDO: Usa apiService.
-          await apiService.delete(`/variables/${variableToDelete.id}`);
+          await apiService.delete(`/variables/${variableToDelete.id}/`);
           await this.fetchVariables();
           Swal.fire('Eliminado', 'La variable ha sido eliminada.', 'success');
           this.selectedVariable = {};
