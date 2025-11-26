@@ -11,12 +11,33 @@
             <div class="row g-3 align-items-end">
               <div class="col-md-4">
                 <label for="filtroPdv" class="form-label fw-bold">Punto de Venta</label>
+
+                <!-- ASESOR: lista plana -->
                 <v-select
+                  v-if="tipoUsuario !== 'supervisor'"
                   id="filtroPdv"
                   v-model="filters.idpos"
                   placeholder="Buscar por nombre o ID..."
-                  :options="pdvOptions"
-                  :get-option-label="(option) => `${option.punto_de_venta} (${option.idpos})`"
+                  :options="pdvFlatOptions"
+                  label="punto_de_venta"
+                  :reduce="(option) => option.idpos"
+                  :clearable="false"
+                >
+                  <template #no-options>
+                    No se encontraron puntos de venta.
+                  </template>
+                </v-select>
+
+                <!-- SUPERVISOR: optgroups por ruta -->
+                <v-select
+                  v-else
+                  id="filtroPdv"
+                  v-model="filters.idpos"
+                  placeholder="Buscar por nombre o ID..."
+                  :options="pdvGroupedOptions"
+                  label="punto_de_venta"
+                  :group-label="'group'"
+                  :group-values="'options'"
                   :reduce="(option) => option.idpos"
                   :clearable="false"
                 >
@@ -25,6 +46,7 @@
                   </template>
                 </v-select>
               </div>
+
               <div class="col-md-6">
                 <label for="filtroMes" class="form-label fw-bold">Mes Pago</label>
                 <input type="month" id="filtroMes" class="form-control" v-model="filters.mes">
@@ -349,7 +371,7 @@
               </div>
             </div>
 
-            <!-- NUEVA SECCIÓN: IMAGEN DE SOPORTE (OPCIONAL) -->
+            <!-- IMAGEN DE SOPORTE (OPCIONAL) -->
             <h6 class="mb-3 mt-2">Comprobante de Pago (opcional)</h6>
             <div class="mb-2">
               <input
@@ -459,10 +481,13 @@ const isLoadingComparative = ref(false);
 const selectedComisiones = ref([]);
 const isPaying = ref(false);
 
-// NUEVOS estados para soporte / comprobante
+// soporte / comprobante
 const soporteFile = ref(null);
 const comprobanteActual = ref(null);
 const isLoadingImage = ref(false);
+
+// tipo de usuario: asesor / supervisor
+const tipoUsuario = ref('asesor');
 
 const paymentMethods = reactive({
   'Sim card recargada': 0,
@@ -486,7 +511,6 @@ const resetPaymentForm = () => {
     paymentMethods[key] = 0;
     paymentMethodsEnabled[key] = false;
   }
-  // limpiar archivo de soporte
   soporteFile.value = null;
   const fileInput = document.getElementById('soporteFileInput');
   if (fileInput) {
@@ -551,11 +575,43 @@ const comparativeOptions = computed(() => {
   return [totalRutaOption, ...puntosDeVenta.value];
 });
 
-const pdvOptions = computed(() => {
-  const todosOption = { punto_de_venta: '-- Todos mis PDV --', idpos: 'todos' };
-  return [todosOption, ...puntosDeVenta.value];
+// ===== OPCIONES PARA EL SELECT DE PDV =====
+
+// ASESOR: lista plana
+const pdvFlatOptions = computed(() => {
+  const todosOption = { idpos: 'todos', punto_de_venta: '-- Todos mis PDV --' };
+
+  const planos = puntosDeVenta.value.map(pdv => ({
+    ...pdv,
+    punto_de_venta: `${pdv.punto_de_venta} (${pdv.idpos})`,
+  }));
+
+  return [todosOption, ...planos];
 });
 
+// SUPERVISOR: agrupado por ruta (optgroups)
+const pdvGroupedOptions = computed(() => {
+  const todosOption = { idpos: 'todos', punto_de_venta: '-- Todos mis PDV --' };
+
+  const groupsMap = {};
+  puntosDeVenta.value.forEach(pdv => {
+    const ruta = pdv.ruta || 'SIN RUTA';
+    if (!groupsMap[ruta]) groupsMap[ruta] = [];
+    groupsMap[ruta].push({
+      ...pdv,
+      punto_de_venta: `${pdv.punto_de_venta} (${pdv.idpos})`,
+    });
+  });
+
+  const groups = Object.entries(groupsMap).map(([ruta, options]) => ({
+    group: ruta,
+    options,
+  }));
+
+  return [todosOption, ...groups];
+});
+
+// watcher de comparativa (control de TOTAL RUTA)
 watch(
   () => [...comparativeFilters.selectedPdvs],
   (newSelection, oldSelection) => {
@@ -592,7 +648,7 @@ const formatMonthYear = (dateString) => {
   });
 };
 
-// --- INICIO: LÓGICA DE GRÁFICOS ---
+// --- GRÁFICOS ---
 const baseFont = { family: 'Poppins', size: 12, weight: 500 };
 const doughnutChartOptions = {
   responsive: true,
@@ -750,13 +806,35 @@ const metodoCantidadChartData = computed(() => {
     ]
   };
 });
-// --- FIN: LÓGICA DE GRÁFICOS ---
+
+// ===== FETCHS =====
 
 const fetchPdvFiltro = async () => {
   try {
     const path = backendRouter.data + 'asesor/filtros/';
     const response = await apiService.get(path);
-    puntosDeVenta.value = response.data.puntos_de_venta;
+    const data = response.data;
+
+    tipoUsuario.value = data.tipo_usuario || 'asesor';
+
+    if (tipoUsuario.value === 'supervisor') {
+      const pdvs = [];
+      (data.rutas || []).forEach(rutaObj => {
+        (rutaObj.puntos_de_venta || []).forEach(pdv => {
+          pdvs.push({
+            ...pdv,
+            ruta: rutaObj.ruta,
+          });
+        });
+      });
+      puntosDeVenta.value = pdvs;
+    } else {
+      const pdvs = (data.puntos_de_venta || []).map(pdv => ({
+        ...pdv,
+        ruta: data.ruta || 'MIS PUNTOS DE VENTA',
+      }));
+      puntosDeVenta.value = pdvs;
+    }
   } catch (error) {
     Swal.fire('Error', 'No se pudieron cargar los filtros de Puntos de Venta.', 'error');
   }
@@ -836,24 +914,22 @@ const handlePayment = async () => {
     .filter(id => id !== null && id !== undefined);
 
   try {
-    // 1. Subir imagen de soporte (si existe)
+    // subir comprobante si existe
     let soporteFilename = null;
     if (soporteFile.value) {
       const formData = new FormData();
       formData.append('file', soporteFile.value);
-      // Ajusta esta ruta según tu backend de subida a SharePoint
       const uploadPath = `${backendRouter.data}asesor/subir-comprobante/`;
       const uploadResponse = await apiService.post(uploadPath, formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
-      soporteFilename = uploadResponse.data.filename;  // ajusta a la clave que devuelva tu API
+      soporteFilename = uploadResponse.data.filename;
     }
 
-    // 2. Enviar pago con referencia al soporte (si lo hay)
     const payload = {
       comision_ids: individualIdsToPay,
       metodos_pago: metodosPagoActivos,
-      soporte: soporteFilename    // el backend puede guardar esto y luego usarlo como "url" en get_image_corresponsal
+      soporte: soporteFilename
     };
 
     const path = `${backendRouter.data}asesor/pagar-comisiones/`;
@@ -895,7 +971,6 @@ const verComprobante = async (item) => {
   modal.show();
 
   try {
-    // Endpoint similar a tu get_image_corresponsal, adaptado para comisiones
     const path = `${backendRouter.data}asesor/get-comprobante/`;
     const response = await apiService.post(path, { url: item.comprobante_url });
     const { image, content_type } = response.data;
@@ -952,7 +1027,6 @@ const getStatusClass = (estado) => {
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
 
-/* --- General Layout & Typography --- */
 body {
   font-family: 'Poppins', sans-serif;
 }
@@ -974,7 +1048,6 @@ h1 {
   font-weight: 700; 
 }
 
-/* --- Card Styling --- */
 .card { 
   border-radius: 0.75rem; 
   transition: all 0.2s ease-in-out;
@@ -989,7 +1062,6 @@ h1 {
   padding-top: 0 !important;
 }
 
-/* --- KPI Stat Cards --- */
 .stat-value { 
   font-size: 2.25rem; 
   font-weight: 700; 
@@ -998,7 +1070,6 @@ h1 {
 .stat-value.text-success { color: #198754 !important; }
 .stat-value.text-warning { color: #ffc107 !important; }
 
-/* --- Table Styling --- */
 .table { 
   font-size: 0.9rem; 
   border-collapse: separate;
@@ -1045,7 +1116,6 @@ h1 {
   color: #DF1115;
 }
 
-/* --- Pagination Styling --- */
 .pagination .page-link {
   border-radius: 0.5rem;
   margin: 0 0.25rem;
@@ -1066,7 +1136,6 @@ h1 {
   color: #adb5bd;
 }
 
-/* --- vue-select Customization --- */
 :root {
   --vs-border-color: #ced4da;
   --vs-border-radius: 0.375rem;
@@ -1078,7 +1147,6 @@ h1 {
   font-family: 'Poppins', sans-serif;
 }
 
-/* --- Transitions --- */
 .fade-enter-active, .fade-leave-active { 
   transition: opacity 0.3s ease; 
 }
@@ -1086,7 +1154,6 @@ h1 {
   opacity: 0; 
 }
 
-/* --- Modal Switch --- */
 .form-switch .form-check-input {
   cursor: pointer;
 }

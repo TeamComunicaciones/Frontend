@@ -203,8 +203,13 @@
                             @change="onChangeRutasAsesor(asesor)"
                           >
                             <option :value="null">-- Sin Asignar --</option>
-                            <option v-for="ruta in rutas" :key="ruta" :value="ruta">
-                              {{ ruta }}
+                            <option
+                              v-for="ruta in rutas"
+                              :key="ruta"
+                              :value="ruta"
+                              :disabled="shouldDisableRutaForAsesor(ruta, asesor)"
+                            >
+                              {{ labelRutaWithCupo(ruta) }}
                             </option>
                           </select>
 
@@ -286,8 +291,7 @@
                               viewBox="0 0 16 16"
                             >
                               <path
-                                d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 
-                                  1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 
+                                d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 
                                   0a.5.5 0 0 1 .5.5v6a.5.5 0 0 
                                   1-1 0V6a.5.5 0 0 1 .5-.5zm3 
                                   .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 
@@ -524,7 +528,7 @@
               </div>
             </div>
 
-            <!-- 4. Pestaña Gestión de Pagos (igual que la tuya, sin tocar lógica) -->
+            <!-- 4. Pestaña Gestión de Pagos -->
             <div class="tab-pane fade" id="pagos-pane" role="tabpanel">
               <h2 class="h3 mb-1">Gestión de Pagos</h2>
               <p class="mb-4">Busca, edita o reversa pagos de comisiones registrados en el sistema.</p>
@@ -883,6 +887,42 @@ const asesores = ref([]);
 const rutas = ref([]);
 const isLoadingPermissions = ref(false);
 
+/* 🔢 LÓGICA DE CUPO POR RUTA (FRONT) */
+const MAX_ASESORES_POR_RUTA = 1;
+
+const asesoresPorRuta = computed(() => {
+  const conteo = {};
+  (asesores.value || []).forEach((a) => {
+    if (a.rol === 'asesor_comisiones' && a.is_active !== false) {
+      (a.rutas_asignadas || []).forEach((ruta) => {
+        if (!ruta) return;
+        if (!conteo[ruta]) conteo[ruta] = 0;
+        conteo[ruta] += 1;
+      });
+    }
+  });
+  return conteo;
+});
+
+const labelRutaWithCupo = (ruta) => {
+  const count = asesoresPorRuta.value[ruta] || 0;
+  const remaining = MAX_ASESORES_POR_RUTA - count;
+
+  if (remaining <= 0) return `${ruta} (sin cupo para asesor)`;
+  if (remaining === 1) return `${ruta} (1 cupo asesor libre)`;
+  return `${ruta} (${remaining} cupos asesor libres)`;
+};
+
+const shouldDisableRutaForAsesor = (ruta, asesor) => {
+  if (!asesor) return false;
+  // Si el asesor ya tiene esta ruta, no bloqueamos (permite mantenerla)
+  if (asesor.rutas_asignadas && asesor.rutas_asignadas.includes(ruta)) {
+    return false;
+  }
+  const count = asesoresPorRuta.value[ruta] || 0;
+  return count >= MAX_ASESORES_POR_RUTA;
+};
+
 const modalMode = ref('create');
 const currentAsesor = reactive({
   id: null,
@@ -898,8 +938,7 @@ const filteredAsesores = computed(() => {
   const q = searchQuery.value.toLowerCase();
   return asesores.value.filter(
     (asesor) =>
-      asesor.username?.toLowerCase().includes(q) ||
-      asesor.email?.toLowerCase().includes(q)
+      asesor.username?.toLowerCase().includes(q) || asesor.email?.toLowerCase().includes(q)
   );
 });
 
@@ -946,7 +985,11 @@ const updateAsesor = async (asesor) => {
     });
   } catch (error) {
     console.error('Error al actualizar asesor:', error);
-    Swal.fire('Error', `No se pudo actualizar la información de ${asesor.username}.`, 'error');
+    let errorMsg = `No se pudo actualizar la información de ${asesor.username}.`;
+    if (error.response && error.response.data) {
+      errorMsg = Object.values(error.response.data).flat().join(' ');
+    }
+    Swal.fire('Error', errorMsg, 'error');
     fetchPermissionsData();
   }
 };
@@ -1075,6 +1118,34 @@ const showAsesorModal = () => {
       if (rol === 'asesor_comisiones' && rutasSeleccionadas.length > 1) {
         Swal.showValidationMessage('Un asesor solo puede tener una ruta asignada');
         return false;
+      }
+
+      // 🔐 Validación de cupo por ruta (máx 1 asesor por ruta)
+      if (rol === 'asesor_comisiones' && rutasSeleccionadas.length === 1) {
+        const ruta = rutasSeleccionadas[0];
+        let count = asesoresPorRuta.value[ruta] || 0;
+
+        // Si estamos editando y el asesor ya tenía esta ruta, no lo contemos doble
+        if (modalMode.value === 'edit') {
+          const asesorOriginal = asesores.value.find((a) => a.id === currentAsesor.id);
+          if (
+            asesorOriginal &&
+            asesorOriginal.rol === 'asesor_comisiones' &&
+            (asesorOriginal.rutas_asignadas || []).includes(ruta)
+          ) {
+            count -= 1;
+          }
+        }
+
+        if (count >= MAX_ASESORES_POR_RUTA) {
+          const maxText = MAX_ASESORES_POR_RUTA === 1 ? 'asesor' : 'asesores';
+          Swal.showValidationMessage(
+            `La ruta "${ruta}" ya tiene el máximo de ${MAX_ASESORES_POR_RUTA} ${maxText} asignado${
+              MAX_ASESORES_POR_RUTA > 1 ? 's' : ''
+            }.`
+          );
+          return false;
+        }
       }
 
       return {
