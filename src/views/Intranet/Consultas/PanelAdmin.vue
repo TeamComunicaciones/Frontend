@@ -23,6 +23,12 @@
                 Reportes y Gráficas
               </button>
             </li>
+            <!-- Nueva pestaña: Comisiones Pendientes -->
+            <li class="nav-item" role="presentation">
+              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pendientes-pane" type="button" role="tab">
+                Comisiones Pendientes
+              </button>
+            </li>
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pagos-pane" type="button" role="tab">
                 Gestión de Pagos
@@ -306,7 +312,8 @@
                                   1-1-1V2a1 1 0 0 
                                   1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 
                                   1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 
-                                  4 4 4.059V13a1 1 0 0 0 1 
+                                  4 4 
+                                  4.059V13a1 1 0 0 0 1 
                                   1h6a1 1 0 0 0 1-1V4.059L11.882 
                                   4H4.118zM2.5 3V2h11v1h-11z"
                               />
@@ -323,7 +330,7 @@
               </div>
             </div>
 
-            <!-- 3. Pestaña de Reportes (igual que la tuya) -->
+            <!-- 3. Pestaña de Reportes -->
             <div class="tab-pane fade" id="reportes-pane" role="tabpanel">
               <h2 class="h3 mb-4">Dashboard de Comisiones Generales</h2>
               <div class="card shadow-sm mb-4">
@@ -528,7 +535,200 @@
               </div>
             </div>
 
-            <!-- 4. Pestaña Gestión de Pagos -->
+            <!-- 4. Nueva Pestaña: Comisiones Pendientes -->
+            <div class="tab-pane fade" id="pendientes-pane" role="tabpanel">
+              <h2 class="h3 mb-1">Comisiones Pendientes</h2>
+              <p class="mb-4">
+                Consulta, filtra, edita o elimina las comisiones que aún están pendientes, sin necesidad
+                de subir un nuevo archivo Excel.
+              </p>
+
+              <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                  <fieldset :disabled="isLoadingPendientes || isLoadingPuntosDeVentaPendientes">
+                    <div class="row g-3 align-items-end">
+                      <div class="col-md-3">
+                        <label for="filtroPendRuta" class="form-label fw-bold">Ruta</label>
+                        <v-select
+                          id="filtroPendRuta"
+                          placeholder="Todas las rutas"
+                          v-model="pendientesFilters.ruta"
+                          :options="rutas"
+                        />
+                      </div>
+
+                      <div class="col-md-3">
+                        <label for="filtroPendAsesor" class="form-label fw-bold">Asesor</label>
+                        <v-select
+                          id="filtroPendAsesor"
+                          placeholder="Todos los asesores"
+                          v-model="pendientesFilters.asesor"
+                          :options="asesoresOptions"
+                          :reduce="(opt) => opt.value"
+                        >
+                          <template #option="{ label }">
+                            <span>{{ label }}</span>
+                          </template>
+                        </v-select>
+                      </div>
+
+                      <div class="col-md-3">
+                        <label for="filtroPendFechas" class="form-label fw-bold">Rango de Fechas</label>
+                        <DatePicker
+                          v-model:value="pendientesFilters.range"
+                          range
+                          id="filtroPendFechas"
+                          placeholder="Selecciona un rango"
+                        />
+                      </div>
+
+                      <div class="col-md-3 d-grid">
+                        <button class="btn btn-danger" @click="buscarPendientes">
+                          <span v-if="isLoadingPendientes" class="spinner-border spinner-border-sm me-2"></span>
+                          {{ isLoadingPendientes ? 'Buscando...' : 'Buscar Comisiones' }}
+                        </button>
+                      </div>
+                    </div>
+                  </fieldset>
+                </div>
+              </div>
+
+              <div v-if="isLoadingPendientes" class="text-center p-5">
+                <div class="spinner-border text-danger" role="status">
+                  <span class="visually-hidden">Cargando...</span>
+                </div>
+              </div>
+
+              <div v-else-if="pendientesData.results.length > 0" class="card shadow-sm">
+                <div class="table-responsive">
+                  <table class="table table-hover align-middle mb-0">
+                    <thead class="bg-light">
+                      <tr>
+                        <th scope="col">ID POS</th>
+                        <th scope="col">Asesor</th>
+                        <th scope="col">Ruta</th>
+                        <th scope="col">Mes Pago</th>
+                        <th scope="col">Valor Comisión</th>
+                        <th scope="col">Estado</th>
+                        <th scope="col">Observación</th>
+                        <th scope="col" class="text-end">Acciones</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="comision in pendientesData.results" :key="comision.id">
+                        <td><strong>{{ comision.idpos }}</strong></td>
+                        <td><strong>{{ comision.asesor_username }}</strong></td>
+                        <td>{{ comision.ruta || 'N/A' }}</td>
+                        <td>{{ comision.mes_pago || comision.fecha_referencia || 'N/A' }}</td>
+                        <td>{{ formatCurrency(comision.valor_comision) }}</td>
+                        <td>
+                          <span class="badge bg-warning text-dark">{{ comision.estado }}</span>
+                        </td>
+                        <td class="text-truncate" style="max-width: 220px;">
+                          {{ comision.observacion || 'N/A' }}
+                        </td>
+                        <td class="text-end">
+                          <button
+                            class="btn btn-sm btn-outline-secondary me-2"
+                            @click="openComisionModal('edit', comision)"
+                            title="Editar comisión"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              fill="currentColor"
+                              class="bi bi-pencil"
+                              viewBox="0 0 16 16"
+                            >
+                              <path
+                                d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0
+                                  .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0
+                                  1-.65-.65l2-5a.5.5 0 0 1 .11-.168l10-10zM11.207
+                                  2.5 13.5 4.793 14.793 3.5 12.5 1.207 11.207
+                                  2.5zm1.586 3L10.5 3.207 4 9.707V10h.5a.5.5 0 0
+                                  1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0
+                                  1 .5.5v.207l6.5-6.5zm-7.468 7.468-1.5
+                                  1.5V13h1.5v-1.5z"
+                              />
+                            </svg>
+                          </button>
+                          <button
+                            class="btn btn-sm btn-outline-danger"
+                            @click="eliminarComision(comision)"
+                            title="Eliminar comisión"
+                          >
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              fill="currentColor"
+                              class="bi bi-trash"
+                              viewBox="0 0 16 16"
+                            >
+                              <path
+                                d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5
+                                  0a.5.5 0 0 1 .5.5v6a.5.5 0 0
+                                  1-1 0V6a.5.5 0 0 1 .5-.5zm3
+                                  .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0
+                                  1 0V6z"
+                              />
+                              <path
+                                fill-rule="evenodd"
+                                d="M14.5 3a1 1 0 0 1-1
+                                  1H13v9a2 2 0 0 1-2 2H5a2 2 0 0
+                                  1-2-2V4h-.5a1 1 0 0
+                                  1-1-1V2a1 1 0 0
+                                  1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118
+                                  4 4
+                                  4.059V13a1 1 0 0 0 1
+                                  1h6a1 1 0 0 0 1-1V4.059L11.882
+                                  4H4.118zM2.5 3V2h11v1h-11z"
+                              />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                  <span class="text-muted">
+                    Mostrando {{ pendientesData.results.length }} de {{ pendientesData.count }} resultados
+                  </span>
+                  <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                      <li class="page-item" :class="{ disabled: pendientesData.current_page === 1 }">
+                        <button class="page-link" @click="goToPendientesPage(pendientesData.current_page - 1)">
+                          Anterior
+                        </button>
+                      </li>
+                      <li class="page-item disabled">
+                        <span class="page-link">
+                          Página {{ pendientesData.current_page }} de {{ pendientesData.total_pages }}
+                        </span>
+                      </li>
+                      <li
+                        class="page-item"
+                        :class="{ disabled: pendientesData.current_page === pendientesData.total_pages }"
+                      >
+                        <button class="page-link" @click="goToPendientesPage(pendientesData.current_page + 1)">
+                          Siguiente
+                        </button>
+                      </li>
+                    </ul>
+                  </nav>
+                </div>
+              </div>
+
+              <div v-else class="text-center p-5 border rounded bg-light mt-4">
+                <p class="fs-4 mb-1">No se encontraron comisiones pendientes.</p>
+                <p>Usa los filtros de arriba y haz clic en "Buscar Comisiones" para listarlas.</p>
+              </div>
+            </div>
+
+            <!-- 5. Pestaña Gestión de Pagos -->
             <div class="tab-pane fade" id="pagos-pane" role="tabpanel">
               <h2 class="h3 mb-1">Gestión de Pagos</h2>
               <p class="mb-4">Busca, edita o reversa pagos de comisiones registrados en el sistema.</p>
@@ -644,8 +844,7 @@
                               viewBox="0 0 16 16"
                             >
                               <path
-                                d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 
-                                  1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 
+                                d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 
                                   0a.5.5 0 0 1 .5.5v6a.5.5 0 0 
                                   1-1 0V6a.5.5 0 0 1 .5-.5zm3 
                                   .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 
@@ -656,9 +855,8 @@
                                 d="M14.5 3a1 1 0 0 1-1 
                                   1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 
                                   1-2-2V4h-.5a1 1 0 0 
-                                  1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 
-                                  1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 
-                                  1 1 1v1zM4.118 4 4 
+                                  1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 
+                                  4 4 
                                   4.059V13a1 1 0 0 0 1 
                                   1h6a1 1 0 0 0 1-1V4.059L11.882 
                                   4H4.118zM2.5 3V2h11v1h-11z"
@@ -705,7 +903,7 @@
               </div>
             </div>
 
-            <!-- 5. Pestaña de Configuración -->
+            <!-- 6. Pestaña de Configuración -->
             <div class="tab-pane fade" id="config-pane" role="tabpanel">
               <h2 class="h3 mb-4">Ajustes Generales del Sistema</h2>
               <div class="row">
@@ -886,6 +1084,13 @@ const searchQuery = ref('');
 const asesores = ref([]);
 const rutas = ref([]);
 const isLoadingPermissions = ref(false);
+
+const asesoresOptions = computed(() =>
+  (asesores.value || []).map((a) => ({
+    label: `${a.username} (${a.email})`,
+    value: a.username,
+  }))
+);
 
 /* 🔢 LÓGICA DE CUPO POR RUTA (FRONT) */
 const MAX_ASESORES_POR_RUTA = 1;
@@ -1325,45 +1530,201 @@ const exportarExcel = async () => {
   }
 };
 
-/* --------- CONFIGURACIÓN (fecha de corte) --------- */
-const fechaCorteDia = ref(25);
-const isSavingCorte = ref(false);
+/* --------- GESTIÓN DE COMISIONES PENDIENTES --------- */
+const isLoadingPendientes = ref(false);
+const isLoadingPuntosDeVentaPendientes = ref(false); // reserva por si luego agregas PDV
 
-const fetchFechaCorte = async () => {
+const pendientesFilters = reactive({
+  ruta: null,
+  asesor: null,
+  range: [new Date(new Date().setMonth(new Date().getMonth() - 1)), new Date()],
+});
+
+const pendientesData = ref({
+  results: [],
+  count: 0,
+  current_page: 1,
+  total_pages: 1,
+});
+
+const pendientesCurrentPage = ref(1);
+
+const currentComision = reactive({
+  id: null,
+  idpos: '',
+  ruta: '',
+  asesor_username: '',
+  mes_pago: '',
+  valor_comision: 0,
+  estado: 'Pendiente',
+  observacion: '',
+});
+
+const buscarPendientes = () => {
+  pendientesCurrentPage.value = 1;
+  fetchPendientes(1);
+};
+
+const goToPendientesPage = (page) => {
+  if (page < 1 || page > pendientesData.value.total_pages) return;
+  fetchPendientes(page);
+};
+
+const fetchPendientes = async (page = 1) => {
+  isLoadingPendientes.value = true;
+  const params = new URLSearchParams();
+  params.append('page', page);
+  params.append('estado', 'Pendiente'); // para que el backend filtre pendientes
+
+  if (pendientesFilters.ruta) params.append('ruta', pendientesFilters.ruta);
+  if (pendientesFilters.asesor) params.append('asesor', pendientesFilters.asesor);
+  if (pendientesFilters.range && pendientesFilters.range[0] && pendientesFilters.range[1]) {
+    params.append('fecha_inicio', pendientesFilters.range[0].toISOString().split('T')[0]);
+    params.append('fecha_fin', pendientesFilters.range[1].toISOString().split('T')[0]);
+  }
+
   try {
-    const path = `${backendRouter.data}admin/fecha-corte/`;
+    // Ajustaremos este endpoint en el back
+    const path = `${backendRouter.data}admin/comisiones-pendientes/?${params.toString()}`;
     const response = await axios.get(path, { headers: authHeaders });
-    fechaCorteDia.value = parseInt(response.data.dia, 10);
+    pendientesData.value = response.data;
+    pendientesCurrentPage.value = response.data.current_page;
   } catch (error) {
-    console.error('Error al cargar fecha de corte:', error);
-    Swal.fire('Error', 'No se pudo cargar la configuración de fecha de corte.', 'error');
+    console.error('Error al cargar comisiones pendientes:', error);
+    pendientesData.value = { results: [], count: 0, current_page: 1, total_pages: 1 };
+    Swal.fire('Error', 'No se pudieron cargar las comisiones pendientes.', 'error');
+  } finally {
+    isLoadingPendientes.value = false;
   }
 };
 
-const guardarFechaCorte = async () => {
-  if (!fechaCorteDia.value || fechaCorteDia.value < 1 || fechaCorteDia.value > 31) {
-    Swal.fire('Dato inválido', 'Por favor, introduce un número entre 1 y 31.', 'warning');
-    return;
-  }
-  isSavingCorte.value = true;
-  try {
-    const path = `${backendRouter.data}admin/fecha-corte/`;
-    const data = { dia: fechaCorteDia.value };
-    const response = await axios.post(path, data, { headers: authHeaders });
-    Swal.fire({
-      icon: 'success',
-      title: '¡Guardado!',
-      text: response.data.mensaje,
-      timer: 2000,
-      showConfirmButton: false,
+const openComisionModal = (mode, comision = null) => {
+  if (mode === 'edit' && comision) {
+    Object.assign(currentComision, {
+      id: comision.id,
+      idpos: comision.idpos,
+      ruta: comision.ruta,
+      asesor_username: comision.asesor_username,
+      mes_pago: comision.mes_pago || comision.fecha_referencia || '',
+      valor_comision: comision.valor_comision,
+      estado: comision.estado,
+      observacion: comision.observacion || '',
     });
-  } catch (error) {
-    console.error('Error al guardar fecha corte:', error);
-    const errorMessage = error.response?.data?.error || 'Ocurrió un error inesperado al guardar.';
-    Swal.fire('Error', errorMessage, 'error');
-  } finally {
-    isSavingCorte.value = false;
+    showComisionModal();
   }
+};
+
+const showComisionModal = () => {
+  Swal.fire({
+    title: 'Editar Comisión Pendiente',
+    html: `
+      <div class="text-start">
+        <label class="form-label mt-2">ID POS</label>
+        <input class="swal2-input" value="${currentComision.idpos}" disabled>
+
+        <label class="form-label mt-2">Ruta</label>
+        <input class="swal2-input" value="${currentComision.ruta || ''}" disabled>
+
+        <label class="form-label mt-2">Asesor</label>
+        <input class="swal2-input" value="${currentComision.asesor_username || ''}" disabled>
+
+        <label for="swal-mes-pago" class="form-label mt-2">Mes Pago</label>
+        <input id="swal-mes-pago" class="swal2-input" placeholder="Ej: Diciembre 2025" value="${
+          currentComision.mes_pago || ''
+        }">
+
+        <label for="swal-valor" class="form-label mt-2">Valor Comisión</label>
+        <input id="swal-valor" type="number" class="swal2-input" placeholder="Valor" value="${
+          currentComision.valor_comision
+        }">
+
+        <label for="swal-estado" class="form-label mt-2">Estado</label>
+        <select id="swal-estado" class="swal2-select">
+          <option value="Pendiente" ${
+            currentComision.estado === 'Pendiente' ? 'selected' : ''
+          }>Pendiente</option>
+          <option value="Acumulada" ${
+            currentComision.estado === 'Acumulada' ? 'selected' : ''
+          }>Acumulada</option>
+          <option value="Vencida" ${
+            currentComision.estado === 'Vencida' ? 'selected' : ''
+          }>Vencida</option>
+        </select>
+
+        <label for="swal-obs-comision" class="form-label mt-2">Observación</label>
+        <textarea id="swal-obs-comision" class="swal2-textarea" placeholder="Observación (opcional)...">${
+          currentComision.observacion || ''
+        }</textarea>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Guardar Cambios',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#DF1115',
+    preConfirm: () => {
+      const mes_pago = document.getElementById('swal-mes-pago').value;
+      const valor_comision = document.getElementById('swal-valor').value;
+      const estado = document.getElementById('swal-estado').value;
+      const observacion = document.getElementById('swal-obs-comision').value;
+
+      if (!mes_pago || !valor_comision) {
+        Swal.showValidationMessage('Mes de pago y valor de comisión son obligatorios');
+        return false;
+      }
+
+      return { mes_pago, valor_comision, estado, observacion };
+    },
+  }).then((result) => {
+    if (result.isConfirmed) {
+      handleSaveComision(result.value);
+    }
+  });
+};
+
+const handleSaveComision = async (formData) => {
+  const path = backendRouter.data + `admin/comisiones-pendientes/${currentComision.id}/`;
+  try {
+    await axios.put(path, formData, { headers: authHeaders });
+    Swal.fire('¡Actualizada!', 'La comisión ha sido actualizada.', 'success');
+    fetchPendientes(pendientesCurrentPage.value);
+    generarReporte(); // refresca dashboard general
+  } catch (error) {
+    console.error('Error al guardar comisión:', error);
+    let errorMsg = 'No se pudo guardar la comisión.';
+    if (error.response && error.response.data) {
+      errorMsg = Object.values(error.response.data).flat().join(' ');
+    }
+    Swal.fire('Error', errorMsg, 'error');
+  }
+};
+
+const eliminarComision = async (comision) => {
+  Swal.fire({
+    title: '¿Eliminar esta comisión pendiente?',
+    text: `Esta acción eliminará la comisión de ${formatCurrency(
+      comision.valor_comision
+    )}. ¡No se puede revertir!`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonColor: '#dc3545',
+    cancelButtonColor: '#6c757d',
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar',
+  }).then(async (result) => {
+    if (result.isConfirmed) {
+      try {
+        const path = backendRouter.data + `admin/comisiones-pendientes/${comision.id}/`;
+        await axios.delete(path, { headers: authHeaders });
+        Swal.fire('¡Eliminada!', 'La comisión ha sido eliminada.', 'success');
+        fetchPendientes(pendientesCurrentPage.value);
+        generarReporte();
+      } catch (error) {
+        console.error('Error al eliminar comisión:', error);
+        Swal.fire('Error', 'No se pudo eliminar la comisión.', 'error');
+      }
+    }
+  });
 };
 
 /* --------- GESTIÓN DE PAGOS --------- */
@@ -1686,6 +2047,47 @@ const metodoCantidadChartData = computed(() => {
     ],
   };
 });
+
+/* --------- CONFIGURACIÓN (fecha de corte) --------- */
+const fechaCorteDia = ref(25);
+const isSavingCorte = ref(false);
+
+const fetchFechaCorte = async () => {
+  try {
+    const path = `${backendRouter.data}admin/fecha-corte/`;
+    const response = await axios.get(path, { headers: authHeaders });
+    fechaCorteDia.value = parseInt(response.data.dia, 10);
+  } catch (error) {
+    console.error('Error al cargar fecha de corte:', error);
+    Swal.fire('Error', 'No se pudo cargar la configuración de fecha de corte.', 'error');
+  }
+};
+
+const guardarFechaCorte = async () => {
+  if (!fechaCorteDia.value || fechaCorteDia.value < 1 || fechaCorteDia.value > 31) {
+    Swal.fire('Dato inválido', 'Por favor, introduce un número entre 1 y 31.', 'warning');
+    return;
+  }
+  isSavingCorte.value = true;
+  try {
+    const path = `${backendRouter.data}admin/fecha-corte/`;
+    const data = { dia: fechaCorteDia.value };
+    const response = await axios.post(path, data, { headers: authHeaders });
+    Swal.fire({
+      icon: 'success',
+      title: '¡Guardado!',
+      text: response.data.mensaje,
+      timer: 2000,
+      showConfirmButton: false,
+    });
+  } catch (error) {
+    console.error('Error al guardar fecha corte:', error);
+    const errorMessage = error.response?.data?.error || 'Ocurrió un error inesperado al guardar.';
+    Swal.fire('Error', errorMessage, 'error');
+  } finally {
+    isSavingCorte.value = false;
+  }
+};
 
 /* --------- LIFECYCLE --------- */
 onMounted(() => {
