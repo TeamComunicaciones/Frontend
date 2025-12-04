@@ -4,4 +4,4 @@ var backendRoute = {
     //data : 'http://localhost:8000/api/v1.0/'
 }
 
-export default backendRoute;
+export default backendRoute;    

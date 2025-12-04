@@ -34,7 +34,7 @@ import DashboardView from '@/views/Intranet/Informes/DashboardView.vue';
 import ConsultaPDV from '@/views/Intranet/Consultas/ConsultaPDV.vue';
 import DashboardAsesor from '@/views/Intranet/Consultas/DashboardAsesor.vue';
 import PanelAdmin from '@/views/Intranet/Consultas/PanelAdmin.vue';
-
+import TransparencyLinePage from '@/views/Intranet/Informes/TransparencyLinePage.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -164,6 +164,7 @@ const router = createRouter({
     { path: '/actas', component: ActasList },
     { path: '/actas/nueva', component: ActaForm },
     { path: '/actas/:id/editar', component: ActaForm },   
+    { path: '/Formulario-Denuncias', component: TransparencyLinePage },   
     { path: '/patch-notes', component: patchNotes },  
     { path: '/dashboard-view', component: DashboardView },
     { path: '/consulta-pdv', component: ConsultaPDV },
