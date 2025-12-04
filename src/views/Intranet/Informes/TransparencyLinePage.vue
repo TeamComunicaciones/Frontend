@@ -759,10 +759,9 @@
 
 <script setup>
 import { reactive, ref, computed, watch } from 'vue'
-import apiService from '@/services/apiService' // 👈 usamos tu apiService
+import apiService from '@/services/apiService'
 
-// Ojo: la baseURL del apiService ya tiene /api/v1.0 (según tu BackendRouter),
-// así que aquí definimos solo el path relativo:
+// El backend cuelga en /api/v1.0/ vía apiService.baseURL, aquí solo el path relativo:
 const API_ENDPOINT = '/transparency-report/'
 
 // Idioma interno
@@ -840,7 +839,7 @@ const characteristics = [
   }
 ]
 
-// Estado del formulario (seguimos usando camelCase aquí para no tocar el template)
+// Estado del formulario (nombres "bonitos" internos)
 const form = reactive({
   reportType: '',
   description: '',
@@ -912,7 +911,10 @@ const currentStepLabel = computed(() => {
   if (!form.supportsText && selectedFiles.value.length === 0) {
     return isEs.value ? 'Paso 3 de 4: Soportes' : 'Step 3 of 4: Supports'
   }
-  if (form.wantsIdentification === 'yes' && (!form.fullName || !form.idNumber || !form.email || !form.phone)) {
+  if (
+    form.wantsIdentification === 'yes' &&
+    (!form.fullName || !form.idNumber || !form.email || !form.phone)
+  ) {
     return isEs.value ? 'Paso 4 de 4: Identidad' : 'Step 4 of 4: Identity'
   }
   return isEs.value ? 'Listo para enviar' : 'Ready to submit'
@@ -1072,7 +1074,7 @@ const handleSubmit = async () => {
   try {
     const formData = new FormData()
 
-    // 👇 Estos nombres están en snake_case para que el back los reciba bien:
+    // Nombres MAPEADOS 1:1 a lo que espera el backend (transparency_report_view)
     formData.append('locale', locale.value || 'es')
     formData.append('report_type', form.reportType || '')
     formData.append('description', form.description || '')
@@ -1082,18 +1084,17 @@ const handleSubmit = async () => {
     formData.append('city', form.city || '')
     formData.append('people_involved', form.peopleInvolved || '')
     formData.append('supports_text', form.supportsText || '')
-    formData.append('wants_identification', form.wantsIdentification || 'no')
+    formData.append('wants_identification', form.wantsIdentification === 'yes' ? 'true' : 'false')
     formData.append('full_name', form.fullName || '')
     formData.append('id_number', form.idNumber || '')
     formData.append('email', form.email || '')
     formData.append('phone', form.phone || '')
 
-    // 👇 Adjuntos: el back hace request.FILES.getlist("attachments")
+    // Archivos → key "attachments" para que request.FILES.getlist("attachments") funcione
     selectedFiles.value.forEach((file) => {
       formData.append('attachments', file)
     })
 
-    // Usamos tu apiService con la baseURL que ya tiene /api/v1.0
     await apiService.post(API_ENDPOINT, formData)
 
     successMessage.value = isEs.value
