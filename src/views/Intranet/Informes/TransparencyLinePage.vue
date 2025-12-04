@@ -124,12 +124,22 @@
                   </span>
                 </p>
                 <p class="small mb-0 text-muted">
-                  <strong>{{ isEs ? 'Nunca se revelará tu identidad sin tu consentimiento.' : 'Your identity will never be disclosed without your consent.' }}</strong>
+                  <strong>
+                    {{ isEs ? 'Nunca se revelará tu identidad sin tu consentimiento.' : 'Your identity will never be disclosed without your consent.' }}
+                  </strong>
                 </p>
 
                 <div class="mt-3 d-flex align-items-center gap-2 small">
                   <span class="badge bg-light text-dark border border-1 border-light-subtle">
-                    {{ isEs ? (form.wantsIdentification === 'yes' ? 'Modo identificado' : 'Modo anónimo') : (form.wantsIdentification === 'yes' ? 'Identified mode' : 'Anonymous mode') }}
+                    {{
+                      isEs
+                        ? form.wantsIdentification === 'yes'
+                          ? 'Modo identificado'
+                          : 'Modo anónimo'
+                        : form.wantsIdentification === 'yes'
+                          ? 'Identified mode'
+                          : 'Anonymous mode'
+                    }}
                   </span>
                   <span class="text-muted">
                     <span v-if="isEs">
@@ -142,7 +152,7 @@
                 </div>
               </div>
 
-              <!-- Características bullet list -->
+              <!-- Características -->
               <div class="info-card mb-3">
                 <h2 class="h6 mb-2">
                   {{ isEs ? 'Características de la Línea' : 'Line characteristics' }}
@@ -228,7 +238,8 @@
                   >
                     •
                     <span v-if="isEs">
-                      Políticas Contra el Lavado de Activos, la Financiación del Terrorismo y la Proliferación de Armas de Destrucción Masiva
+                      Políticas Contra el Lavado de Activos, la Financiación del Terrorismo y la Proliferación de Armas
+                      de Destrucción Masiva
                     </span>
                     <span v-else>
                       Policies Against Money Laundering, Terrorism Financing, and WMD Proliferation
@@ -761,10 +772,10 @@
 import { reactive, ref, computed, watch } from 'vue'
 import apiService from '@/services/apiService'
 
-// El backend cuelga en /api/v1.0/ vía apiService.baseURL, aquí solo el path relativo:
+// El apiService ya tiene baseURL = backendRoute.data (ej: /api/v1.0/)
 const API_ENDPOINT = '/transparency-report/'
 
-// Idioma interno
+// Idioma
 const locale = ref('es')
 const isEs = computed(() => locale.value === 'es')
 
@@ -774,7 +785,7 @@ const setLocale = (lang) => {
   }
 }
 
-// Opciones de tipo de reporte
+// Opciones del tipo de reporte
 const reportTypeOptions = [
   { value: 'corruption', labelEs: 'Corrupción', labelEn: 'Corruption' },
   { value: 'transnational_bribery', labelEs: 'Soborno transnacional', labelEn: 'Transnational bribery' },
@@ -795,7 +806,7 @@ const reportTypeOptions = [
   { value: 'other', labelEs: 'Otros', labelEn: 'Other' }
 ]
 
-// Características (copy bilingüe)
+// Características
 const characteristics = [
   {
     id: 1,
@@ -839,7 +850,7 @@ const characteristics = [
   }
 ]
 
-// Estado del formulario (nombres "bonitos" internos)
+// Estado del formulario
 const form = reactive({
   reportType: '',
   description: '',
@@ -881,7 +892,7 @@ const errorMessage = ref('')
 // Longitud descripción
 const descriptionLength = computed(() => (form.description || '').length)
 
-// Progreso simple basado en pasos completados clave
+// Progreso simple
 const progressPercentage = computed(() => {
   let stepsCompleted = 0
   if (form.reportType && descriptionLength.value >= 30 && form.eventDate) stepsCompleted += 1
@@ -911,10 +922,7 @@ const currentStepLabel = computed(() => {
   if (!form.supportsText && selectedFiles.value.length === 0) {
     return isEs.value ? 'Paso 3 de 4: Soportes' : 'Step 3 of 4: Supports'
   }
-  if (
-    form.wantsIdentification === 'yes' &&
-    (!form.fullName || !form.idNumber || !form.email || !form.phone)
-  ) {
+  if (form.wantsIdentification === 'yes' && (!form.fullName || !form.idNumber || !form.email || !form.phone)) {
     return isEs.value ? 'Paso 4 de 4: Identidad' : 'Step 4 of 4: Identity'
   }
   return isEs.value ? 'Listo para enviar' : 'Ready to submit'
@@ -1043,17 +1051,27 @@ watch(
   }
 )
 
-// Abrir documentos (ajusta las URLs reales aquí)
+// 🔴 Abrir documentos de políticas usando TUS nombres EXACTOS en /public/docs
 const openPolicy = (policyKey) => {
-  const policyUrls = {
-    corruptionPolicy: '/docs/politica-general-contra-riesgos-cst.pdf',
-    moneyLaunderingPolicy: '/docs/politica-general-laft-fpadm.pdf',
-    protocol: '/docs/protocolo-linea-transparencia-proteccion-denunciante.pdf'
+  const fileNamesEs = {
+    corruptionPolicy: 'POLÍTICAS GENERALES DEL PTEE.pdf',
+    moneyLaunderingPolicy: 'POLÍTICAS GENERALES DEL SAGRILAFT.pdf',
+    protocol: 'PROTOCOLO  LINEA DE TRANSPARENCIA.pdf' // ojo: doble espacio tal como lo pasaste
   }
-  const url = policyUrls[policyKey]
-  if (url) {
-    window.open(url, '_blank', 'noopener')
+
+  const fileNamesEn = {
+    corruptionPolicy: 'PTEE GENERAL POLICIES.pdf',
+    moneyLaunderingPolicy: 'SAGRILAFT GENERAL POLICIES.pdf',
+    protocol: 'TRANSPARENCY LINE PROTOCOL.pdf'
   }
+
+  const fileName = (isEs.value ? fileNamesEs : fileNamesEn)[policyKey]
+
+  if (!fileName) return
+
+  // Construimos la URL respetando espacios/tildes con encodeURIComponent
+  const url = '/docs/' + encodeURIComponent(fileName)
+  window.open(url, '_blank', 'noopener')
 }
 
 // Enviar formulario
@@ -1074,23 +1092,23 @@ const handleSubmit = async () => {
   try {
     const formData = new FormData()
 
-    // Nombres MAPEADOS 1:1 a lo que espera el backend (transparency_report_view)
-    formData.append('locale', locale.value || 'es')
-    formData.append('report_type', form.reportType || '')
-    formData.append('description', form.description || '')
-    formData.append('event_date', form.eventDate || '')
-    formData.append('country', form.country || '')
-    formData.append('state', form.state || '')
-    formData.append('city', form.city || '')
-    formData.append('people_involved', form.peopleInvolved || '')
-    formData.append('supports_text', form.supportsText || '')
+    // Campos alineados con el backend (snake_case)
+    formData.append('locale', locale.value)
+    formData.append('report_type', form.reportType)
+    formData.append('description', form.description)
+    formData.append('event_date', form.eventDate)
+    formData.append('country', form.country)
+    formData.append('state', form.state)
+    formData.append('city', form.city)
+    formData.append('people_involved', form.peopleInvolved)
+    formData.append('supports_text', form.supportsText)
     formData.append('wants_identification', form.wantsIdentification === 'yes' ? 'true' : 'false')
-    formData.append('full_name', form.fullName || '')
-    formData.append('id_number', form.idNumber || '')
-    formData.append('email', form.email || '')
-    formData.append('phone', form.phone || '')
+    formData.append('full_name', form.fullName)
+    formData.append('id_number', form.idNumber)
+    formData.append('email', form.email)
+    formData.append('phone', form.phone)
 
-    // Archivos → key "attachments" para que request.FILES.getlist("attachments") funcione
+    // Archivos: el backend espera "attachments"
     selectedFiles.value.forEach((file) => {
       formData.append('attachments', file)
     })
