@@ -306,12 +306,10 @@
                               <path
                                 fill-rule="evenodd"
                                 d="M14.5 3a1 1 0 0 1-1 
-                                  1H13v9a2 2 0 0 
-                                  1-2 2H5a2 2 0 0 
+                                  1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 
                                   1-2-2V4h-.5a1 1 0 0 
                                   1-1-1V2a1 1 0 0 
-                                  1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 
-                                  1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 
+                                  1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 
                                   4 4 
                                   4.059V13a1 1 0 0 0 1 
                                   1h6a1 1 0 0 0 1-1V4.059L11.882 
@@ -582,6 +580,18 @@
                         />
                       </div>
 
+                      <!-- 🔍 Nuevo filtro por ID POS -->
+                      <div class="col-md-3">
+                        <label for="filtroPendIdpos" class="form-label fw-bold">ID POS</label>
+                        <input
+                          id="filtroPendIdpos"
+                          type="text"
+                          class="form-control"
+                          v-model="pendientesFilters.idpos"
+                          placeholder="Ej: 123456"
+                        />
+                      </div>
+
                       <div class="col-md-3 d-grid">
                         <button class="btn btn-danger" @click="buscarPendientes">
                           <span v-if="isLoadingPendientes" class="spinner-border spinner-border-sm me-2"></span>
@@ -678,8 +688,7 @@
                                 d="M14.5 3a1 1 0 0 1-1
                                   1H13v9a2 2 0 0 1-2 2H5a2 2 0 0
                                   1-2-2V4h-.5a1 1 0 0
-                                  1-1-1V2a1 1 0 0
-                                  1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118
+                                  1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118
                                   4 4
                                   4.059V13a1 1 0 0 0 1
                                   1h6a1 1 0 0 0 1-1V4.059L11.882
@@ -1538,6 +1547,7 @@ const pendientesFilters = reactive({
   ruta: null,
   asesor: null,
   range: [new Date(new Date().setMonth(new Date().getMonth() - 1)), new Date()],
+  idpos: '', // 🔍 nuevo filtro por ID POS
 });
 
 const pendientesData = ref({
@@ -1578,6 +1588,7 @@ const fetchPendientes = async (page = 1) => {
 
   if (pendientesFilters.ruta) params.append('ruta', pendientesFilters.ruta);
   if (pendientesFilters.asesor) params.append('asesor', pendientesFilters.asesor);
+  if (pendientesFilters.idpos) params.append('idpos', pendientesFilters.idpos);
   if (pendientesFilters.range && pendientesFilters.range[0] && pendientesFilters.range[1]) {
     params.append('fecha_inicio', pendientesFilters.range[0].toISOString().split('T')[0]);
     params.append('fecha_fin', pendientesFilters.range[1].toISOString().split('T')[0]);
