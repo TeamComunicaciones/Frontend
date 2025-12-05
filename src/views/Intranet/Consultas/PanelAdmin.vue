@@ -309,7 +309,8 @@
                                   1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 
                                   1-2-2V4h-.5a1 1 0 0 
                                   1-1-1V2a1 1 0 0 
-                                  1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 
+                                  1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 
+                                  1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 
                                   4 4 
                                   4.059V13a1 1 0 0 0 1 
                                   1h6a1 1 0 0 0 1-1V4.059L11.882 
@@ -537,7 +538,7 @@
             <div class="tab-pane fade" id="pendientes-pane" role="tabpanel">
               <h2 class="h3 mb-1">Comisiones Pendientes</h2>
               <p class="mb-4">
-                Consulta, filtra, edita o elimina las comisiones que aún están pendientes, sin necesidad
+                Consulta, filtra, edita o elimina las comisiones que aún están pendientes o acumuladas, sin necesidad
                 de subir un nuevo archivo Excel.
               </p>
 
@@ -570,7 +571,19 @@
                         </v-select>
                       </div>
 
-                      <div class="col-md-3">
+                      <!-- 🔎 Nuevo filtro: ID POS -->
+                      <div class="col-md-2">
+                        <label for="filtroPendIdpos" class="form-label fw-bold">ID POS</label>
+                        <input
+                          id="filtroPendIdpos"
+                          type="text"
+                          class="form-control"
+                          v-model="pendientesFilters.idpos"
+                          placeholder="Ej: 12345"
+                        />
+                      </div>
+
+                      <div class="col-md-2">
                         <label for="filtroPendFechas" class="form-label fw-bold">Rango de Fechas</label>
                         <DatePicker
                           v-model:value="pendientesFilters.range"
@@ -580,19 +593,7 @@
                         />
                       </div>
 
-                      <!-- 🔍 Nuevo filtro por ID POS -->
-                      <div class="col-md-3">
-                        <label for="filtroPendIdpos" class="form-label fw-bold">ID POS</label>
-                        <input
-                          id="filtroPendIdpos"
-                          type="text"
-                          class="form-control"
-                          v-model="pendientesFilters.idpos"
-                          placeholder="Ej: 123456"
-                        />
-                      </div>
-
-                      <div class="col-md-3 d-grid">
+                      <div class="col-md-2 d-grid">
                         <button class="btn btn-danger" @click="buscarPendientes">
                           <span v-if="isLoadingPendientes" class="spinner-border spinner-border-sm me-2"></span>
                           {{ isLoadingPendientes ? 'Buscando...' : 'Buscar Comisiones' }}
@@ -632,7 +633,16 @@
                         <td>{{ comision.mes_pago || comision.fecha_referencia || 'N/A' }}</td>
                         <td>{{ formatCurrency(comision.valor_comision) }}</td>
                         <td>
-                          <span class="badge bg-warning text-dark">{{ comision.estado }}</span>
+                          <span
+                            class="badge"
+                            :class="{
+                              'bg-warning text-dark': comision.estado === 'Pendiente',
+                              'bg-secondary': comision.estado === 'Acumulada',
+                              'bg-danger': comision.estado === 'Vencida',
+                            }"
+                          >
+                            {{ comision.estado }}
+                          </span>
                         </td>
                         <td class="text-truncate" style="max-width: 220px;">
                           {{ comision.observacion || 'N/A' }}
@@ -1546,8 +1556,8 @@ const isLoadingPuntosDeVentaPendientes = ref(false); // reserva por si luego agr
 const pendientesFilters = reactive({
   ruta: null,
   asesor: null,
+  idpos: '',
   range: [new Date(new Date().setMonth(new Date().getMonth() - 1)), new Date()],
-  idpos: '', // 🔍 nuevo filtro por ID POS
 });
 
 const pendientesData = ref({
@@ -1584,7 +1594,10 @@ const fetchPendientes = async (page = 1) => {
   isLoadingPendientes.value = true;
   const params = new URLSearchParams();
   params.append('page', page);
-  params.append('estado', 'Pendiente'); // para que el backend filtre pendientes
+
+  // Traer Pendiente + Acumulada
+  params.append('estado', 'Pendiente');
+  params.append('estado', 'Acumulada');
 
   if (pendientesFilters.ruta) params.append('ruta', pendientesFilters.ruta);
   if (pendientesFilters.asesor) params.append('asesor', pendientesFilters.asesor);
@@ -1595,7 +1608,6 @@ const fetchPendientes = async (page = 1) => {
   }
 
   try {
-    // Ajustaremos este endpoint en el back
     const path = `${backendRouter.data}admin/comisiones-pendientes/?${params.toString()}`;
     const response = await axios.get(path, { headers: authHeaders });
     pendientesData.value = response.data;
