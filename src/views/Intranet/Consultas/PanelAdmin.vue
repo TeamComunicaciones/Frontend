@@ -1708,7 +1708,8 @@ const showComisionModal = () => {
 const handleSaveComision = async (formData) => {
   const path = backendRouter.data + `admin/comisiones-pendientes/${currentComision.id}/`;
   try {
-    await axios.put(path, formData, { headers: authHeaders });
+    // 👇 aquí el cambio importante
+    await axios.patch(path, formData, { headers: authHeaders });
     Swal.fire('¡Actualizada!', 'La comisión ha sido actualizada.', 'success');
     fetchPendientes(pendientesCurrentPage.value);
     generarReporte(); // refresca dashboard general
