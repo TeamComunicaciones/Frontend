@@ -308,9 +308,7 @@
                                 d="M14.5 3a1 1 0 0 1-1 
                                   1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 
                                   1-2-2V4h-.5a1 1 0 0 
-                                  1-1-1V2a1 1 0 0 
-                                  1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 
-                                  1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 
+                                  1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 
                                   4 4 
                                   4.059V13a1 1 0 0 0 1 
                                   1h6a1 1 0 0 0 1-1V4.059L11.882 
@@ -534,13 +532,33 @@
               </div>
             </div>
 
-            <!-- 4. Nueva Pestaña: Comisiones Pendientes -->
+            <!-- 4. Pestaña: Comisiones Pendientes -->
             <div class="tab-pane fade" id="pendientes-pane" role="tabpanel">
-              <h2 class="h3 mb-1">Comisiones Pendientes</h2>
-              <p class="mb-4">
-                Consulta, filtra, edita o elimina las comisiones que aún están pendientes o acumuladas, sin necesidad
-                de subir un nuevo archivo Excel.
-              </p>
+              <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-3">
+                <div>
+                  <h2 class="h3 mb-1">Comisiones Pendientes</h2>
+                  <p class="mb-0">
+                    Consulta, filtra, edita o elimina las comisiones que aún están pendientes, acumuladas
+                    o con saldo pendiente (pago parcial), sin necesidad de subir un nuevo archivo Excel.
+                  </p>
+                </div>
+                <button class="btn btn-danger d-flex align-items-center" @click="openNuevaComisionModal">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    class="bi bi-plus-lg me-1"
+                    viewBox="0 0 16 16"
+                  >
+                    <path
+                      fill-rule="evenodd"
+                      d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0V8H2.5a.5.5 0 0 1 0-1H7v-5A.5.5 0 0 1 8 2z"
+                    />
+                  </svg>
+                  Nueva Comisión Pendiente
+                </button>
+              </div>
 
               <div class="card shadow-sm mb-4">
                 <div class="card-body">
@@ -571,7 +589,7 @@
                         </v-select>
                       </div>
 
-                      <!-- 🔎 Nuevo filtro: ID POS -->
+                      <!-- Filtro ID POS -->
                       <div class="col-md-2">
                         <label for="filtroPendIdpos" class="form-label fw-bold">ID POS</label>
                         <input
@@ -633,15 +651,12 @@
                         <td>{{ comision.mes_pago || comision.fecha_referencia || 'N/A' }}</td>
                         <td>{{ formatCurrency(comision.valor_comision) }}</td>
                         <td>
+                          <!-- 🔹 Usa estado_front y es_saldo_pendiente -->
                           <span
                             class="badge"
-                            :class="{
-                              'bg-warning text-dark': comision.estado === 'Pendiente',
-                              'bg-secondary': comision.estado === 'Acumulada',
-                              'bg-danger': comision.estado === 'Vencida',
-                            }"
+                            :class="getEstadoPendienteClass(comision)"
                           >
-                            {{ comision.estado }}
+                            {{ comision.estado_front || comision.estado }}
                           </span>
                         </td>
                         <td class="text-truncate" style="max-width: 220px;">
@@ -690,18 +705,18 @@
                                 d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5
                                   0a.5.5 0 0 1 .5.5v6a.5.5 0 0
                                   1-1 0V6a.5.5 0 0 1 .5-.5zm3
-                                  .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0
+                                  .5a.5.5 0 0 0-1 0v6a.5.5 0 0 0 
                                   1 0V6z"
                               />
                               <path
                                 fill-rule="evenodd"
-                                d="M14.5 3a1 1 0 0 1-1
-                                  1H13v9a2 2 0 0 1-2 2H5a2 2 0 0
-                                  1-2-2V4h-.5a1 1 0 0
-                                  1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118
-                                  4 4
-                                  4.059V13a1 1 0 0 0 1
-                                  1h6a1 1 0 0 0 1-1V4.059L11.882
+                                d="M14.5 3a1 1 0 0 1-1 
+                                  1H13v9a2 2 0 0 1-2 2H5a2 2 0 0 
+                                  1-2-2V4h-.5a1 1 0 0 
+                                  1-1-1V2a1 1 0 0 1 1-1H6a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1h3.5a1 1 0 0 1 1 1v1zM4.118 
+                                  4 4 
+                                  4.059V13a1 1 0 0 0 1 
+                                  1h6a1 1 0 0 0 1-1V4.059L11.882 
                                   4H4.118zM2.5 3V2h11v1h-11z"
                               />
                             </svg>
@@ -1190,6 +1205,18 @@ const fetchPermissionsData = async () => {
   }
 };
 
+/* 🔹 Nueva función: cargar solo rutas para el modal, de forma rápida */
+const fetchRutasSolo = async () => {
+  try {
+    const rutasPath = backendRouter.data + 'admin/rutas/';
+    const response = await axios.get(rutasPath, { headers: authHeaders });
+    rutas.value = response.data;
+  } catch (error) {
+    console.error('Error al cargar rutas para el modal de nueva comisión:', error);
+    throw error;
+  }
+};
+
 const updateAsesor = async (asesor) => {
   const path = backendRouter.data + `admin/asesores/${asesor.id}/`;
   const data = {
@@ -1551,7 +1578,8 @@ const exportarExcel = async () => {
 
 /* --------- GESTIÓN DE COMISIONES PENDIENTES --------- */
 const isLoadingPendientes = ref(false);
-const isLoadingPuntosDeVentaPendientes = ref(false); // reserva por si luego agregas PDV
+const isLoadingPuntosDeVentaPendientes = ref(false);
+const puntosDeVentaPendientes = ref([]);
 
 const pendientesFilters = reactive({
   ruta: null,
@@ -1621,6 +1649,289 @@ const fetchPendientes = async (page = 1) => {
   }
 };
 
+/* 🔹 Función para clases del estado (usa estado_front / es_saldo_pendiente) */
+const getEstadoPendienteClass = (comision) => {
+  const estadoFront = comision.estado_front || comision.estado;
+  if (comision.es_saldo_pendiente || estadoFront === 'Parcial') {
+    return 'bg-info text-dark'; // parcial
+  }
+  if (estadoFront === 'Pendiente') return 'bg-warning text-dark';
+  if (estadoFront === 'Acumulada') return 'bg-secondary';
+  if (estadoFront === 'Vencida') return 'bg-danger';
+  return 'bg-light text-dark';
+};
+
+/* 🔹 Cargar puntos de venta para la ruta seleccionada en el modal de nueva comisión */
+const fetchPuntosDeVentaPendientes = async (ruta) => {
+  if (!ruta) {
+    puntosDeVentaPendientes.value = [];
+    return;
+  }
+  isLoadingPuntosDeVentaPendientes.value = true;
+  try {
+    const path = `${backendRouter.data}admin/puntos-de-venta/?ruta=${encodeURIComponent(ruta)}`;
+    const response = await axios.get(path, { headers: authHeaders });
+    puntosDeVentaPendientes.value = response.data || [];
+  } catch (error) {
+    console.error('Error al cargar puntos de venta para nueva comisión:', error);
+    Swal.fire('Error', 'No se pudieron cargar los puntos de venta para la ruta seleccionada.', 'error');
+    puntosDeVentaPendientes.value = [];
+  } finally {
+    isLoadingPuntosDeVentaPendientes.value = false;
+  }
+};
+
+/* 🔹 Abrir modal de nueva comisión pendiente */
+const openNuevaComisionModal = () => {
+  showNuevaComisionModal();
+};
+
+const showNuevaComisionModal = () => {
+  Swal.fire({
+    title: 'Nueva Comisión Pendiente',
+    html: `
+      <div class="text-start">
+        <label for="swal-nc-ruta" class="form-label mt-2">Ruta</label>
+        <select id="swal-nc-ruta" class="swal2-select">
+          <option value="">${
+            rutas.value && rutas.value.length
+              ? '-- Selecciona una ruta --'
+              : 'Cargando rutas...'
+          }</option>
+          ${
+            rutas.value && rutas.value.length
+              ? rutas.value
+                  .map((ruta) => `<option value="${ruta}">${ruta}</option>`)
+                  .join('')
+              : ''
+          }
+        </select>
+
+        <label for="swal-nc-idpos" class="form-label mt-2">ID POS</label>
+        <select id="swal-nc-idpos" class="swal2-select" disabled>
+          <option value="">Selecciona una ruta primero</option>
+        </select>
+
+        <label for="swal-nc-asesor" class="form-label mt-2">Asesor</label>
+        <select id="swal-nc-asesor" class="swal2-select" disabled>
+          <option value="">Selecciona una ruta primero</option>
+        </select>
+
+        <label for="swal-nc-mes-pago" class="form-label mt-2">Mes de Pago</label>
+        <input id="swal-nc-mes-pago" type="date" class="swal2-input">
+
+        <label for="swal-nc-valor" class="form-label mt-2">Valor Comisión</label>
+        <input id="swal-nc-valor" type="number" class="swal2-input" placeholder="Valor en pesos">
+
+        <label for="swal-nc-obs" class="form-label mt-2">Observación</label>
+        <textarea id="swal-nc-obs" class="swal2-textarea" placeholder="Observación (opcional)..."></textarea>
+      </div>
+    `,
+    focusConfirm: false,
+    showCancelButton: true,
+    confirmButtonText: 'Crear',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#DF1115',
+    didOpen: () => {
+      const rutaSelect = document.getElementById('swal-nc-ruta');
+      const idposSelect = document.getElementById('swal-nc-idpos');
+      const asesorSelect = document.getElementById('swal-nc-asesor');
+
+      // Si aún no tenemos rutas cargadas, las pedimos aquí sin cerrar el modal
+      if (rutaSelect && (!rutas.value || rutas.value.length === 0)) {
+        rutaSelect.innerHTML = '';
+        const loadingOpt = document.createElement('option');
+        loadingOpt.value = '';
+        loadingOpt.textContent = 'Cargando rutas...';
+        rutaSelect.appendChild(loadingOpt);
+        rutaSelect.disabled = true;
+
+        fetchRutasSolo()
+          .then(() => {
+            rutaSelect.innerHTML = '';
+            if (!rutas.value || rutas.value.length === 0) {
+              const opt = document.createElement('option');
+              opt.value = '';
+              opt.textContent = 'No se encontraron rutas configuradas';
+              rutaSelect.appendChild(opt);
+              rutaSelect.disabled = true;
+              return;
+            }
+
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '-- Selecciona una ruta --';
+            rutaSelect.appendChild(placeholder);
+
+            rutas.value.forEach((ruta) => {
+              const opt = document.createElement('option');
+              opt.value = ruta;
+              opt.textContent = ruta;
+              rutaSelect.appendChild(opt);
+            });
+
+            rutaSelect.disabled = false;
+          })
+          .catch(() => {
+            rutaSelect.innerHTML = '';
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'Error al cargar rutas. Cierra el modal y reintenta.';
+            rutaSelect.appendChild(opt);
+            rutaSelect.disabled = true;
+          });
+      }
+
+      if (rutaSelect) {
+        rutaSelect.addEventListener('change', async (e) => {
+          const rutaSeleccionada = e.target.value;
+
+          // ----- IDPOS -----
+          idposSelect.innerHTML = '';
+
+          if (!rutaSeleccionada) {
+            idposSelect.disabled = true;
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'Selecciona una ruta primero';
+            idposSelect.appendChild(opt);
+
+            // Asesores también se bloquean
+            asesorSelect.innerHTML = '';
+            asesorSelect.disabled = true;
+            const optAs = document.createElement('option');
+            optAs.value = '';
+            optAs.textContent = 'Selecciona una ruta primero';
+            asesorSelect.appendChild(optAs);
+            return;
+          }
+
+          // Cargar puntos de venta
+          idposSelect.disabled = true;
+          const loadingOpt = document.createElement('option');
+          loadingOpt.value = '';
+          loadingOpt.textContent = 'Cargando puntos de venta...';
+          idposSelect.appendChild(loadingOpt);
+
+          await fetchPuntosDeVentaPendientes(rutaSeleccionada);
+
+          idposSelect.innerHTML = '';
+          if (!puntosDeVentaPendientes.value.length) {
+            const opt = document.createElement('option');
+            opt.value = '';
+            opt.textContent = 'No hay puntos de venta para esta ruta';
+            idposSelect.appendChild(opt);
+            idposSelect.disabled = true;
+          } else {
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = 'Selecciona un punto de venta';
+            idposSelect.appendChild(placeholder);
+
+            puntosDeVentaPendientes.value.forEach((pdv) => {
+              const opt = document.createElement('option');
+              opt.value = pdv;
+              opt.textContent = pdv;
+              idposSelect.appendChild(opt);
+            });
+
+            idposSelect.disabled = false;
+          }
+
+          // ----- ASESORES -----
+          asesorSelect.innerHTML = '';
+
+          const asesoresRuta = (asesores.value || []).filter(
+            (a) =>
+              a.is_active !== false &&
+              Array.isArray(a.rutas_asignadas) &&
+              a.rutas_asignadas.includes(rutaSeleccionada)
+          );
+
+          if (!asesoresRuta.length) {
+            const optAs = document.createElement('option');
+            optAs.value = '';
+            optAs.textContent = 'No hay asesores con esta ruta';
+            asesorSelect.appendChild(optAs);
+            asesorSelect.disabled = true;
+          } else {
+            const placeholderAs = document.createElement('option');
+            placeholderAs.value = '';
+            placeholderAs.textContent = 'Selecciona un asesor';
+            asesorSelect.appendChild(placeholderAs);
+
+            asesoresRuta.forEach((a) => {
+              const opt = document.createElement('option');
+              opt.value = a.username; // 👈 username real
+              opt.textContent = `${a.username} (${a.email})`;
+              asesorSelect.appendChild(opt);
+            });
+
+            asesorSelect.disabled = false;
+          }
+        });
+      }
+    },
+    preConfirm: () => {
+      const ruta = document.getElementById('swal-nc-ruta').value;
+      const idpos = document.getElementById('swal-nc-idpos').value;
+      const asesor_username = document.getElementById('swal-nc-asesor').value;
+      const mes_pago = document.getElementById('swal-nc-mes-pago').value;
+      const valor_comision = document.getElementById('swal-nc-valor').value;
+      const observacion = document.getElementById('swal-nc-obs').value;
+
+      if (!ruta || !idpos || !asesor_username || !mes_pago || !valor_comision) {
+        Swal.showValidationMessage(
+          'Ruta, ID POS, Asesor, Mes de pago y Valor de comisión son obligatorios'
+        );
+        return false;
+      }
+
+      return {
+        ruta,
+        idpos,
+        mes_pago,
+        valor_comision,
+        estado: 'Pendiente',
+        observacion,
+        asesor_username, // 👈 va directo al backend
+      };
+    },
+  }).then((result) => {
+    if (result.isConfirmed) {
+      crearComisionManual(result.value);
+    }
+  });
+};
+
+const crearComisionManual = async (formData) => {
+  const path = backendRouter.data + 'admin/comisiones-pendientes/';
+  try {
+    await axios.post(path, formData, { headers: authHeaders });
+    Swal.fire('¡Creada!', 'La comisión pendiente ha sido creada.', 'success');
+    buscarPendientes();
+    generarReporte();
+  } catch (error) {
+    console.error('Error al crear comisión pendiente:', error);
+    let errorMsg = 'No se pudo crear la comisión.';
+    if (error.response && error.response.data) {
+      const data = error.response.data;
+      if (typeof data === 'object') {
+        errorMsg = Object.entries(data)
+          .map(([field, msgs]) =>
+            `${field}: ${Array.isArray(msgs) ? msgs.join(' ') : msgs}`
+          )
+          .join('<br>');
+      }
+    }
+    Swal.fire({
+      icon: 'error',
+      title: 'Error',
+      html: errorMsg,
+    });
+  }
+};
+
 const openComisionModal = (mode, comision = null) => {
   if (mode === 'edit' && comision) {
     Object.assign(currentComision, {
@@ -1652,7 +1963,7 @@ const showComisionModal = () => {
         <input class="swal2-input" value="${currentComision.asesor_username || ''}" disabled>
 
         <label for="swal-mes-pago" class="form-label mt-2">Mes Pago</label>
-        <input id="swal-mes-pago" class="swal2-input" placeholder="Ej: Diciembre 2025" value="${
+        <input id="swal-mes-pago" class="swal2-input" type="date" value="${
           currentComision.mes_pago || ''
         }">
 
@@ -1708,11 +2019,10 @@ const showComisionModal = () => {
 const handleSaveComision = async (formData) => {
   const path = backendRouter.data + `admin/comisiones-pendientes/${currentComision.id}/`;
   try {
-    // 👇 aquí el cambio importante
     await axios.patch(path, formData, { headers: authHeaders });
     Swal.fire('¡Actualizada!', 'La comisión ha sido actualizada.', 'success');
     fetchPendientes(pendientesCurrentPage.value);
-    generarReporte(); // refresca dashboard general
+    generarReporte();
   } catch (error) {
     console.error('Error al guardar comisión:', error);
     let errorMsg = 'No se pudo guardar la comisión.';
