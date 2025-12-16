@@ -1154,7 +1154,6 @@ const labelRutaWithCupo = (ruta) => {
 
 const shouldDisableRutaForAsesor = (ruta, asesor) => {
   if (!asesor) return false;
-  // Si el asesor ya tiene esta ruta, no bloqueamos (permite mantenerla)
   if (asesor.rutas_asignadas && asesor.rutas_asignadas.includes(ruta)) {
     return false;
   }
@@ -1205,7 +1204,7 @@ const fetchPermissionsData = async () => {
   }
 };
 
-/* 🔹 Nueva función: cargar solo rutas para el modal, de forma rápida */
+/* 🔹 Cargar solo rutas para el modal, de forma rápida */
 const fetchRutasSolo = async () => {
   try {
     const rutasPath = backendRouter.data + 'admin/rutas/';
@@ -1371,12 +1370,10 @@ const showAsesorModal = () => {
         return false;
       }
 
-      // 🔐 Validación de cupo por ruta (máx 1 asesor por ruta)
       if (rol === 'asesor_comisiones' && rutasSeleccionadas.length === 1) {
         const ruta = rutasSeleccionadas[0];
         let count = asesoresPorRuta.value[ruta] || 0;
 
-        // Si estamos editando y el asesor ya tenía esta ruta, no lo contemos doble
         if (modalMode.value === 'edit') {
           const asesorOriginal = asesores.value.find((a) => a.id === currentAsesor.id);
           if (
@@ -1623,7 +1620,6 @@ const fetchPendientes = async (page = 1) => {
   const params = new URLSearchParams();
   params.append('page', page);
 
-  // Traer Pendiente + Acumulada
   params.append('estado', 'Pendiente');
   params.append('estado', 'Acumulada');
 
@@ -1649,11 +1645,10 @@ const fetchPendientes = async (page = 1) => {
   }
 };
 
-/* 🔹 Función para clases del estado (usa estado_front / es_saldo_pendiente) */
 const getEstadoPendienteClass = (comision) => {
   const estadoFront = comision.estado_front || comision.estado;
   if (comision.es_saldo_pendiente || estadoFront === 'Parcial') {
-    return 'bg-info text-dark'; // parcial
+    return 'bg-info text-dark';
   }
   if (estadoFront === 'Pendiente') return 'bg-warning text-dark';
   if (estadoFront === 'Acumulada') return 'bg-secondary';
@@ -1671,6 +1666,7 @@ const fetchPuntosDeVentaPendientes = async (ruta) => {
   try {
     const path = `${backendRouter.data}admin/puntos-de-venta/?ruta=${encodeURIComponent(ruta)}`;
     const response = await axios.get(path, { headers: authHeaders });
+    // Esperamos objetos { codigo, nombre, label }
     puntosDeVentaPendientes.value = response.data || [];
   } catch (error) {
     console.error('Error al cargar puntos de venta para nueva comisión:', error);
@@ -1681,7 +1677,6 @@ const fetchPuntosDeVentaPendientes = async (ruta) => {
   }
 };
 
-/* 🔹 Abrir modal de nueva comisión pendiente */
 const openNuevaComisionModal = () => {
   showNuevaComisionModal();
 };
@@ -1737,7 +1732,6 @@ const showNuevaComisionModal = () => {
       const idposSelect = document.getElementById('swal-nc-idpos');
       const asesorSelect = document.getElementById('swal-nc-asesor');
 
-      // Si aún no tenemos rutas cargadas, las pedimos aquí sin cerrar el modal
       if (rutaSelect && (!rutas.value || rutas.value.length === 0)) {
         rutaSelect.innerHTML = '';
         const loadingOpt = document.createElement('option');
@@ -1830,8 +1824,8 @@ const showNuevaComisionModal = () => {
 
             puntosDeVentaPendientes.value.forEach((pdv) => {
               const opt = document.createElement('option');
-              opt.value = pdv;
-              opt.textContent = pdv;
+              opt.value = pdv.codigo; // código para idpos
+              opt.textContent = pdv.label || `${pdv.codigo} - ${pdv.nombre || ''}`;
               idposSelect.appendChild(opt);
             });
 
@@ -1854,7 +1848,17 @@ const showNuevaComisionModal = () => {
             optAs.textContent = 'No hay asesores con esta ruta';
             asesorSelect.appendChild(optAs);
             asesorSelect.disabled = true;
+          } else if (asesoresRuta.length === 1) {
+            // Solo hay un asesor para esta ruta → lo seleccionamos y bloqueamos el campo
+            const unico = asesoresRuta[0];
+            const optAs = document.createElement('option');
+            optAs.value = unico.username; // documento / username
+            optAs.textContent = `${unico.username} (${unico.email})`;
+            optAs.selected = true;
+            asesorSelect.appendChild(optAs);
+            asesorSelect.disabled = true;
           } else {
+            // Hay varios asesores posibles → el admin elige
             const placeholderAs = document.createElement('option');
             placeholderAs.value = '';
             placeholderAs.textContent = 'Selecciona un asesor';
@@ -1862,7 +1866,7 @@ const showNuevaComisionModal = () => {
 
             asesoresRuta.forEach((a) => {
               const opt = document.createElement('option');
-              opt.value = a.username; // 👈 username real
+              opt.value = a.username;
               opt.textContent = `${a.username} (${a.email})`;
               asesorSelect.appendChild(opt);
             });
@@ -1871,6 +1875,7 @@ const showNuevaComisionModal = () => {
           }
         });
       }
+
     },
     preConfirm: () => {
       const ruta = document.getElementById('swal-nc-ruta').value;
@@ -1887,14 +1892,20 @@ const showNuevaComisionModal = () => {
         return false;
       }
 
+      const seleccionado = (puntosDeVentaPendientes.value || []).find(
+        (pdv) => pdv.codigo === idpos
+      );
+      const punto_de_venta = seleccionado ? seleccionado.nombre || '' : '';
+
       return {
         ruta,
         idpos,
+        punto_de_venta,
         mes_pago,
         valor_comision,
         estado: 'Pendiente',
         observacion,
-        asesor_username, // 👈 va directo al backend
+        asesor_username,
       };
     },
   }).then((result) => {
@@ -2111,7 +2122,10 @@ const fetchPuntosDeVenta = async (ruta) => {
   try {
     const path = `${backendRouter.data}admin/puntos-de-venta/?ruta=${encodeURIComponent(ruta)}`;
     const response = await axios.get(path, { headers: authHeaders });
-    puntosDeVentaOptions.value = response.data;
+    // Aquí mapeamos a nombres simples para que el v-select no muestre [object Object]
+    puntosDeVentaOptions.value = (response.data || []).map(
+      (pdv) => pdv.nombre || pdv.label || pdv.codigo
+    );
   } catch (error) {
     console.error('Error al cargar puntos de venta:', error);
     Swal.fire('Error', 'No se pudieron cargar los puntos de venta para esa ruta.', 'error');
@@ -2431,6 +2445,7 @@ onMounted(() => {
   fetchFechaCorte();
 });
 </script>
+
 
 <style scoped>
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
