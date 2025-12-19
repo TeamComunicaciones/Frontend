@@ -1,776 +1,784 @@
 <template>
-  <div class="bg-light transparency-wrapper">
-    <div class="container py-4 py-md-5">
-      <div class="card border-0 shadow-lg transparency-card">
-        <!-- HEADER -->
-        <div class="card-header header-gradient text-white px-4 px-md-5 py-3 py-md-4">
-          <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
-            <div class="header-title">
-              <div class="d-flex align-items-center gap-2 mb-2">
-                <span class="badge badge-pill-soft bg-opacity bg-opacity-strong">
-                  {{ isEs ? 'Canal de Denuncias' : 'Whistleblowing Channel' }}
-                </span>
-              </div>
-              <h1 class="h3 mb-1">
-                {{ isEs ? 'Línea de Transparencia' : 'Transparency Line' }}
-              </h1>
-              <p class="mb-0 small text-white-50">
-                <span v-if="isEs">
-                  Reporta conductas no transparentes de forma confidencial y, si lo deseas, anónima.
-                </span>
-                <span v-else>
-                  Report non-transparent conduct confidentially and, if you wish, anonymously.
-                </span>
-              </p>
-            </div>
+  <div class="layout">
+    <!-- HEADER -->
+    <MenuLanding />
 
-            <div class="d-flex flex-column align-items-md-end align-items-stretch gap-2">
-              <!-- Selector de idioma -->
-              <div class="btn-group btn-group-sm lang-toggle" role="group" aria-label="Language selector">
-                <button
-                  type="button"
-                  class="btn btn-outline-light"
-                  :class="{ active: locale === 'es' }"
-                  @click="setLocale('es')"
-                >
-                  ES
-                </button>
-                <button
-                  type="button"
-                  class="btn btn-outline-light"
-                  :class="{ active: locale === 'en' }"
-                  @click="setLocale('en')"
-                >
-                  EN
-                </button>
+    <!-- CONTENT -->
+    <main class="content bg-light transparency-wrapper">
+      <div class="container py-4 py-md-5">
+        <div class="card border-0 shadow-lg transparency-card">
+          <!-- HEADER -->
+          <div class="card-header header-gradient text-white px-4 px-md-5 py-3 py-md-4">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-start gap-3">
+              <div class="header-title">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                  <span class="badge badge-pill-soft bg-opacity bg-opacity-strong">
+                    {{ isEs ? 'Canal de Denuncias' : 'Whistleblowing Channel' }}
+                  </span>
+                </div>
+                <h1 class="h3 mb-1">
+                  {{ isEs ? 'Línea de Transparencia' : 'Transparency Line' }}
+                </h1>
+                <p class="mb-0 small text-white-50">
+                  <span v-if="isEs">
+                    Reporta conductas no transparentes de forma confidencial y, si lo deseas, anónima.
+                  </span>
+                  <span v-else>
+                    Report non-transparent conduct confidentially and, if you wish, anonymously.
+                  </span>
+                </p>
               </div>
 
-              <!-- Estado del canal -->
-              <div class="d-flex align-items-center gap-2">
-                <span class="status-dot bg-success"></span>
-                <span class="small text-white-75">
-                  {{ isEs ? 'Disponible 24/7' : 'Available 24/7' }}
-                </span>
-              </div>
+              <div class="d-flex flex-column align-items-md-end align-items-stretch gap-2">
+                <!-- Selector de idioma -->
+                <div class="btn-group btn-group-sm lang-toggle" role="group" aria-label="Language selector">
+                  <button
+                    type="button"
+                    class="btn btn-outline-light"
+                    :class="{ active: locale === 'es' }"
+                    @click="setLocale('es')"
+                  >
+                    ES
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-outline-light"
+                    :class="{ active: locale === 'en' }"
+                    @click="setLocale('en')"
+                  >
+                    EN
+                  </button>
+                </div>
 
-              <!-- Progreso (simple indicador de pasos) -->
-              <div class="progress progress-xs w-100 mt-1">
-                <div
-                  class="progress-bar bg-progress"
-                  role="progressbar"
-                  :style="{ width: progressPercentage + '%' }"
-                  aria-valuemin="0"
-                  aria-valuemax="100"
-                ></div>
-              </div>
-              <div class="d-flex justify-content-between small text-white-50 w-100">
-                <span>{{ isEs ? 'Formulario' : 'Form' }}</span>
-                <span>{{ currentStepLabel }}</span>
+                <!-- Estado del canal -->
+                <div class="d-flex align-items-center gap-2">
+                  <span class="status-dot bg-success"></span>
+                  <span class="small text-white-75">
+                    {{ isEs ? 'Disponible 24/7' : 'Available 24/7' }}
+                  </span>
+                </div>
+
+                <!-- Progreso (simple indicador de pasos) -->
+                <div class="progress progress-xs w-100 mt-1">
+                  <div
+                    class="progress-bar bg-progress"
+                    role="progressbar"
+                    :style="{ width: progressPercentage + '%' }"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  ></div>
+                </div>
+                <div class="d-flex justify-content-between small text-white-50 w-100">
+                  <span>{{ isEs ? 'Formulario' : 'Form' }}</span>
+                  <span>{{ currentStepLabel }}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- BODY -->
-        <div class="card-body px-3 px-md-5 py-4">
-          <div class="row g-4 g-xl-5">
-            <!-- Columna info / sidebar -->
-            <aside class="col-lg-4 order-2 order-lg-1">
-              <!-- Tarjeta de compromiso ético -->
-              <div class="info-card mb-3">
-                <h2 class="h6 mb-2 d-flex align-items-center gap-2">
-                  <span class="icon-circle">
-                    <span class="icon-text">✓</span>
-                  </span>
-                  <span>{{ isEs ? 'Compromiso ético' : 'Ethical commitment' }}</span>
-                </h2>
-                <p class="small mb-2">
-                  <span v-if="isEs">
-                    TEAM COMMUNICATIONS S.A. promueve relaciones transparentes, honestas y responsables, previniendo
-                    actividades ilícitas en todas sus operaciones.
-                  </span>
-                  <span v-else>
-                    TEAM COMMUNICATIONS S.A. promotes transparent, honest, and responsible relationships, preventing
-                    illicit activities in all its operations.
-                  </span>
-                </p>
-                <p class="small mb-0 text-muted">
-                  <span v-if="isEs">
-                    Este canal se administra por el Oficial de Cumplimiento del PTEE y se debe usar de manera
-                    responsable.
-                  </span>
-                  <span v-else>
-                    This channel is managed by the PTEE Compliance Officer and must be used responsibly.
-                  </span>
-                </p>
-              </div>
-
-              <!-- Tarjeta de anonimato -->
-              <div class="info-card mb-3 anonymity-card">
-                <h2 class="h6 mb-2 d-flex align-items-center gap-2">
-                  <span class="icon-circle icon-circle-soft">
-                    <span class="icon-text">🕵️</span>
-                  </span>
-                  <span>{{ isEs ? 'Anonimato y confidencialidad' : 'Anonymity & confidentiality' }}</span>
-                </h2>
-                <p class="small mb-1">
-                  <span v-if="isEs">
-                    Puedes enviar tu reporte de forma anónima. Si decides identificarte, tu información se tratará con
-                    estricta confidencialidad.
-                  </span>
-                  <span v-else>
-                    You may submit your report anonymously. If you choose to identify yourself, your information will be
-                    treated with strict confidentiality.
-                  </span>
-                </p>
-                <p class="small mb-0 text-muted">
-                  <strong>
-                    {{ isEs ? 'Nunca se revelará tu identidad sin tu consentimiento.' : 'Your identity will never be disclosed without your consent.' }}
-                  </strong>
-                </p>
-
-                <div class="mt-3 d-flex align-items-center gap-2 small">
-                  <span class="badge bg-light text-dark border border-1 border-light-subtle">
-                    {{
-                      isEs
-                        ? form.wantsIdentification === 'yes'
-                          ? 'Modo identificado'
-                          : 'Modo anónimo'
-                        : form.wantsIdentification === 'yes'
-                          ? 'Identified mode'
-                          : 'Anonymous mode'
-                    }}
-                  </span>
-                  <span class="text-muted">
+          <!-- BODY -->
+          <div class="card-body px-3 px-md-5 py-4">
+            <div class="row g-4 g-xl-5">
+              <!-- Columna info / sidebar -->
+              <aside class="col-lg-4 order-2 order-lg-1">
+                <!-- Tarjeta de compromiso ético -->
+                <div class="info-card mb-3">
+                  <h2 class="h6 mb-2 d-flex align-items-center gap-2">
+                    <span class="icon-circle">
+                      <span class="icon-text">✓</span>
+                    </span>
+                    <span>{{ isEs ? 'Compromiso ético' : 'Ethical commitment' }}</span>
+                  </h2>
+                  <p class="small mb-2">
                     <span v-if="isEs">
-                      Puedes cambiarlo en la sección “Identidad del reportante”.
+                      TEAM COMMUNICATIONS S.A. promueve relaciones transparentes, honestas y responsables, previniendo
+                      actividades ilícitas en todas sus operaciones.
                     </span>
                     <span v-else>
-                      You can change this in the “Reporter identity” section.
+                      TEAM COMMUNICATIONS S.A. promotes transparent, honest, and responsible relationships, preventing
+                      illicit activities in all its operations.
                     </span>
-                  </span>
+                  </p>
+                  <p class="small mb-0 text-muted">
+                    <span v-if="isEs">
+                      Este canal se administra por el Oficial de Cumplimiento del PTEE y se debe usar de manera
+                      responsable.
+                    </span>
+                    <span v-else>
+                      This channel is managed by the PTEE Compliance Officer and must be used responsibly.
+                    </span>
+                  </p>
                 </div>
-              </div>
 
-              <!-- Características -->
-              <div class="info-card mb-3">
-                <h2 class="h6 mb-2">
-                  {{ isEs ? 'Características de la Línea' : 'Line characteristics' }}
-                </h2>
-                <ul class="list-unstyled mb-0 small characteristics-list">
-                  <li
-                    v-for="item in characteristics"
-                    :key="item.id"
-                    class="d-flex align-items-start gap-2 mb-1"
-                  >
-                    <span class="char-dot"></span>
-                    <span>{{ isEs ? item.es : item.en }}</span>
-                  </li>
-                </ul>
-              </div>
-
-              <!-- Canales externos -->
-              <div class="info-card mb-3">
-                <h2 class="h6 mb-2">
-                  {{ isEs ? 'Canales externos' : 'External channels' }}
-                </h2>
-                <p class="small text-muted mb-2">
-                  <span v-if="isEs">
-                    También puedes acudir a los canales de la Superintendencia de Sociedades:
-                  </span>
-                  <span v-else>
-                    You may also report through the Superintendence of Companies channels:
-                  </span>
-                </p>
-                <ul class="list-unstyled small mb-2">
-                  <li class="mb-1">
-                    <a
-                      href="https://www.supersociedades.gov.co/delegatura_aec/Paginas/Canal-deDenuncias-Soborno-Internacional.asp"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      {{ isEs ? 'Canal de denuncias por soborno internacional' : 'International bribery reporting channel' }}
-                    </a>
-                  </li>
-                  <li>
-                    <a
-                      href="http://www.secretariatransparencia.gov.co/observatorio%20anticorrupcion/portal-anticorrupcion"
-                      target="_blank"
-                      rel="noopener"
-                    >
-                      {{ isEs ? 'Portal anticorrupción' : 'Anti-corruption portal' }}
-                    </a>
-                  </li>
-                </ul>
-              </div>
-
-              <!-- Políticas -->
-              <div class="info-card">
-                <h2 class="h6 mb-2">
-                  {{ isEs ? 'Políticas de cumplimiento' : 'Compliance policies' }}
-                </h2>
-                <p class="small text-muted mb-2">
-                  <span v-if="isEs">
-                    Consulta el detalle de nuestras políticas y procedimientos:
-                  </span>
-                  <span v-else>
-                    Review our detailed compliance policies and procedures:
-                  </span>
-                </p>
-                <div class="d-flex flex-column gap-1 small">
-                  <button
-                    type="button"
-                    class="btn btn-link btn-sm text-start p-0 link-policy"
-                    @click="openPolicy('corruptionPolicy')"
-                  >
-                    •
+                <!-- Tarjeta de anonimato -->
+                <div class="info-card mb-3 anonymity-card">
+                  <h2 class="h6 mb-2 d-flex align-items-center gap-2">
+                    <span class="icon-circle icon-circle-soft">
+                      <span class="icon-text">🕵️</span>
+                    </span>
+                    <span>{{ isEs ? 'Anonimato y confidencialidad' : 'Anonymity & confidentiality' }}</span>
+                  </h2>
+                  <p class="small mb-1">
                     <span v-if="isEs">
-                      Políticas Generales Contra la Corrupción y el Soborno Transnacional
+                      Puedes enviar tu reporte de forma anónima. Si decides identificarte, tu información se tratará con
+                      estricta confidencialidad.
                     </span>
                     <span v-else>
-                      General Policies Against Corruption and Transnational Bribery
+                      You may submit your report anonymously. If you choose to identify yourself, your information will be
+                      treated with strict confidentiality.
                     </span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-link btn-sm text-start p-0 link-policy"
-                    @click="openPolicy('moneyLaunderingPolicy')"
-                  >
-                    •
-                    <span v-if="isEs">
-                      Políticas Contra el Lavado de Activos, la Financiación del Terrorismo y la Proliferación de Armas
-                      de Destrucción Masiva
+                  </p>
+                  <p class="small mb-0 text-muted">
+                    <strong>
+                      {{
+                        isEs
+                          ? 'Nunca se revelará tu identidad sin tu consentimiento.'
+                          : 'Your identity will never be disclosed without your consent.'
+                      }}
+                    </strong>
+                  </p>
+
+                  <div class="mt-3 d-flex align-items-center gap-2 small">
+                    <span class="badge bg-light text-dark border border-1 border-light-subtle">
+                      {{
+                        isEs
+                          ? form.wantsIdentification === 'yes'
+                            ? 'Modo identificado'
+                            : 'Modo anónimo'
+                          : form.wantsIdentification === 'yes'
+                            ? 'Identified mode'
+                            : 'Anonymous mode'
+                      }}
                     </span>
-                    <span v-else>
-                      Policies Against Money Laundering, Terrorism Financing, and WMD Proliferation
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    class="btn btn-link btn-sm text-start p-0 link-policy"
-                    @click="openPolicy('protocol')"
-                  >
-                    •
-                    <span v-if="isEs">
-                      Protocolo de funcionamiento de la Línea de Transparencia y medidas de protección
-                    </span>
-                    <span v-else>
-                      Transparency Line operating protocol and protection measures
-                    </span>
-                  </button>
-                </div>
-              </div>
-            </aside>
-
-            <!-- Columna formulario -->
-            <section class="col-lg-8 order-1 order-lg-2">
-              <div class="form-shell h-100">
-                <!-- Alertas globales -->
-                <transition name="fade">
-                  <div v-if="successMessage" class="alert alert-success small mb-3">
-                    <strong>{{ isEs ? 'Reporte enviado.' : 'Report submitted.' }}</strong>
-                    <div>{{ successMessage }}</div>
-                  </div>
-                </transition>
-                <transition name="fade">
-                  <div v-if="errorMessage" class="alert alert-danger small mb-3">
-                    <strong>{{ isEs ? 'Error al enviar el reporte.' : 'Error submitting the report.' }}</strong>
-                    <div>{{ errorMessage }}</div>
-                  </div>
-                </transition>
-
-                <form @submit.prevent="handleSubmit" novalidate>
-                  <!-- Paso 1: Detalles del reporte -->
-                  <div class="step-section mb-4">
-                    <div class="step-header mb-2">
-                      <div class="d-flex align-items-center gap-2">
-                        <span class="step-badge">1</span>
-                        <div>
-                          <h2 class="h6 mb-0">
-                            {{ isEs ? 'Detalles del reporte' : 'Report details' }}
-                          </h2>
-                          <p class="small text-muted mb-0">
-                            <span v-if="isEs">
-                              Indica el tipo de reporte y describe con claridad lo sucedido.
-                            </span>
-                            <span v-else>
-                              Indicate the type of report and clearly describe what happened.
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Tipo de reporte -->
-                    <div class="mb-3">
-                      <label class="form-label">
-                        {{ isEs ? 'Tipo de reporte' : 'Type of report' }}
-                        <span class="text-danger">*</span>
-                      </label>
-                      <div class="row g-2">
-                        <div class="col-md-6">
-                          <select
-                            v-model="form.reportType"
-                            class="form-select form-select-sm"
-                            :class="{ 'is-invalid': errors.reportType }"
-                            required
-                          >
-                            <option value="" disabled>
-                              {{ isEs ? 'Selecciona una opción' : 'Select an option' }}
-                            </option>
-                            <option
-                              v-for="option in reportTypeOptions"
-                              :key="option.value"
-                              :value="option.value"
-                            >
-                              {{ isEs ? option.labelEs : option.labelEn }}
-                            </option>
-                          </select>
-                          <div v-if="errors.reportType" class="invalid-feedback">
-                            {{ errors.reportType }}
-                          </div>
-                        </div>
-                        <div class="col-md-6 d-flex align-items-center">
-                          <div class="small text-muted">
-                            <span v-if="isEs">
-                              Usa <strong>“Otros”</strong> si tu caso no encaja claramente en las categorías listadas.
-                            </span>
-                            <span v-else>
-                              Use <strong>“Other”</strong> if your case does not clearly fit in the listed categories.
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Descripción -->
-                    <div class="mb-3">
-                      <label class="form-label">
-                        {{ isEs ? 'Descripción de lo sucedido' : 'Description of the incident' }}
-                        <span class="text-danger">*</span>
-                      </label>
-                      <textarea
-                        v-model="form.description"
-                        rows="4"
-                        class="form-control form-control-sm"
-                        :class="{ 'is-invalid': errors.description }"
-                        required
-                      ></textarea>
-                      <div class="d-flex justify-content-between small mt-1">
-                        <span v-if="errors.description" class="text-danger">
-                          {{ errors.description }}
-                        </span>
-                        <span v-else class="text-muted">
-                          {{ isEs ? 'Mínimo 30 caracteres.' : 'Minimum 30 characters.' }}
-                        </span>
-                        <span
-                          :class="[
-                            'text-muted',
-                            descriptionLength < 30 ? 'text-warning' : 'text-success'
-                          ]"
-                        >
-                          {{ descriptionLength }} / 5000
-                        </span>
-                      </div>
-                    </div>
-
-                    <!-- Fecha -->
-                    <div class="mb-3">
-                      <label class="form-label">
-                        {{ isEs ? 'Fecha en la que ocurrió el suceso' : 'Date of occurrence' }}
-                        <span class="text-danger">*</span>
-                      </label>
-                      <input
-                        v-model="form.eventDate"
-                        type="date"
-                        class="form-control form-control-sm"
-                        :class="{ 'is-invalid': errors.eventDate }"
-                        required
-                      />
-                      <div v-if="errors.eventDate" class="invalid-feedback">
-                        {{ errors.eventDate }}
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Paso 2: Ubicación -->
-                  <div class="step-section mb-4">
-                    <div class="step-header mb-2">
-                      <div class="d-flex align-items-center gap-2">
-                        <span class="step-badge">2</span>
-                        <div>
-                          <h2 class="h6 mb-0">
-                            {{ isEs ? 'Ubicación del suceso' : 'Incident location' }}
-                          </h2>
-                          <p class="small text-muted mb-0">
-                            <span v-if="isEs">
-                              Indica dónde ocurrieron los hechos para facilitar su análisis.
-                            </span>
-                            <span v-else>
-                              Indicate where the events took place to facilitate their analysis.
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="row g-3">
-                      <div class="col-md-4">
-                        <label class="form-label">
-                          {{ isEs ? 'País' : 'Country' }}
-                          <span class="text-danger">*</span>
-                        </label>
-                        <input
-                          v-model="form.country"
-                          type="text"
-                          class="form-control form-control-sm"
-                          :class="{ 'is-invalid': errors.country }"
-                          required
-                        />
-                        <div v-if="errors.country" class="invalid-feedback">
-                          {{ errors.country }}
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label">
-                          {{ isEs ? 'Departamento / Estado' : 'State / Department' }}
-                          <span class="text-danger">*</span>
-                        </label>
-                        <input
-                          v-model="form.state"
-                          type="text"
-                          class="form-control form-control-sm"
-                          :class="{ 'is-invalid': errors.state }"
-                          required
-                        />
-                        <div v-if="errors.state" class="invalid-feedback">
-                          {{ errors.state }}
-                        </div>
-                      </div>
-                      <div class="col-md-4">
-                        <label class="form-label">
-                          {{ isEs ? 'Ciudad' : 'City' }}
-                          <span class="text-danger">*</span>
-                        </label>
-                        <input
-                          v-model="form.city"
-                          type="text"
-                          class="form-control form-control-sm"
-                          :class="{ 'is-invalid': errors.city }"
-                          required
-                        />
-                        <div v-if="errors.city" class="invalid-feedback">
-                          {{ errors.city }}
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Personas relacionadas -->
-                    <div class="mt-3">
-                      <label class="form-label">
-                        {{ isEs ? 'Personas relacionadas' : 'People involved' }}
-                      </label>
-                      <textarea
-                        v-model="form.peopleInvolved"
-                        rows="2"
-                        class="form-control form-control-sm"
-                        placeholder="Ej: Nombre, cargo, área…"
-                      ></textarea>
-                      <div class="form-text small">
-                        <span v-if="isEs">
-                          Si lo conoces, incluye nombre, cargo y área. Puedes escribir varios separados por coma o
-                          salto de línea.
-                        </span>
-                        <span v-else>
-                          If known, include name, position and area. You may write several separated by commas or line
-                          breaks.
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  <!-- Paso 3: Soportes -->
-                  <div class="step-section mb-4">
-                    <div class="step-header mb-2">
-                      <div class="d-flex align-items-center gap-2">
-                        <span class="step-badge">3</span>
-                        <div>
-                          <h2 class="h6 mb-0">
-                            {{ isEs ? 'Soportes y evidencias' : 'Supporting information & evidence' }}
-                          </h2>
-                          <p class="small text-muted mb-0">
-                            <span v-if="isEs">
-                              Describe brevemente los soportes que tienes y adjunta archivos si es posible.
-                            </span>
-                            <span v-else>
-                              Briefly describe the evidence you have and attach files if possible.
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div class="mb-3">
-                      <label class="form-label">
-                        {{ isEs ? 'Descripción de los soportes' : 'Description of supporting information' }}
-                      </label>
-                      <textarea
-                        v-model="form.supportsText"
-                        rows="2"
-                        class="form-control form-control-sm"
-                      ></textarea>
-                    </div>
-
-                    <!-- Archivos -->
-                    <div class="mb-1">
-                      <label class="form-label">
-                        {{ isEs ? 'Adjuntar archivos (opcional)' : 'Attach files (optional)' }}
-                      </label>
-                      <div class="attachment-dropzone" @click="triggerFileInput">
-                        <input
-                          ref="fileInput"
-                          type="file"
-                          class="d-none"
-                          multiple
-                          @change="onFilesChange"
-                        />
-                        <div class="d-flex align-items-center gap-3">
-                          <div class="icon-circle icon-circle-file">
-                            <span class="icon-text">⬆</span>
-                          </div>
-                          <div class="flex-grow-1">
-                            <p class="mb-0 small">
-                              <strong>
-                                <span v-if="isEs">Haz clic para seleccionar archivos</span>
-                                <span v-else>Click to select files</span>
-                              </strong>
-                            </p>
-                            <p class="mb-0 small text-muted">
-                              <span v-if="isEs">
-                                Puedes adjuntar correos, documentos, capturas de pantalla, etc.
-                              </span>
-                              <span v-else>
-                                You may attach emails, documents, screenshots, etc.
-                              </span>
-                            </p>
-                          </div>
-                          <div class="small text-muted text-end">
-                            <span v-if="selectedFiles.length === 0">
-                              {{ isEs ? 'Ningún archivo' : 'No files' }}
-                            </span>
-                            <span v-else>
-                              {{ selectedFiles.length }}
-                              {{ isEs ? 'archivo(s)' : 'file(s)' }}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <ul
-                        v-if="selectedFiles.length > 0"
-                        class="list-unstyled small mt-2 mb-0 text-muted"
-                      >
-                        <li
-                          v-for="file in selectedFiles"
-                          :key="file.name"
-                          class="text-truncate"
-                        >
-                          • {{ file.name }}
-                        </li>
-                      </ul>
-                    </div>
-                  </div>
-
-                  <!-- Paso 4: Identidad del reportante -->
-                  <div class="step-section mb-4">
-                    <div class="step-header mb-2">
-                      <div class="d-flex align-items-center gap-2">
-                        <span class="step-badge">4</span>
-                        <div>
-                          <h2 class="h6 mb-0">
-                            {{ isEs ? 'Identidad del reportante' : 'Reporter identity' }}
-                          </h2>
-                          <p class="small text-muted mb-0">
-                            <span v-if="isEs">
-                              Elige si deseas permanecer en el anonimato o compartir tus datos de contacto.
-                            </span>
-                            <span v-else>
-                              Choose whether to remain anonymous or share your contact details.
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- ¿Desea identificarse? -->
-                    <div class="mb-3">
-                      <label class="form-label">
-                        {{ isEs ? '¿Desea identificarse?' : 'Do you wish to identify yourself?' }}
-                        <span class="text-danger">*</span>
-                      </label>
-                      <div class="row g-2">
-                        <div class="col-md-6">
-                          <select
-                            v-model="form.wantsIdentification"
-                            class="form-select form-select-sm"
-                            :class="{ 'is-invalid': errors.wantsIdentification }"
-                            required
-                          >
-                            <option value="no">
-                              {{ isEs ? 'No, deseo permanecer anónimo' : 'No, I prefer to remain anonymous' }}
-                            </option>
-                            <option value="yes">
-                              {{ isEs ? 'Sí, deseo identificarme' : 'Yes, I want to identify myself' }}
-                            </option>
-                          </select>
-                          <div v-if="errors.wantsIdentification" class="invalid-feedback">
-                            {{ errors.wantsIdentification }}
-                          </div>
-                        </div>
-                        <div class="col-md-6 d-flex align-items-center">
-                          <p class="small mb-0 text-muted">
-                            <span v-if="isEs">
-                              Si te identificas, podremos contactarte para ampliar la información si es necesario.
-                            </span>
-                            <span v-else>
-                              If you identify yourself, we may contact you to request further details if needed.
-                            </span>
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Datos personales condicionales -->
-                    <transition name="slide-fade">
-                      <div
-                        v-if="form.wantsIdentification === 'yes'"
-                        class="border rounded-3 p-3 bg-light-subtle"
-                      >
-                        <p class="small mb-2 fw-semibold">
-                          {{ isEs ? 'Datos de contacto' : 'Contact details' }}
-                        </p>
-                        <p class="small text-muted mb-3">
-                          <span v-if="isEs">
-                            Estos datos se utilizarán únicamente para dar seguimiento al caso y no se compartirán sin tu
-                            autorización.
-                          </span>
-                          <span v-else>
-                            This information will only be used to follow up on the case and will not be shared without
-                            your consent.
-                          </span>
-                        </p>
-
-                        <div class="row g-3">
-                          <div class="col-md-6">
-                            <label class="form-label">
-                              {{ isEs ? 'Nombre completo' : 'Full name' }}
-                              <span class="text-danger">*</span>
-                            </label>
-                            <input
-                              v-model="form.fullName"
-                              type="text"
-                              class="form-control form-control-sm"
-                              :class="{ 'is-invalid': errors.fullName }"
-                            />
-                            <div v-if="errors.fullName" class="invalid-feedback">
-                              {{ errors.fullName }}
-                            </div>
-                          </div>
-                          <div class="col-md-6">
-                            <label class="form-label">
-                              {{ isEs ? 'Número de identificación' : 'Identification number' }}
-                              <span class="text-danger">*</span>
-                            </label>
-                            <input
-                              v-model="form.idNumber"
-                              type="text"
-                              class="form-control form-control-sm"
-                              :class="{ 'is-invalid': errors.idNumber }"
-                            />
-                            <div v-if="errors.idNumber" class="invalid-feedback">
-                              {{ errors.idNumber }}
-                            </div>
-                          </div>
-                          <div class="col-md-6">
-                            <label class="form-label">
-                              {{ isEs ? 'Correo electrónico' : 'Email address' }}
-                              <span class="text-danger">*</span>
-                            </label>
-                            <input
-                              v-model="form.email"
-                              type="email"
-                              class="form-control form-control-sm"
-                              :class="{ 'is-invalid': errors.email }"
-                            />
-                            <div v-if="errors.email" class="invalid-feedback">
-                              {{ errors.email }}
-                            </div>
-                          </div>
-                          <div class="col-md-6">
-                            <label class="form-label">
-                              {{ isEs ? 'Número de teléfono' : 'Phone number' }}
-                              <span class="text-danger">*</span>
-                            </label>
-                            <input
-                              v-model="form.phone"
-                              type="text"
-                              class="form-control form-control-sm"
-                              :class="{ 'is-invalid': errors.phone }"
-                            />
-                            <div v-if="errors.phone" class="invalid-feedback">
-                              {{ errors.phone }}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </transition>
-                  </div>
-
-                  <!-- Footer del formulario -->
-                  <div
-                    class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mt-3"
-                  >
-                    <p class="small text-muted mb-0">
+                    <span class="text-muted">
                       <span v-if="isEs">
-                        Al enviar este formulario, declaras que la información suministrada es verdadera y utilizas este
-                        canal de manera responsable.
+                        Puedes cambiarlo en la sección “Identidad del reportante”.
                       </span>
                       <span v-else>
-                        By submitting this form, you declare that the information provided is true and that you use this
-                        channel responsibly.
+                        You can change this in the “Reporter identity” section.
                       </span>
-                    </p>
+                    </span>
+                  </div>
+                </div>
 
-                    <button
-                      type="submit"
-                      class="btn btn-danger px-4"
-                      :disabled="loading"
+                <!-- Características -->
+                <div class="info-card mb-3">
+                  <h2 class="h6 mb-2">
+                    {{ isEs ? 'Características de la Línea' : 'Line characteristics' }}
+                  </h2>
+                  <ul class="list-unstyled mb-0 small characteristics-list">
+                    <li
+                      v-for="item in characteristics"
+                      :key="item.id"
+                      class="d-flex align-items-start gap-2 mb-1"
                     >
-                      <span v-if="!loading">
-                        {{ isEs ? 'Enviar reporte' : 'Submit report' }}
+                      <span class="char-dot"></span>
+                      <span>{{ isEs ? item.es : item.en }}</span>
+                    </li>
+                  </ul>
+                </div>
+
+                <!-- Canales externos -->
+                <div class="info-card mb-3">
+                  <h2 class="h6 mb-2">
+                    {{ isEs ? 'Canales externos' : 'External channels' }}
+                  </h2>
+                  <p class="small text-muted mb-2">
+                    <span v-if="isEs">
+                      También puedes acudir a los canales de la Superintendencia de Sociedades:
+                    </span>
+                    <span v-else>
+                      You may also report through the Superintendence of Companies channels:
+                    </span>
+                  </p>
+                  <ul class="list-unstyled small mb-2">
+                    <li class="mb-1">
+                      <a
+                        href="https://www.supersociedades.gov.co/web/asuntos-economicos-societarios/canal-de-denuncias-por-soborno-transnacional"
+                        target="_blank"
+                        rel="noopener"
+                      >
+                        {{ isEs ? 'Canal de denuncias por soborno internacional' : 'International bribery reporting channel' }}
+                      </a>
+                    </li>
+                    
+                  </ul>
+                </div>
+
+                <!-- Políticas -->
+                <div class="info-card">
+                  <h2 class="h6 mb-2">
+                    {{ isEs ? 'Políticas de cumplimiento' : 'Compliance policies' }}
+                  </h2>
+                  <p class="small text-muted mb-2">
+                    <span v-if="isEs">
+                      Consulta el detalle de nuestras políticas y procedimientos:
+                    </span>
+                    <span v-else>
+                      Review our detailed compliance policies and procedures:
+                    </span>
+                  </p>
+                  <div class="d-flex flex-column gap-1 small">
+                    <button
+                      type="button"
+                      class="btn btn-link btn-sm text-start p-0 link-policy"
+                      @click="openPolicy('corruptionPolicy')"
+                    >
+                      •
+                      <span v-if="isEs">
+                        Políticas Generales Contra la Corrupción y el Soborno Transnacional
                       </span>
-                      <span v-else class="d-inline-flex align-items-center">
-                        <span
-                          class="spinner-border spinner-border-sm me-2"
-                          role="status"
-                          aria-hidden="true"
-                        ></span>
-                        {{ isEs ? 'Enviando...' : 'Submitting...' }}
+                      <span v-else>
+                        General Policies Against Corruption and Transnational Bribery
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-link btn-sm text-start p-0 link-policy"
+                      @click="openPolicy('moneyLaunderingPolicy')"
+                    >
+                      •
+                      <span v-if="isEs">
+                        Políticas Contra el Lavado de Activos, la Financiación del Terrorismo y la Proliferación de Armas
+                        de Destrucción Masiva
+                      </span>
+                      <span v-else>
+                        Policies Against Money Laundering, Terrorism Financing, and WMD Proliferation
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-link btn-sm text-start p-0 link-policy"
+                      @click="openPolicy('protocol')"
+                    >
+                      •
+                      <span v-if="isEs">
+                        Protocolo de funcionamiento de la Línea de Transparencia y medidas de protección
+                      </span>
+                      <span v-else>
+                        Transparency Line operating protocol and protection measures
                       </span>
                     </button>
                   </div>
-                </form>
-              </div>
-            </section>
+                </div>
+              </aside>
+
+              <!-- Columna formulario -->
+              <section class="col-lg-8 order-1 order-lg-2">
+                <div class="form-shell h-100">
+                  <!-- Alertas globales -->
+                  <transition name="fade">
+                    <div v-if="successMessage" class="alert alert-success small mb-3">
+                      <strong>{{ isEs ? 'Reporte enviado.' : 'Report submitted.' }}</strong>
+                      <div>{{ successMessage }}</div>
+                    </div>
+                  </transition>
+                  <transition name="fade">
+                    <div v-if="errorMessage" class="alert alert-danger small mb-3">
+                      <strong>{{ isEs ? 'Error al enviar el reporte.' : 'Error submitting the report.' }}</strong>
+                      <div>{{ errorMessage }}</div>
+                    </div>
+                  </transition>
+
+                  <form @submit.prevent="handleSubmit" novalidate>
+                    <!-- Paso 1: Detalles del reporte -->
+                    <div class="step-section mb-4">
+                      <div class="step-header mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="step-badge">1</span>
+                          <div>
+                            <h2 class="h6 mb-0">
+                              {{ isEs ? 'Detalles del reporte' : 'Report details' }}
+                            </h2>
+                            <p class="small text-muted mb-0">
+                              <span v-if="isEs">
+                                Indica el tipo de reporte y describe con claridad lo sucedido.
+                              </span>
+                              <span v-else>
+                                Indicate the type of report and clearly describe what happened.
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Tipo de reporte -->
+                      <div class="mb-3">
+                        <label class="form-label">
+                          {{ isEs ? 'Tipo de reporte' : 'Type of report' }}
+                          <span class="text-danger">*</span>
+                        </label>
+                        <div class="row g-2">
+                          <div class="col-md-6">
+                            <select
+                              v-model="form.reportType"
+                              class="form-select form-select-sm"
+                              :class="{ 'is-invalid': errors.reportType }"
+                              required
+                            >
+                              <option value="" disabled>
+                                {{ isEs ? 'Selecciona una opción' : 'Select an option' }}
+                              </option>
+                              <option
+                                v-for="option in reportTypeOptions"
+                                :key="option.value"
+                                :value="option.value"
+                              >
+                                {{ isEs ? option.labelEs : option.labelEn }}
+                              </option>
+                            </select>
+                            <div v-if="errors.reportType" class="invalid-feedback">
+                              {{ errors.reportType }}
+                            </div>
+                          </div>
+                          <div class="col-md-6 d-flex align-items-center">
+                            <div class="small text-muted">
+                              <span v-if="isEs">
+                                Usa <strong>“Otros”</strong> si tu caso no encaja claramente en las categorías listadas.
+                              </span>
+                              <span v-else>
+                                Use <strong>“Other”</strong> if your case does not clearly fit in the listed categories.
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Descripción -->
+                      <div class="mb-3">
+                        <label class="form-label">
+                          {{ isEs ? 'Descripción de lo sucedido' : 'Description of the incident' }}
+                          <span class="text-danger">*</span>
+                        </label>
+                        <textarea
+                          v-model="form.description"
+                          rows="4"
+                          class="form-control form-control-sm"
+                          :class="{ 'is-invalid': errors.description }"
+                          required
+                        ></textarea>
+                        <div class="d-flex justify-content-between small mt-1">
+                          <span v-if="errors.description" class="text-danger">
+                            {{ errors.description }}
+                          </span>
+                          <span v-else class="text-muted">
+                            {{ isEs ? 'Mínimo 30 caracteres.' : 'Minimum 30 characters.' }}
+                          </span>
+                          <span
+                            :class="[
+                              'text-muted',
+                              descriptionLength < 30 ? 'text-warning' : 'text-success'
+                            ]"
+                          >
+                            {{ descriptionLength }} / 5000
+                          </span>
+                        </div>
+                      </div>
+
+                      <!-- Fecha -->
+                      <div class="mb-3">
+                        <label class="form-label">
+                          {{ isEs ? 'Fecha en la que ocurrió el suceso' : 'Date of occurrence' }}
+                          <span class="text-danger">*</span>
+                        </label>
+                        <input
+                          v-model="form.eventDate"
+                          type="date"
+                          class="form-control form-control-sm"
+                          :class="{ 'is-invalid': errors.eventDate }"
+                          required
+                        />
+                        <div v-if="errors.eventDate" class="invalid-feedback">
+                          {{ errors.eventDate }}
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Paso 2: Ubicación -->
+                    <div class="step-section mb-4">
+                      <div class="step-header mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="step-badge">2</span>
+                          <div>
+                            <h2 class="h6 mb-0">
+                              {{ isEs ? 'Ubicación del suceso' : 'Incident location' }}
+                            </h2>
+                            <p class="small text-muted mb-0">
+                              <span v-if="isEs">
+                                Indica dónde ocurrieron los hechos para facilitar su análisis.
+                              </span>
+                              <span v-else>
+                                Indicate where the events took place to facilitate their analysis.
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="row g-3">
+                        <div class="col-md-4">
+                          <label class="form-label">
+                            {{ isEs ? 'País' : 'Country' }}
+                            <span class="text-danger">*</span>
+                          </label>
+                          <input
+                            v-model="form.country"
+                            type="text"
+                            class="form-control form-control-sm"
+                            :class="{ 'is-invalid': errors.country }"
+                            required
+                          />
+                          <div v-if="errors.country" class="invalid-feedback">
+                            {{ errors.country }}
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">
+                            {{ isEs ? 'Departamento / Estado' : 'State / Department' }}
+                            <span class="text-danger">*</span>
+                          </label>
+                          <input
+                            v-model="form.state"
+                            type="text"
+                            class="form-control form-control-sm"
+                            :class="{ 'is-invalid': errors.state }"
+                            required
+                          />
+                          <div v-if="errors.state" class="invalid-feedback">
+                            {{ errors.state }}
+                          </div>
+                        </div>
+                        <div class="col-md-4">
+                          <label class="form-label">
+                            {{ isEs ? 'Ciudad' : 'City' }}
+                            <span class="text-danger">*</span>
+                          </label>
+                          <input
+                            v-model="form.city"
+                            type="text"
+                            class="form-control form-control-sm"
+                            :class="{ 'is-invalid': errors.city }"
+                            required
+                          />
+                          <div v-if="errors.city" class="invalid-feedback">
+                            {{ errors.city }}
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Personas relacionadas -->
+                      <div class="mt-3">
+                        <label class="form-label">
+                          {{ isEs ? 'Personas relacionadas' : 'People involved' }}
+                        </label>
+                        <textarea
+                          v-model="form.peopleInvolved"
+                          rows="2"
+                          class="form-control form-control-sm"
+                          placeholder="Ej: Nombre, cargo, área…"
+                        ></textarea>
+                        <div class="form-text small">
+                          <span v-if="isEs">
+                            Si lo conoces, incluye nombre, cargo y área. Puedes escribir varios separados por coma o
+                            salto de línea.
+                          </span>
+                          <span v-else>
+                            If known, include name, position and area. You may write several separated by commas or line
+                            breaks.
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- Paso 3: Soportes -->
+                    <div class="step-section mb-4">
+                      <div class="step-header mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="step-badge">3</span>
+                          <div>
+                            <h2 class="h6 mb-0">
+                              {{ isEs ? 'Soportes y evidencias' : 'Supporting information & evidence' }}
+                            </h2>
+                            <p class="small text-muted mb-0">
+                              <span v-if="isEs">
+                                Describe brevemente los soportes que tienes y adjunta archivos si es posible.
+                              </span>
+                              <span v-else>
+                                Briefly describe the evidence you have and attach files if possible.
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div class="mb-3">
+                        <label class="form-label">
+                          {{ isEs ? 'Descripción de los soportes' : 'Description of supporting information' }}
+                        </label>
+                        <textarea
+                          v-model="form.supportsText"
+                          rows="2"
+                          class="form-control form-control-sm"
+                        ></textarea>
+                      </div>
+
+                      <!-- Archivos -->
+                      <div class="mb-1">
+                        <label class="form-label">
+                          {{ isEs ? 'Adjuntar archivos (opcional)' : 'Attach files (optional)' }}
+                        </label>
+                        <div class="attachment-dropzone" @click="triggerFileInput">
+                          <input
+                            ref="fileInput"
+                            type="file"
+                            class="d-none"
+                            multiple
+                            @change="onFilesChange"
+                          />
+                          <div class="d-flex align-items-center gap-3">
+                            <div class="icon-circle icon-circle-file">
+                              <span class="icon-text">⬆</span>
+                            </div>
+                            <div class="flex-grow-1">
+                              <p class="mb-0 small">
+                                <strong>
+                                  <span v-if="isEs">Haz clic para seleccionar archivos</span>
+                                  <span v-else>Click to select files</span>
+                                </strong>
+                              </p>
+                              <p class="mb-0 small text-muted">
+                                <span v-if="isEs">
+                                  Puedes adjuntar correos, documentos, capturas de pantalla, etc.
+                                </span>
+                                <span v-else>
+                                  You may attach emails, documents, screenshots, etc.
+                                </span>
+                              </p>
+                            </div>
+                            <div class="small text-muted text-end">
+                              <span v-if="selectedFiles.length === 0">
+                                {{ isEs ? 'Ningún archivo' : 'No files' }}
+                              </span>
+                              <span v-else>
+                                {{ selectedFiles.length }}
+                                {{ isEs ? 'archivo(s)' : 'file(s)' }}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        <ul
+                          v-if="selectedFiles.length > 0"
+                          class="list-unstyled small mt-2 mb-0 text-muted"
+                        >
+                          <li
+                            v-for="file in selectedFiles"
+                            :key="file.name"
+                            class="text-truncate"
+                          >
+                            • {{ file.name }}
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <!-- Paso 4: Identidad del reportante -->
+                    <div class="step-section mb-4">
+                      <div class="step-header mb-2">
+                        <div class="d-flex align-items-center gap-2">
+                          <span class="step-badge">4</span>
+                          <div>
+                            <h2 class="h6 mb-0">
+                              {{ isEs ? 'Identidad del reportante' : 'Reporter identity' }}
+                            </h2>
+                            <p class="small text-muted mb-0">
+                              <span v-if="isEs">
+                                Elige si deseas permanecer en el anonimato o compartir tus datos de contacto.
+                              </span>
+                              <span v-else>
+                                Choose whether to remain anonymous or share your contact details.
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- ¿Desea identificarse? -->
+                      <div class="mb-3">
+                        <label class="form-label">
+                          {{ isEs ? '¿Desea identificarse?' : 'Do you wish to identify yourself?' }}
+                          <span class="text-danger">*</span>
+                        </label>
+                        <div class="row g-2">
+                          <div class="col-md-6">
+                            <select
+                              v-model="form.wantsIdentification"
+                              class="form-select form-select-sm"
+                              :class="{ 'is-invalid': errors.wantsIdentification }"
+                              required
+                            >
+                              <option value="no">
+                                {{ isEs ? 'No, deseo permanecer anónimo' : 'No, I prefer to remain anonymous' }}
+                              </option>
+                              <option value="yes">
+                                {{ isEs ? 'Sí, deseo identificarme' : 'Yes, I want to identify myself' }}
+                              </option>
+                            </select>
+                            <div v-if="errors.wantsIdentification" class="invalid-feedback">
+                              {{ errors.wantsIdentification }}
+                            </div>
+                          </div>
+                          <div class="col-md-6 d-flex align-items-center">
+                            <p class="small mb-0 text-muted">
+                              <span v-if="isEs">
+                                Si te identificas, podremos contactarte para ampliar la información si es necesario.
+                              </span>
+                              <span v-else>
+                                If you identify yourself, we may contact you to request further details if needed.
+                              </span>
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <!-- Datos personales condicionales -->
+                      <transition name="slide-fade">
+                        <div
+                          v-if="form.wantsIdentification === 'yes'"
+                          class="border rounded-3 p-3 bg-light-subtle"
+                        >
+                          <p class="small mb-2 fw-semibold">
+                            {{ isEs ? 'Datos de contacto' : 'Contact details' }}
+                          </p>
+                          <p class="small text-muted mb-3">
+                            <span v-if="isEs">
+                              Estos datos se utilizarán únicamente para dar seguimiento al caso y no se compartirán sin tu
+                              autorización.
+                            </span>
+                            <span v-else>
+                              This information will only be used to follow up on the case and will not be shared without
+                              your consent.
+                            </span>
+                          </p>
+
+                          <div class="row g-3">
+                            <div class="col-md-6">
+                              <label class="form-label">
+                                {{ isEs ? 'Nombre completo' : 'Full name' }}
+                                <span class="text-danger">*</span>
+                              </label>
+                              <input
+                                v-model="form.fullName"
+                                type="text"
+                                class="form-control form-control-sm"
+                                :class="{ 'is-invalid': errors.fullName }"
+                              />
+                              <div v-if="errors.fullName" class="invalid-feedback">
+                                {{ errors.fullName }}
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <label class="form-label">
+                                {{ isEs ? 'Número de identificación' : 'Identification number' }}
+                                <span class="text-danger">*</span>
+                              </label>
+                              <input
+                                v-model="form.idNumber"
+                                type="text"
+                                class="form-control form-control-sm"
+                                :class="{ 'is-invalid': errors.idNumber }"
+                              />
+                              <div v-if="errors.idNumber" class="invalid-feedback">
+                                {{ errors.idNumber }}
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <label class="form-label">
+                                {{ isEs ? 'Correo electrónico' : 'Email address' }}
+                                <span class="text-danger">*</span>
+                              </label>
+                              <input
+                                v-model="form.email"
+                                type="email"
+                                class="form-control form-control-sm"
+                                :class="{ 'is-invalid': errors.email }"
+                              />
+                              <div v-if="errors.email" class="invalid-feedback">
+                                {{ errors.email }}
+                              </div>
+                            </div>
+                            <div class="col-md-6">
+                              <label class="form-label">
+                                {{ isEs ? 'Número de teléfono' : 'Phone number' }}
+                                <span class="text-danger">*</span>
+                              </label>
+                              <input
+                                v-model="form.phone"
+                                type="text"
+                                class="form-control form-control-sm"
+                                :class="{ 'is-invalid': errors.phone }"
+                              />
+                              <div v-if="errors.phone" class="invalid-feedback">
+                                {{ errors.phone }}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </transition>
+                    </div>
+
+                    <!-- Footer del formulario -->
+                    <div
+                      class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mt-3"
+                    >
+                      <p class="small text-muted mb-0">
+                        <span v-if="isEs">
+                          Al enviar este formulario, declaras que la información suministrada es verdadera y utilizas este
+                          canal de manera responsable.
+                        </span>
+                        <span v-else>
+                          By submitting this form, you declare that the information provided is true and that you use this
+                          channel responsibly.
+                        </span>
+                      </p>
+
+                      <button
+                        type="submit"
+                        class="btn btn-danger px-4"
+                        :disabled="loading"
+                      >
+                        <span v-if="!loading">
+                          {{ isEs ? 'Enviar reporte' : 'Submit report' }}
+                        </span>
+                        <span v-else class="d-inline-flex align-items-center">
+                          <span
+                            class="spinner-border spinner-border-sm me-2"
+                            role="status"
+                            aria-hidden="true"
+                          ></span>
+                          {{ isEs ? 'Enviando...' : 'Submitting...' }}
+                        </span>
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              </section>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </main>
+
+    <!-- FOOTER -->
+    <FooterLanding />
   </div>
 </template>
 
 <script setup>
 import { reactive, ref, computed, watch } from 'vue'
 import apiService from '@/services/apiService'
+
+import MenuLanding from '@/components/MainPage/MenuLanding/MenuLanding.vue'
+import FooterLanding from '@/components/Landing/FooterLanding/FooterLanding.vue'
 
 // El apiService ya tiene baseURL = backendRoute.data (ej: /api/v1.0/)
 const API_ENDPOINT = '/transparency-report/'
@@ -808,41 +816,21 @@ const reportTypeOptions = [
 
 // Características
 const characteristics = [
-  {
-    id: 1,
-    es: 'Administrada por el Oficial de Cumplimiento del PTEE.',
-    en: 'Administered by the PTEE Compliance Officer.'
-  },
-  {
-    id: 2,
-    es: 'Diferente a la línea de servicio al cliente.',
-    en: 'Different from the customer service line.'
-  },
+  { id: 1, es: 'Administrada por el Oficial de Cumplimiento del PTEE.', en: 'Administered by the PTEE Compliance Officer.' },
+  { id: 2, es: 'Diferente a la línea de servicio al cliente.', en: 'Different from the customer service line.' },
   {
     id: 3,
     es: 'Para reportar conductas que van en contra de la transparencia e integridad de la empresa.',
     en: 'For reporting conduct that goes against the company’s transparency and integrity.'
   },
-  {
-    id: 4,
-    es: 'No es para sugerencias ni temas personales o estrictamente laborales.',
-    en: 'Not intended for suggestions or strictly personal/labor-related matters.'
-  },
+  { id: 4, es: 'No es para sugerencias ni temas personales o estrictamente laborales.', en: 'Not intended for suggestions or strictly personal/labor-related matters.' },
   {
     id: 5,
     es: 'Debe ser utilizada con responsabilidad. Los hechos reportados deben ser reales y verificables.',
     en: 'Must be used responsibly. Reported facts must be real and verifiable.'
   },
-  {
-    id: 6,
-    es: 'Permite reportar, de manera confidencial, presuntas irregularidades fundadas.',
-    en: 'Allows confidential reporting of well-founded alleged irregularities.'
-  },
-  {
-    id: 7,
-    es: 'Facilita el control y seguimiento de los casos reportados.',
-    en: 'Facilitates control and follow-up of reported cases.'
-  },
+  { id: 6, es: 'Permite reportar, de manera confidencial, presuntas irregularidades fundadas.', en: 'Allows confidential reporting of well-founded alleged irregularities.' },
+  { id: 7, es: 'Facilita el control y seguimiento de los casos reportados.', en: 'Facilitates control and follow-up of reported cases.' },
   {
     id: 8,
     es: 'Las personas reportantes pueden permanecer en el anonimato; su identidad no será revelada sin su consentimiento.',
@@ -1066,7 +1054,6 @@ const openPolicy = (policyKey) => {
   }
 
   const fileName = (isEs.value ? fileNamesEs : fileNamesEn)[policyKey]
-
   if (!fileName) return
 
   // Construimos la URL respetando espacios/tildes con encodeURIComponent
@@ -1132,6 +1119,17 @@ const handleSubmit = async () => {
 </script>
 
 <style scoped>
+/* ✅ Layout para header + footer */
+.layout{
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.content{
+  flex: 1;
+}
+
+/* Tu wrapper */
 .transparency-wrapper {
   min-height: 100vh;
 }

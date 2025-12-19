@@ -11,6 +11,7 @@ declare module 'vue' {
     Blog: typeof import('./src/components/MainPage/Blog/Blog.vue')['default']
     Carrito: typeof import('./src/components/MainPage/Carrito/Carrito.vue')['default']
     FileUploadComponent: typeof import('./src/components/FileUploadComponent.vue')['default']
+    FooterLanding: typeof import('./src/components/Landing/FooterLanding/FooterLanding.vue')['default']
     IBiArrowRepeat: typeof import('~icons/bi/arrow-repeat')['default']
     IBiCart: typeof import('~icons/bi/cart')['default']
     IBiEnvelope: typeof import('~icons/bi/envelope')['default']

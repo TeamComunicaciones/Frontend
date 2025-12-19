@@ -35,6 +35,9 @@ import ConsultaPDV from '@/views/Intranet/Consultas/ConsultaPDV.vue';
 import DashboardAsesor from '@/views/Intranet/Consultas/DashboardAsesor.vue';
 import PanelAdmin from '@/views/Intranet/Consultas/PanelAdmin.vue';
 import TransparencyLinePage from '@/views/Intranet/Informes/TransparencyLinePage.vue';
+import EncuestaDev from '@/views/Intranet/Informes/EncuestaWizardDI.vue';
+import EncuestaDevDash from '@/views/Intranet/Informes/EncuestaDIDashboard.vue';
+
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -169,7 +172,9 @@ const router = createRouter({
     { path: '/dashboard-view', component: DashboardView },
     { path: '/consulta-pdv', component: ConsultaPDV },
     { path: '/dashboard-asesor', component: DashboardAsesor },
-    { path: '/Admin-consultas', component: PanelAdmin }
+    { path: '/Admin-consultas', component: PanelAdmin },
+    { path: '/Encuesta-de-satisfaccion', component: EncuestaDev },
+    { path: '/Encuesta-de-satisfaccion-dashboard', component: EncuestaDevDash }
   ],
 })
 

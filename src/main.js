@@ -11,6 +11,9 @@ import 'bootstrap-icons/font/bootstrap-icons.css'
 import 'sweetalert2/dist/sweetalert2.min.css'
 import 'vue-image-zoomer/dist/style.css'
 import './assets/scss/global.scss'
+// main.js
+import 'bootstrap-icons/font/bootstrap-icons.css'
+
 
 // Imports de la librería de notificaciones
 import Toast from 'vue-toastification' // <-- 2. Importar vue-toastification

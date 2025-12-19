@@ -38,28 +38,7 @@
                 </template>
             </BSidebar>
         </div>
-      <div id="contactos_container" class="card">
-            <div  class="row ">
-                <!-- ICONOS CORREGIDOS -->
-                <p class="col-3 contactos"> <i class="bi bi-telephone-fill"></i> (4) 6046679</p>
-                <p class="col-6 contactos"> <i class="bi bi-envelope-fill"></i> info@teamcomunicaciones.com</p>
-                <p class="col-1">
-                    <a class="contactos" target="_blank" href="https://www.facebook.com/profile.php?id=100063664486789">
-                        <i class="bi bi-facebook"></i>
-                    </a>
-                </p>
-                <p class="col-1">
-                    <a class="contactos" target="_blank" href="https://www.instagram.com/teamcomunicacionesclaro/?hl=es-la">
-                        <i class="bi bi-instagram"></i>
-                    </a>
-                </p>
-                <p class="col-1">
-                    <a class="contactos" target="_blank" href="https://www.youtube.com/channel/UCMSAXcm2b4alOnpw_AzUC1g">
-                        <i class="bi bi-youtube"></i>
-                    </a>
-                </p>
-            </div>
-        </div>
+
         <div id="logo_menu" class="row pb-3 align-items-center">
             <a class="col-12 col-md-3" href="/"><img class="img-fluid" :src="getImageUrl('logo.png')" alt="logo"/></a>
             
