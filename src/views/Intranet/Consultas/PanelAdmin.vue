@@ -6,6 +6,7 @@
           <h1 class="h2 mb-0" style="color: white !important;">Panel de Administración</h1>
           <span class="badge bg-danger">Acceso Restringido</span>
         </div>
+
         <div class="card-body p-0">
           <ul class="nav nav-tabs nav-fill" role="tablist">
             <li class="nav-item" role="presentation">
@@ -13,27 +14,31 @@
                 Carga de Comisiones
               </button>
             </li>
+
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#permisos-pane" type="button" role="tab">
                 Gestión de Asesores
               </button>
             </li>
+
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#reportes-pane" type="button" role="tab">
                 Reportes y Gráficas
               </button>
             </li>
-            <!-- Nueva pestaña: Comisiones Pendientes -->
+
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pendientes-pane" type="button" role="tab">
                 Comisiones Pendientes
               </button>
             </li>
+
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#pagos-pane" type="button" role="tab">
                 Gestión de Pagos
               </button>
             </li>
+
             <li class="nav-item" role="presentation">
               <button class="nav-link" data-bs-toggle="tab" data-bs-target="#config-pane" type="button" role="tab">
                 Configuración
@@ -48,6 +53,79 @@
               <p class="mb-4">
                 Sube el archivo .xlsx con los registros de comisiones. El sistema lo procesará en segundo plano.
               </p>
+
+              <!-- ✅ BLOQUE: Última carga + botón emergencia -->
+              <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                  <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                    <div>
+                      <h5 class="mb-1">Última carga registrada</h5>
+
+                      <div v-if="isLoadingUltimaCarga" class="text-muted">
+                        Cargando información...
+                      </div>
+
+                      <div v-else-if="ultimaCarga">
+                        <div class="mb-1">
+                          <span class="text-muted">ID:</span>
+                          <strong>#{{ ultimaCarga.id }}</strong>
+                        </div>
+                        <div class="mb-1">
+                          <span class="text-muted">Archivo:</span>
+                          <strong>{{ ultimaCarga.file_name || 'N/A' }}</strong>
+                        </div>
+                        <div class="mb-1">
+                          <span class="text-muted">Fecha:</span>
+                          <strong>{{ formatDateTime(ultimaCarga.created_at) }}</strong>
+                        </div>
+                        <div class="mb-2">
+                          <span class="text-muted">Registros creados:</span>
+                          <strong>{{ ultimaCarga.registros_creados ?? 'N/A' }}</strong>
+                        </div>
+                        <div>
+                          <span class="badge" :class="badgeEstadoCarga(ultimaCarga.estado)">
+                            {{ labelEstadoCarga(ultimaCarga.estado) }}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div v-else class="text-muted">
+                        No hay información de cargas previas.
+                      </div>
+                    </div>
+
+                    <div class="d-flex gap-2 align-items-center">
+                      <button
+                        class="btn btn-outline-secondary"
+                        type="button"
+                        @click="fetchUltimaCarga"
+                        :disabled="isLoadingUltimaCarga || isRollingBack"
+                        title="Refrescar estado"
+                      >
+                        <span v-if="isLoadingUltimaCarga" class="spinner-border spinner-border-sm me-2"></span>
+                        Refrescar
+                      </button>
+
+                      <button
+                        class="btn btn-danger"
+                        type="button"
+                        @click="confirmRollbackUltimaCarga"
+                        :disabled="!canRollbackUltimaCarga"
+                        title="Revertir la última carga (emergencia)"
+                      >
+                        <span v-if="isRollingBack" class="spinner-border spinner-border-sm me-2"></span>
+                        Revertir última carga
+                      </button>
+                    </div>
+                  </div>
+
+                  <small class="text-muted d-block mt-3">
+                    * Solo se habilita “Revertir” cuando la última carga está en estado <strong>Exitosa</strong>.
+                  </small>
+                </div>
+              </div>
+              <!-- ✅ FIN BLOQUE: Última carga + botón emergencia -->
+
               <div
                 class="drop-zone"
                 @dragover.prevent="onDragOver"
@@ -85,6 +163,7 @@
                   </p>
                 </div>
               </div>
+
               <div v-if="selectedFile" class="mt-3">
                 <div class="d-flex justify-content-between align-items-center bg-light p-2 rounded">
                   <div class="d-flex align-items-center text-truncate">
@@ -95,12 +174,14 @@
                   </button>
                 </div>
               </div>
+
               <div class="d-grid mt-4">
                 <button @click="uploadFile" class="btn btn-danger btn-lg" :disabled="!selectedFile || isLoading">
                   <span v-if="isLoading" class="spinner-border spinner-border-sm me-2"></span>
                   {{ isLoading ? 'Procesando...' : 'Iniciar Carga' }}
                 </button>
               </div>
+
               <div v-if="uploadResult" class="mt-4">
                 <div :class="['alert', uploadResult.success ? 'alert-success' : 'alert-danger']" role="alert">
                   <div class="d-flex align-items-center">
@@ -130,18 +211,8 @@
                   </p>
                 </div>
                 <button class="btn btn-danger d-flex align-items-center" @click="openModal('create')">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    class="bi bi-plus-lg me-1"
-                    viewBox="0 0 16 16"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0V8H2.5a.5.5 0 0 1 0-1H7v-5A.5.5 0 0 1 8 2z"
-                    />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg me-1" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0V8H2.5a.5.5 0 0 1 0-1H7v-5A.5.5 0 0 1 8 2z" />
                   </svg>
                   Nuevo Asesor
                 </button>
@@ -149,12 +220,7 @@
 
               <div class="row mb-3">
                 <div class="col-md-4">
-                  <input
-                    type="text"
-                    class="form-control"
-                    v-model="searchQuery"
-                    placeholder="Buscar por documento o email..."
-                  />
+                  <input type="text" class="form-control" v-model="searchQuery" placeholder="Buscar por documento o email..." />
                 </div>
               </div>
 
@@ -179,29 +245,18 @@
                     </thead>
                     <tbody>
                       <tr v-for="asesor in filteredAsesores" :key="asesor.id">
-                        <td>
-                          <strong>{{ asesor.username }}</strong>
-                        </td>
-                        <td>
-                          <span class="text-muted small d-block">{{ asesor.email }}</span>
-                        </td>
+                        <td><strong>{{ asesor.username }}</strong></td>
+                        <td><span class="text-muted small d-block">{{ asesor.email }}</span></td>
 
-                        <!-- Columna Rol -->
                         <td>
-                          <select
-                            class="form-select form-select-sm"
-                            v-model="asesor.rol"
-                            @change="onChangeRol(asesor)"
-                          >
+                          <select class="form-select form-select-sm" v-model="asesor.rol" @change="onChangeRol(asesor)">
                             <option v-for="rolOption in rolesOptions" :key="rolOption.value" :value="rolOption.value">
                               {{ rolOption.label }}
                             </option>
                           </select>
                         </td>
 
-                        <!-- Columna Rutas Asignadas -->
                         <td>
-                          <!-- Asesor: solo una ruta -->
                           <select
                             v-if="asesor.rol === 'asesor_comisiones'"
                             class="form-select form-select-sm"
@@ -219,7 +274,6 @@
                             </option>
                           </select>
 
-                          <!-- Supervisor: varias rutas -->
                           <v-select
                             v-else
                             class="v-select-sm rutas-multiples"
@@ -243,7 +297,6 @@
                           </v-select>
                         </td>
 
-                        <!-- Activo -->
                         <td class="text-center">
                           <div class="form-check form-switch d-flex justify-content-center">
                             <input
@@ -256,21 +309,9 @@
                           </div>
                         </td>
 
-                        <!-- Acciones -->
                         <td class="text-end">
-                          <button
-                            class="btn btn-sm btn-outline-secondary me-2"
-                            @click="openModal('edit', asesor)"
-                            title="Editar asesor"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              class="bi bi-pencil"
-                              viewBox="0 0 16 16"
-                            >
+                          <button class="btn btn-sm btn-outline-secondary me-2" @click="openModal('edit', asesor)" title="Editar asesor">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
                               <path
                                 d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 
                                   .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 
@@ -283,19 +324,8 @@
                               />
                             </svg>
                           </button>
-                          <button
-                            class="btn btn-sm btn-outline-danger"
-                            @click="eliminarAsesor(asesor)"
-                            title="Eliminar asesor"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              class="bi bi-trash"
-                              viewBox="0 0 16 16"
-                            >
+                          <button class="btn btn-sm btn-outline-danger" @click="eliminarAsesor(asesor)" title="Eliminar asesor">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                               <path
                                 d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 
                                   0a.5.5 0 0 1 .5.5v6a.5.5 0 0 
@@ -318,6 +348,7 @@
                           </button>
                         </td>
                       </tr>
+
                       <tr v-if="filteredAsesores.length === 0 && !isLoadingPermissions">
                         <td colspan="6" class="text-center p-4">No se encontraron asesores.</td>
                       </tr>
@@ -336,55 +367,28 @@
                     <div class="row g-3 align-items-end">
                       <div class="col-md-4">
                         <label for="filtroFechas" class="form-label fw-bold">Rango de Fechas</label>
-                        <DatePicker
-                          v-model:value="reportFilters.range"
-                          range
-                          id="filtroFechas"
-                          placeholder="Selecciona un rango"
-                        />
+                        <DatePicker v-model:value="reportFilters.range" range id="filtroFechas" placeholder="Selecciona un rango" />
                       </div>
                       <div class="col-md-4">
                         <label for="filtroRutas" class="form-label fw-bold">Rutas</label>
-                        <v-select
-                          multiple
-                          id="filtroRutas"
-                          placeholder="Todas las rutas"
-                          v-model="reportFilters.rutas"
-                          :options="filterOptions.rutas"
-                        />
+                        <v-select multiple id="filtroRutas" placeholder="Todas las rutas" v-model="reportFilters.rutas" :options="filterOptions.rutas" />
                       </div>
                       <div class="col-md-4">
                         <label for="filtroEstados" class="form-label fw-bold">Estado</label>
-                        <v-select
-                          multiple
-                          id="filtroEstados"
-                          placeholder="Todos los estados"
-                          v-model="reportFilters.estados"
-                          :options="filterOptions.estados"
-                        />
+                        <v-select multiple id="filtroEstados" placeholder="Todos los estados" v-model="reportFilters.estados" :options="filterOptions.estados" />
                       </div>
+
                       <div class="col-md-6 d-grid">
                         <button class="btn btn-danger" @click="generarReporte">
                           <span v-if="isLoadingReports" class="spinner-border spinner-border-sm me-2"></span>
                           {{ isLoadingReports ? 'Generando...' : 'Generar' }}
                         </button>
                       </div>
+
                       <div class="col-md-6 d-grid">
-                        <button
-                          class="btn btn-success"
-                          @click="exportarExcel"
-                          v-if="reportData"
-                          :disabled="isLoadingExport"
-                        >
+                        <button class="btn btn-success" @click="exportarExcel" v-if="reportData" :disabled="isLoadingExport">
                           <span v-if="isLoadingExport" class="spinner-border spinner-border-sm me-2"></span>
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="16"
-                            height="16"
-                            fill="currentColor"
-                            class="bi bi-file-earmark-excel-fill me-1"
-                            viewBox="0 0 16 16"
-                          >
+                          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-file-earmark-excel-fill me-1" viewBox="0 0 16 16">
                             <path
                               d="M9.293 0H4a2 2 0 0 0-2 
                                 2v12a2 2 0 0 0 2 2h8a2 2 0 0 
@@ -425,9 +429,7 @@
                     <div class="card h-100 text-center shadow-sm kpi-card">
                       <div class="card-body">
                         <h6>Total Pagado</h6>
-                        <div class="stat-value text-success">
-                          {{ formatCurrency(reportData.kpis.pagado) }}
-                        </div>
+                        <div class="stat-value text-success">{{ formatCurrency(reportData.kpis.pagado) }}</div>
                       </div>
                     </div>
                   </div>
@@ -435,9 +437,7 @@
                     <div class="card h-100 text-center shadow-sm kpi-card">
                       <div class="card-body">
                         <h6>Total Pendiente</h6>
-                        <div class="stat-value text-warning">
-                          {{ formatCurrency(reportData.kpis.pendiente) }}
-                        </div>
+                        <div class="stat-value text-warning">{{ formatCurrency(reportData.kpis.pendiente) }}</div>
                       </div>
                     </div>
                   </div>
@@ -445,9 +445,7 @@
                     <div class="card h-100 text-center shadow-sm kpi-card">
                       <div class="card-body">
                         <h6>Total Vencido</h6>
-                        <div class="stat-value text-danger">
-                          {{ formatCurrency(reportData.kpis.vencido) }}
-                        </div>
+                        <div class="stat-value text-danger">{{ formatCurrency(reportData.kpis.vencido) }}</div>
                       </div>
                     </div>
                   </div>
@@ -543,18 +541,8 @@
                   </p>
                 </div>
                 <button class="btn btn-danger d-flex align-items-center" @click="openNuevaComisionModal">
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="16"
-                    height="16"
-                    fill="currentColor"
-                    class="bi bi-plus-lg me-1"
-                    viewBox="0 0 16 16"
-                  >
-                    <path
-                      fill-rule="evenodd"
-                      d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0V8H2.5a.5.5 0 0 1 0-1H7v-5A.5.5 0 0 1 8 2z"
-                    />
+                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-plus-lg me-1" viewBox="0 0 16 16">
+                    <path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0V8H2.5a.5.5 0 0 1 0-1H7v-5A.5.5 0 0 1 8 2z" />
                   </svg>
                   Nueva Comisión Pendiente
                 </button>
@@ -566,12 +554,7 @@
                     <div class="row g-3 align-items-end">
                       <div class="col-md-3">
                         <label for="filtroPendRuta" class="form-label fw-bold">Ruta</label>
-                        <v-select
-                          id="filtroPendRuta"
-                          placeholder="Todas las rutas"
-                          v-model="pendientesFilters.ruta"
-                          :options="rutas"
-                        />
+                        <v-select id="filtroPendRuta" placeholder="Todas las rutas" v-model="pendientesFilters.ruta" :options="rutas" />
                       </div>
 
                       <div class="col-md-3">
@@ -589,26 +572,14 @@
                         </v-select>
                       </div>
 
-                      <!-- Filtro ID POS -->
                       <div class="col-md-2">
                         <label for="filtroPendIdpos" class="form-label fw-bold">ID POS</label>
-                        <input
-                          id="filtroPendIdpos"
-                          type="text"
-                          class="form-control"
-                          v-model="pendientesFilters.idpos"
-                          placeholder="Ej: 12345"
-                        />
+                        <input id="filtroPendIdpos" type="text" class="form-control" v-model="pendientesFilters.idpos" placeholder="Ej: 12345" />
                       </div>
 
                       <div class="col-md-2">
                         <label for="filtroPendFechas" class="form-label fw-bold">Rango de Fechas</label>
-                        <DatePicker
-                          v-model:value="pendientesFilters.range"
-                          range
-                          id="filtroPendFechas"
-                          placeholder="Selecciona un rango"
-                        />
+                        <DatePicker v-model:value="pendientesFilters.range" range id="filtroPendFechas" placeholder="Selecciona un rango" />
                       </div>
 
                       <div class="col-md-2 d-grid">
@@ -651,11 +622,7 @@
                         <td>{{ comision.mes_pago || comision.fecha_referencia || 'N/A' }}</td>
                         <td>{{ formatCurrency(comision.valor_comision) }}</td>
                         <td>
-                          <!-- 🔹 Usa estado_front y es_saldo_pendiente -->
-                          <span
-                            class="badge"
-                            :class="getEstadoPendienteClass(comision)"
-                          >
+                          <span class="badge" :class="getEstadoPendienteClass(comision)">
                             {{ comision.estado_front || comision.estado }}
                           </span>
                         </td>
@@ -663,19 +630,8 @@
                           {{ comision.observacion || 'N/A' }}
                         </td>
                         <td class="text-end">
-                          <button
-                            class="btn btn-sm btn-outline-secondary me-2"
-                            @click="openComisionModal('edit', comision)"
-                            title="Editar comisión"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              class="bi bi-pencil"
-                              viewBox="0 0 16 16"
-                            >
+                          <button class="btn btn-sm btn-outline-secondary me-2" @click="openComisionModal('edit', comision)" title="Editar comisión">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
                               <path
                                 d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0
                                   .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0
@@ -688,19 +644,8 @@
                               />
                             </svg>
                           </button>
-                          <button
-                            class="btn btn-sm btn-outline-danger"
-                            @click="eliminarComision(comision)"
-                            title="Eliminar comisión"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              class="bi bi-trash"
-                              viewBox="0 0 16 16"
-                            >
+                          <button class="btn btn-sm btn-outline-danger" @click="eliminarComision(comision)" title="Eliminar comisión">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                               <path
                                 d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5
                                   0a.5.5 0 0 1 .5.5v6a.5.5 0 0
@@ -734,22 +679,13 @@
                   <nav>
                     <ul class="pagination pagination-sm mb-0">
                       <li class="page-item" :class="{ disabled: pendientesData.current_page === 1 }">
-                        <button class="page-link" @click="goToPendientesPage(pendientesData.current_page - 1)">
-                          Anterior
-                        </button>
+                        <button class="page-link" @click="goToPendientesPage(pendientesData.current_page - 1)">Anterior</button>
                       </li>
                       <li class="page-item disabled">
-                        <span class="page-link">
-                          Página {{ pendientesData.current_page }} de {{ pendientesData.total_pages }}
-                        </span>
+                        <span class="page-link">Página {{ pendientesData.current_page }} de {{ pendientesData.total_pages }}</span>
                       </li>
-                      <li
-                        class="page-item"
-                        :class="{ disabled: pendientesData.current_page === pendientesData.total_pages }"
-                      >
-                        <button class="page-link" @click="goToPendientesPage(pendientesData.current_page + 1)">
-                          Siguiente
-                        </button>
+                      <li class="page-item" :class="{ disabled: pendientesData.current_page === pendientesData.total_pages }">
+                        <button class="page-link" @click="goToPendientesPage(pendientesData.current_page + 1)">Siguiente</button>
                       </li>
                     </ul>
                   </nav>
@@ -773,12 +709,7 @@
                     <div class="row g-3 align-items-end">
                       <div class="col-md-3">
                         <label for="filtroPagoRuta" class="form-label fw-bold">Ruta</label>
-                        <v-select
-                          id="filtroPagoRuta"
-                          placeholder="Selecciona una ruta"
-                          v-model="pagosFilters.ruta"
-                          :options="rutas"
-                        />
+                        <v-select id="filtroPagoRuta" placeholder="Selecciona una ruta" v-model="pagosFilters.ruta" :options="rutas" />
                       </div>
 
                       <div class="col-md-3">
@@ -794,12 +725,7 @@
 
                       <div class="col-md-3">
                         <label for="filtroPagoFechas" class="form-label fw-bold">Rango de Fechas</label>
-                        <DatePicker
-                          v-model:value="pagosFilters.range"
-                          range
-                          id="filtroPagoFechas"
-                          placeholder="Selecciona un rango"
-                        />
+                        <DatePicker v-model:value="pagosFilters.range" range id="filtroPagoFechas" placeholder="Selecciona un rango" />
                       </div>
 
                       <div class="col-md-3 d-grid">
@@ -844,18 +770,8 @@
                           {{ pago.observacion || 'N/A' }}
                         </td>
                         <td class="text-end">
-                          <button
-                            class="btn btn-sm btn-outline-secondary me-2"
-                            @click="openPagoModal('edit', pago)"
-                          >
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              class="bi bi-pencil"
-                              viewBox="0 0 16 16"
-                            >
+                          <button class="btn btn-sm btn-outline-secondary me-2" @click="openPagoModal('edit', pago)">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil" viewBox="0 0 16 16">
                               <path
                                 d="M12.146.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1 0 
                                   .708l-10 10a.5.5 0 0 1-.168.11l-5 2a.5.5 0 0 
@@ -869,14 +785,7 @@
                             </svg>
                           </button>
                           <button class="btn btn-sm btn-outline-danger" @click="eliminarPago(pago)">
-                            <svg
-                              xmlns="http://www.w3.org/2000/svg"
-                              width="16"
-                              height="16"
-                              fill="currentColor"
-                              class="bi bi-trash"
-                              viewBox="0 0 16 16"
-                            >
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-trash" viewBox="0 0 16 16">
                               <path
                                 d="M5.5 5.5A.5.5 0 0 1 6 6v6a.5.5 0 0 1-1 0V6a.5.5 0 0 1 .5-.5zm2.5 
                                   0a.5.5 0 0 1 .5.5v6a.5.5 0 0 
@@ -902,29 +811,19 @@
                     </tbody>
                   </table>
                 </div>
+
                 <div class="card-footer d-flex justify-content-between align-items-center">
-                  <span class="text-muted">
-                    Mostrando {{ pagosData.results.length }} de {{ pagosData.count }} resultados
-                  </span>
+                  <span class="text-muted">Mostrando {{ pagosData.results.length }} de {{ pagosData.count }} resultados</span>
                   <nav>
                     <ul class="pagination pagination-sm mb-0">
                       <li class="page-item" :class="{ disabled: pagosData.current_page === 1 }">
-                        <button class="page-link" @click="goToPagosPage(pagosData.current_page - 1)">
-                          Anterior
-                        </button>
+                        <button class="page-link" @click="goToPagosPage(pagosData.current_page - 1)">Anterior</button>
                       </li>
                       <li class="page-item disabled">
-                        <span class="page-link">
-                          Página {{ pagosData.current_page }} de {{ pagosData.total_pages }}
-                        </span>
+                        <span class="page-link">Página {{ pagosData.current_page }} de {{ pagosData.total_pages }}</span>
                       </li>
-                      <li
-                        class="page-item"
-                        :class="{ disabled: pagosData.current_page === pagosData.total_pages }"
-                      >
-                        <button class="page-link" @click="goToPagosPage(pagosData.current_page + 1)">
-                          Siguiente
-                        </button>
+                      <li class="page-item" :class="{ disabled: pagosData.current_page === pagosData.total_pages }">
+                        <button class="page-link" @click="goToPagosPage(pagosData.current_page + 1)">Siguiente</button>
                       </li>
                     </ul>
                   </nav>
@@ -979,6 +878,7 @@
   </div>
 </template>
 
+
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue';
 import Swal from 'sweetalert2';
@@ -1025,6 +925,142 @@ const rolesOptions = [
   { value: 'asesor_comisiones', label: 'Asesor' },
   { value: 'supervisor_comisiones', label: 'Supervisor' },
 ];
+
+/* ------------------- ÚLTIMA CARGA / ROLLBACK (EMERGENCIA) -------------------- */
+/**
+ * Requiere backend:
+ *  - GET  admin/comisiones/ultima-carga/
+ *  - POST admin/comisiones/rollback-ultima-carga/
+ *
+ * Respuesta sugerida GET:
+ *  {
+ *    id: 123,
+ *    file_name: "comisiones_enero.xlsx",
+ *    estado: "processing|success|error|rolled_back",
+ *    registros_creados: 15000,
+ *    created_at: "2026-01-22T12:34:56Z"
+ *  }
+ */
+const ultimaCarga = ref(null);
+const isLoadingUltimaCarga = ref(false);
+const isRollingBack = ref(false);
+
+const labelEstadoCarga = (estado) => {
+  const map = {
+    processing: 'Procesando',
+    success: 'Exitosa',
+    error: 'Error',
+    rolled_back: 'Revertida',
+  };
+  return map[estado] || estado || 'N/A';
+};
+
+const badgeEstadoCarga = (estado) => {
+  if (estado === 'success') return 'bg-success';
+  if (estado === 'processing') return 'bg-warning text-dark';
+  if (estado === 'error') return 'bg-danger';
+  if (estado === 'rolled_back') return 'bg-secondary';
+  return 'bg-light text-dark';
+};
+
+const formatDateTime = (isoString) => {
+  if (!isoString) return 'N/A';
+  const d = new Date(isoString);
+  return d.toLocaleString('es-CO');
+};
+
+const canRollbackUltimaCarga = computed(() => {
+  if (isRollingBack.value || isLoadingUltimaCarga.value) return false;
+  if (!ultimaCarga.value?.id) return false;
+  // Solo permitir rollback si la última carga terminó OK.
+  return ultimaCarga.value.estado === 'success';
+});
+
+const fetchUltimaCarga = async () => {
+  isLoadingUltimaCarga.value = true;
+  try {
+    const path = `${backendRouter.data}admin/comisiones/ultima-carga/`;
+    const response = await axios.get(path, { headers: authHeaders });
+    ultimaCarga.value = response.data || null;
+  } catch (error) {
+    console.error('Error al traer última carga:', error);
+    ultimaCarga.value = null;
+  } finally {
+    isLoadingUltimaCarga.value = false;
+  }
+};
+
+const confirmRollbackUltimaCarga = async () => {
+  if (!ultimaCarga.value?.id) return;
+
+  const id = ultimaCarga.value.id;
+  const fileName = ultimaCarga.value.file_name || 'N/A';
+  const regs = ultimaCarga.value.registros_creados ?? 'N/A';
+
+  const result = await Swal.fire({
+    title: `¿Revertir la carga #${id}?`,
+    html: `
+      <div class="text-start">
+        <p class="mb-2">
+          Esta acción eliminará <strong>todas las comisiones</strong> asociadas a la última carga.
+        </p>
+        <ul class="mb-3">
+          <li><strong>Archivo:</strong> ${fileName}</li>
+          <li><strong>Registros:</strong> ${regs}</li>
+        </ul>
+        <p class="mb-2 text-danger">
+          Acción de emergencia. Para confirmar escribe <strong>REVERTIR</strong>.
+        </p>
+      </div>
+    `,
+    input: 'text',
+    inputPlaceholder: 'Escribe REVERTIR',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, revertir',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#dc3545',
+    preConfirm: (value) => {
+      if ((value || '').trim().toUpperCase() !== 'REVERTIR') {
+        Swal.showValidationMessage('Debes escribir REVERTIR para confirmar.');
+        return false;
+      }
+      return true;
+    },
+  });
+
+  if (result.isConfirmed) {
+    await rollbackUltimaCarga();
+  }
+};
+
+const rollbackUltimaCarga = async () => {
+  isRollingBack.value = true;
+  try {
+    const path = `${backendRouter.data}admin/comisiones/rollback-ultima-carga/`;
+    const response = await axios.post(path, {}, { headers: authHeaders });
+
+    await Swal.fire({
+      icon: 'success',
+      title: 'Carga revertida',
+      text: response.data?.mensaje || 'La última carga fue revertida correctamente.',
+    });
+
+    await fetchUltimaCarga();
+
+    // refrescar pantallas relacionadas (si existen)
+    try { buscarPendientes(); } catch (e) {}
+    try { generarReporte(); } catch (e) {}
+  } catch (error) {
+    console.error('Error al revertir última carga:', error);
+    const msg =
+      error.response?.data?.detail ||
+      error.response?.data?.error ||
+      'No se pudo revertir la última carga.';
+    await Swal.fire('Error', msg, 'error');
+  } finally {
+    isRollingBack.value = false;
+  }
+};
 
 /* ------------ CARGA DE ARCHIVOS ------------- */
 const selectedFile = ref(null);
@@ -1100,6 +1136,10 @@ const uploadFile = async () => {
       text: 'El archivo se está procesando en segundo plano. Se enviará confirmación por correo.',
       icon: 'info',
     });
+
+    // ✅ refrescar información de última carga (para ver estado/ID/archivo)
+    await fetchUltimaCarga();
+
     clearFile();
   } catch (error) {
     if (error.response && error.response.data) {
@@ -1299,12 +1339,8 @@ const showAsesorModal = () => {
   Swal.fire({
     title: modalMode.value === 'create' ? 'Nuevo Asesor' : 'Editar Asesor',
     html: `
-      <input id="swal-username" class="swal2-input" placeholder="Número de documento" value="${
-        currentAsesor.username || ''
-      }">
-      <input id="swal-email" type="email" class="swal2-input" placeholder="Email" value="${
-        currentAsesor.email || ''
-      }">
+      <input id="swal-username" class="swal2-input" placeholder="Número de documento" value="${currentAsesor.username || ''}">
+      <input id="swal-email" type="email" class="swal2-input" placeholder="Email" value="${currentAsesor.email || ''}">
 
       ${
         modalMode.value === 'create'
@@ -1316,9 +1352,9 @@ const showAsesorModal = () => {
         ${rolesOptions
           .map(
             (rol) => `
-          <option value="${rol.value}" ${
-              currentAsesor.rol === rol.value ? 'selected' : ''
-            }>${rol.label}</option>
+          <option value="${rol.value}" ${currentAsesor.rol === rol.value ? 'selected' : ''}>
+            ${rol.label}
+          </option>
         `
           )
           .join('')}
@@ -1329,9 +1365,9 @@ const showAsesorModal = () => {
         ${rutas.value
           .map(
             (ruta) => `
-          <option value="${ruta}" ${
-              currentAsesor.rutas_asignadas.includes(ruta) ? 'selected' : ''
-            }>${ruta}</option>
+          <option value="${ruta}" ${currentAsesor.rutas_asignadas.includes(ruta) ? 'selected' : ''}>
+            ${ruta}
+          </option>
         `
           )
           .join('')}
@@ -1666,7 +1702,6 @@ const fetchPuntosDeVentaPendientes = async (ruta) => {
   try {
     const path = `${backendRouter.data}admin/puntos-de-venta/?ruta=${encodeURIComponent(ruta)}`;
     const response = await axios.get(path, { headers: authHeaders });
-    // Esperamos objetos { codigo, nombre, label }
     puntosDeVentaPendientes.value = response.data || [];
   } catch (error) {
     console.error('Error al cargar puntos de venta para nueva comisión:', error);
@@ -1695,9 +1730,7 @@ const showNuevaComisionModal = () => {
           }</option>
           ${
             rutas.value && rutas.value.length
-              ? rutas.value
-                  .map((ruta) => `<option value="${ruta}">${ruta}</option>`)
-                  .join('')
+              ? rutas.value.map((ruta) => `<option value="${ruta}">${ruta}</option>`).join('')
               : ''
           }
         </select>
@@ -1824,7 +1857,7 @@ const showNuevaComisionModal = () => {
 
             puntosDeVentaPendientes.value.forEach((pdv) => {
               const opt = document.createElement('option');
-              opt.value = pdv.codigo; // código para idpos
+              opt.value = pdv.codigo;
               opt.textContent = pdv.label || `${pdv.codigo} - ${pdv.nombre || ''}`;
               idposSelect.appendChild(opt);
             });
@@ -1849,16 +1882,14 @@ const showNuevaComisionModal = () => {
             asesorSelect.appendChild(optAs);
             asesorSelect.disabled = true;
           } else if (asesoresRuta.length === 1) {
-            // Solo hay un asesor para esta ruta → lo seleccionamos y bloqueamos el campo
             const unico = asesoresRuta[0];
             const optAs = document.createElement('option');
-            optAs.value = unico.username; // documento / username
+            optAs.value = unico.username;
             optAs.textContent = `${unico.username} (${unico.email})`;
             optAs.selected = true;
             asesorSelect.appendChild(optAs);
             asesorSelect.disabled = true;
           } else {
-            // Hay varios asesores posibles → el admin elige
             const placeholderAs = document.createElement('option');
             placeholderAs.value = '';
             placeholderAs.textContent = 'Selecciona un asesor';
@@ -1875,7 +1906,6 @@ const showNuevaComisionModal = () => {
           }
         });
       }
-
     },
     preConfirm: () => {
       const ruta = document.getElementById('swal-nc-ruta').value;
@@ -1892,9 +1922,7 @@ const showNuevaComisionModal = () => {
         return false;
       }
 
-      const seleccionado = (puntosDeVentaPendientes.value || []).find(
-        (pdv) => pdv.codigo === idpos
-      );
+      const seleccionado = (puntosDeVentaPendientes.value || []).find((pdv) => pdv.codigo === idpos);
       const punto_de_venta = seleccionado ? seleccionado.nombre || '' : '';
 
       return {
@@ -1929,17 +1957,11 @@ const crearComisionManual = async (formData) => {
       const data = error.response.data;
       if (typeof data === 'object') {
         errorMsg = Object.entries(data)
-          .map(([field, msgs]) =>
-            `${field}: ${Array.isArray(msgs) ? msgs.join(' ') : msgs}`
-          )
+          .map(([field, msgs]) => `${field}: ${Array.isArray(msgs) ? msgs.join(' ') : msgs}`)
           .join('<br>');
       }
     }
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      html: errorMsg,
-    });
+    Swal.fire({ icon: 'error', title: 'Error', html: errorMsg });
   }
 };
 
@@ -1974,32 +1996,20 @@ const showComisionModal = () => {
         <input class="swal2-input" value="${currentComision.asesor_username || ''}" disabled>
 
         <label for="swal-mes-pago" class="form-label mt-2">Mes Pago</label>
-        <input id="swal-mes-pago" class="swal2-input" type="date" value="${
-          currentComision.mes_pago || ''
-        }">
+        <input id="swal-mes-pago" class="swal2-input" type="date" value="${currentComision.mes_pago || ''}">
 
         <label for="swal-valor" class="form-label mt-2">Valor Comisión</label>
-        <input id="swal-valor" type="number" class="swal2-input" placeholder="Valor" value="${
-          currentComision.valor_comision
-        }">
+        <input id="swal-valor" type="number" class="swal2-input" placeholder="Valor" value="${currentComision.valor_comision}">
 
         <label for="swal-estado" class="form-label mt-2">Estado</label>
         <select id="swal-estado" class="swal2-select">
-          <option value="Pendiente" ${
-            currentComision.estado === 'Pendiente' ? 'selected' : ''
-          }>Pendiente</option>
-          <option value="Acumulada" ${
-            currentComision.estado === 'Acumulada' ? 'selected' : ''
-          }>Acumulada</option>
-          <option value="Vencida" ${
-            currentComision.estado === 'Vencida' ? 'selected' : ''
-          }>Vencida</option>
+          <option value="Pendiente" ${currentComision.estado === 'Pendiente' ? 'selected' : ''}>Pendiente</option>
+          <option value="Acumulada" ${currentComision.estado === 'Acumulada' ? 'selected' : ''}>Acumulada</option>
+          <option value="Vencida" ${currentComision.estado === 'Vencida' ? 'selected' : ''}>Vencida</option>
         </select>
 
         <label for="swal-obs-comision" class="form-label mt-2">Observación</label>
-        <textarea id="swal-obs-comision" class="swal2-textarea" placeholder="Observación (opcional)...">${
-          currentComision.observacion || ''
-        }</textarea>
+        <textarea id="swal-obs-comision" class="swal2-textarea" placeholder="Observación (opcional)...">${currentComision.observacion || ''}</textarea>
       </div>
     `,
     focusConfirm: false,
@@ -2047,9 +2057,7 @@ const handleSaveComision = async (formData) => {
 const eliminarComision = async (comision) => {
   Swal.fire({
     title: '¿Eliminar esta comisión pendiente?',
-    text: `Esta acción eliminará la comisión de ${formatCurrency(
-      comision.valor_comision
-    )}. ¡No se puede revertir!`,
+    text: `Esta acción eliminará la comisión de ${formatCurrency(comision.valor_comision)}. ¡No se puede revertir!`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#dc3545',
@@ -2076,11 +2084,13 @@ const eliminarComision = async (comision) => {
 const isLoadingPagos = ref(false);
 const isLoadingPuntosDeVenta = ref(false);
 const puntosDeVentaOptions = ref([]);
+
 const pagosFilters = reactive({
   ruta: null,
   punto_de_venta: null,
   range: [new Date(new Date().setMonth(new Date().getMonth() - 1)), new Date()],
 });
+
 const pagosData = ref({
   results: [],
   count: 0,
@@ -2122,10 +2132,7 @@ const fetchPuntosDeVenta = async (ruta) => {
   try {
     const path = `${backendRouter.data}admin/puntos-de-venta/?ruta=${encodeURIComponent(ruta)}`;
     const response = await axios.get(path, { headers: authHeaders });
-    // Aquí mapeamos a nombres simples para que el v-select no muestre [object Object]
-    puntosDeVentaOptions.value = (response.data || []).map(
-      (pdv) => pdv.nombre || pdv.label || pdv.codigo
-    );
+    puntosDeVentaOptions.value = (response.data || []).map((pdv) => pdv.nombre || pdv.label || pdv.codigo);
   } catch (error) {
     console.error('Error al cargar puntos de venta:', error);
     Swal.fire('Error', 'No se pudieron cargar los puntos de venta para esa ruta.', 'error');
@@ -2199,18 +2206,16 @@ const showPagoModal = () => {
           ${metodosPagoOptions.value
             .map(
               (metodo) => `
-            <option value="${metodo}" ${
-                currentPago.metodo_pago === metodo ? 'selected' : ''
-              }>${metodo}</option>
+            <option value="${metodo}" ${currentPago.metodo_pago === metodo ? 'selected' : ''}>
+              ${metodo}
+            </option>
           `
             )
             .join('')}
         </select>
 
         <label for="swal-obs" class="form-label mt-2">Observación</label>
-        <textarea id="swal-obs" class="swal2-textarea" placeholder="Observación (opcional)...">${
-          currentPago.observacion || ''
-        }</textarea>
+        <textarea id="swal-obs" class="swal2-textarea" placeholder="Observación (opcional)...">${currentPago.observacion || ''}</textarea>
       </div>
     `,
     focusConfirm: false,
@@ -2257,9 +2262,7 @@ const handleSavePago = async (formData) => {
 const eliminarPago = async (pago) => {
   Swal.fire({
     title: '¿Reversar este pago?',
-    text: `Esta acción eliminará el pago de ${formatCurrency(
-      pago.monto
-    )} y devolverá las comisiones asociadas a 'Pendiente'. ¡No se puede revertir!`,
+    text: `Esta acción eliminará el pago de ${formatCurrency(pago.monto)} y devolverá las comisiones asociadas a 'Pendiente'. ¡No se puede revertir!`,
     icon: 'warning',
     showCancelButton: true,
     confirmButtonColor: '#dc3545',
@@ -2271,11 +2274,7 @@ const eliminarPago = async (pago) => {
       try {
         const path = backendRouter.data + `admin/pagos/${pago.id}/`;
         await axios.delete(path, { headers: authHeaders });
-        Swal.fire(
-          '¡Reversado!',
-          'El pago ha sido eliminado y las comisiones han sido liberadas.',
-          'success'
-        );
+        Swal.fire('¡Reversado!', 'El pago ha sido eliminado y las comisiones han sido liberadas.', 'success');
         fetchPagos(pagosCurrentPage.value);
         generarReporte();
       } catch (error) {
@@ -2291,9 +2290,7 @@ const chartOptions = { responsive: true, maintainAspectRatio: false };
 const lineChartOptions = computed(() => ({
   ...chartOptions,
   tension: 0.3,
-  scales: {
-    y: { beginAtZero: true },
-  },
+  scales: { y: { beginAtZero: true } },
 }));
 
 const evolucionChartData = computed(() => {
@@ -2301,16 +2298,8 @@ const evolucionChartData = computed(() => {
   return {
     labels: data.map((item) => item.mes),
     datasets: [
-      {
-        label: 'Total Pagado',
-        data: data.map((item) => item.pagado),
-        backgroundColor: '#28a745',
-      },
-      {
-        label: 'Total Pendiente',
-        data: data.map((item) => item.pendiente),
-        backgroundColor: '#ffc107',
-      },
+      { label: 'Total Pagado', data: data.map((item) => item.pagado), backgroundColor: '#28a745' },
+      { label: 'Total Pendiente', data: data.map((item) => item.pendiente), backgroundColor: '#ffc107' },
     ],
   };
 });
@@ -2319,12 +2308,7 @@ const estadoChartData = computed(() => {
   const data = reportData.value?.charts?.distribucion_estado || [];
   return {
     labels: data.map((item) => item.estado),
-    datasets: [
-      {
-        data: data.map((item) => item.total),
-        backgroundColor: ['#17a2b8', '#6c757d', '#28a745', '#ffc107', '#dc3545'],
-      },
-    ],
+    datasets: [{ data: data.map((item) => item.total), backgroundColor: ['#17a2b8', '#6c757d', '#28a745', '#ffc107', '#dc3545'] }],
   };
 });
 
@@ -2387,11 +2371,7 @@ const metodoCantidadChartData = computed(() => {
   return {
     labels: data.map((item) => `${item.metodo} (${item.total_cantidad})`),
     datasets: [
-      {
-        data: data.map((item) => item.total_cantidad),
-        backgroundColor: ['#DF1115', '#17a2b8', '#28a745', '#ffc107', '#6c757d'],
-        hoverOffset: 4,
-      },
+      { data: data.map((item) => item.total_cantidad), backgroundColor: ['#DF1115', '#17a2b8', '#28a745', '#ffc107', '#6c757d'], hoverOffset: 4 },
     ],
   };
 });
@@ -2442,7 +2422,11 @@ onMounted(() => {
   fetchPermissionsData().then(() => {
     fetchFilterOptions();
   });
+
   fetchFechaCorte();
+
+  // ✅ traer info de la última carga para el botón de emergencia
+  fetchUltimaCarga();
 });
 </script>
 

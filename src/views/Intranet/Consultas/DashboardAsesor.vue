@@ -490,7 +490,7 @@ const isLoadingImage = ref(false);
 const tipoUsuario = ref('asesor');
 
 const paymentMethods = reactive({
-  'Sim card recargada': 0,
+  'Sim Card': 0,
   'Recarga': 0,
   'Accesorios': 0,
   'Equipos': 0,
@@ -498,7 +498,7 @@ const paymentMethods = reactive({
   'Acumulado': 0
 });
 const paymentMethodsEnabled = reactive({
-  'Sim card recargada': false,
+  'Sim Card': false,
   'Recarga': false,
   'Accesorios': false,
   'Equipos': false,
