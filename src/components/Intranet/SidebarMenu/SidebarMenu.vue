@@ -45,7 +45,7 @@
           </li>
 
           <!-- ADMINISTRADOR -->
-          <li v-if="permisos.administrador.main" class="nav-item">
+          <li v-if="permisos.administrador?.main" class="nav-item">
             <a
               @click.prevent="toggleMenu('administrador')"
               href="#"
@@ -65,7 +65,7 @@
           </li>
 
           <!-- INFORMES -->
-          <li v-if="permisos.informes.main" class="nav-item">
+          <li v-if="permisos.informes?.main" class="nav-item">
             <a
               @click.prevent="toggleMenu('informes')"
               href="#"
@@ -85,7 +85,7 @@
           </li>
 
           <!-- CONTROL INTERNO -->
-          <li v-if="permisos.control_interno.main" class="nav-item">
+          <li v-if="permisos.control_interno?.main" class="nav-item">
             <a
               @click.prevent="toggleMenu('control_interno')"
               href="#"
@@ -105,8 +105,8 @@
             </ul>
           </li>
 
-          <!-- COMISIONES -->
-          <li v-if="permisos.comisiones.main" class="nav-item">
+          <!-- COMISIONES (✅ FIX: roles + main) -->
+          <li v-if="permisos.comisiones?.main" class="nav-item">
             <a
               @click.prevent="toggleMenu('comisiones')"
               href="#"
@@ -119,13 +119,20 @@
             </a>
 
             <ul v-if="menu.comisiones" class="submenu list-unstyled">
-              <li><a href="/comisiones"><i class="bi bi-clipboard-check-fill me-2"></i>Administrar</a></li>
-              <li><a href="/liquidador-comisiones"><i class="bi bi-calculator-fill me-2"></i>Liquidar</a></li>
+              <!-- ✅ Solo admin de comisiones o superadmin -->
+              <li v-if="permisos.superadmin || permisos.comisiones?.admin_comisiones">
+                <a href="/comisiones"><i class="bi bi-clipboard-check-fill me-2"></i>Administrar</a>
+              </li>
+
+              <!-- ✅ Asesor/Supervisor/Admin ven Liquidar -->
+              <li v-if="permisos.comisiones?.main">
+                <a href="/liquidador-comisiones"><i class="bi bi-calculator-fill me-2"></i>Liquidar</a>
+              </li>
             </ul>
           </li>
 
           <!-- COMERCIAL -->
-          <li v-if="permisos.comercial.main" class="nav-item">
+          <li v-if="permisos.comercial?.main" class="nav-item">
             <a
               @click.prevent="toggleMenu('comercial')"
               href="#"
@@ -142,8 +149,8 @@
             </ul>
           </li>
 
-          <!-- ✅ CONSULTAS (LO QUE PEDISTE) -->
-          <li v-if="permisos.consultas.main" class="nav-item">
+          <!-- ✅ CONSULTAS (si existe en tu API; si no, no rompe por ?. ) -->
+          <li v-if="permisos.consultas?.main" class="nav-item">
             <a
               @click.prevent="toggleMenu('consultas')"
               href="#"
@@ -156,22 +163,22 @@
             </a>
 
             <ul v-if="menu.consultas" class="submenu list-unstyled">
-              <li v-if="permisos.consultas.consulta_pdv">
+              <li v-if="permisos.consultas?.consulta_pdv">
                 <a href="/consulta-pdv"><i class="bi bi-shop me-2"></i>Consulta PDV</a>
               </li>
 
-              <li v-if="permisos.consultas.dashboard_asesor">
+              <li v-if="permisos.consultas?.dashboard_asesor">
                 <a href="/dashboard-asesor"><i class="bi bi-person-video2 me-2"></i>Dashboard Asesor</a>
               </li>
 
-              <li v-if="permisos.consultas.panel_admin">
+              <li v-if="permisos.consultas?.panel_admin">
                 <a href="/Admin-consultas"><i class="bi bi-graph-up-arrow me-2"></i>Panel Admin</a>
               </li>
             </ul>
           </li>
 
           <!-- CORRESPONSAL -->
-          <li v-if="permisos.corresponsal.main" class="nav-item">
+          <li v-if="permisos.corresponsal?.main" class="nav-item">
             <a
               @click.prevent="toggleMenu('corresponsal')"
               href="#"
@@ -193,7 +200,7 @@
           </li>
 
           <!-- CAJA -->
-          <li v-if="permisos.caja.main" class="nav-item">
+          <li v-if="permisos.caja?.main" class="nav-item">
             <a
               @click.prevent="toggleMenu('caja')"
               href="#"
@@ -277,10 +284,22 @@ export default {
         administrador: { main: false },
         informes: { main: false },
         control_interno: { main: false },
-        comisiones: { main: false },
+        gestion_humana: { main: false },
+        contabilidad: { main: false },
+
+        // ✅ Comisiones con roles (para no romper si backend ya lo envía)
+        comisiones: {
+          main: false,
+          asesor_comisiones: false,
+          supervisor_comisiones: false,
+          admin_comisiones: false,
+        },
+
+        soporte: { main: false },
+        auditoria: { main: false },
         comercial: { main: false },
 
-        // ✅ AHORA CONSULTAS TIENE SUBPERMISOS
+        // ✅ Consultas con subpermisos (si tu backend lo envía)
         consultas: {
           main: false,
           consulta_pdv: false,
@@ -325,7 +344,7 @@ export default {
       }
 
       try {
-        // El interceptor ya adjunta el Bearer token
+        // El interceptor de apiService ya adjunta Authorization: Bearer <jwt>
         const response = await apiService.get('user-permissions');
 
         if (response.data.cambioClave) {
@@ -333,10 +352,14 @@ export default {
         } else {
           const remotePermisos = response.data.permisos || {};
 
-          // Merge normal + merge profundo en consultas (para no pisar defaults)
+          // ✅ merge profundo para no pisar defaults (sobre todo comisiones/consultas)
           this.permisos = {
             ...this.permisos,
             ...remotePermisos,
+            comisiones: {
+              ...this.permisos.comisiones,
+              ...(remotePermisos.comisiones || {}),
+            },
             consultas: {
               ...this.permisos.consultas,
               ...(remotePermisos.consultas || {}),
@@ -398,8 +421,8 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-/* NOTA: en tu CSS tenías var(#xxxx). Eso es inválido en CSS.
-   Dejé los colores como valores directos para que funcione bien. */
+/* NOTA: en tu CSS original tenías var(#xxxx). Eso es inválido.
+   Dejé colores directos para que compile bien. */
 
 .sidebar {
   width: 260px;
