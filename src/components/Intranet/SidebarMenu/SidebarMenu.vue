@@ -105,7 +105,7 @@
             </ul>
           </li>
 
-          <!-- COMISIONES (✅ FIX: roles + main) -->
+          <!-- COMISIONES -->
           <li v-if="permisos.comisiones?.main" class="nav-item">
             <a
               @click.prevent="toggleMenu('comisiones')"
@@ -149,8 +149,8 @@
             </ul>
           </li>
 
-          <!-- ✅ CONSULTAS (si existe en tu API; si no, no rompe por ?. ) -->
-          <li v-if="permisos.consultas?.main" class="nav-item">
+          <!-- ✅ CONSULTAS (FIX: no depende solo de main) -->
+          <li v-if="hasConsultas" class="nav-item">
             <a
               @click.prevent="toggleMenu('consultas')"
               href="#"
@@ -287,7 +287,6 @@ export default {
         gestion_humana: { main: false },
         contabilidad: { main: false },
 
-        // ✅ Comisiones con roles (para no romper si backend ya lo envía)
         comisiones: {
           main: false,
           asesor_comisiones: false,
@@ -299,7 +298,7 @@ export default {
         auditoria: { main: false },
         comercial: { main: false },
 
-        // ✅ Consultas con subpermisos (si tu backend lo envía)
+        // ✅ Consultas con subpermisos
         consultas: {
           main: false,
           consulta_pdv: false,
@@ -328,6 +327,15 @@ export default {
       },
     };
   },
+
+  computed: {
+    // ✅ FIX CLAVE: Consultas se muestra si tiene CUALQUIER subpermiso (no depende solo de main)
+    hasConsultas() {
+      const c = this.permisos?.consultas || {};
+      return !!(c.main || c.consulta_pdv || c.dashboard_asesor || c.panel_admin);
+    },
+  },
+
   methods: {
     toggleMenu(item) {
       this.menu[item] = !this.menu[item];
@@ -344,7 +352,6 @@ export default {
       }
 
       try {
-        // El interceptor de apiService ya adjunta Authorization: Bearer <jwt>
         const response = await apiService.get('user-permissions');
 
         if (response.data.cambioClave) {
@@ -352,7 +359,7 @@ export default {
         } else {
           const remotePermisos = response.data.permisos || {};
 
-          // ✅ merge profundo para no pisar defaults (sobre todo comisiones/consultas)
+          // ✅ merge profundo para no pisar defaults
           this.permisos = {
             ...this.permisos,
             ...remotePermisos,
@@ -421,9 +428,6 @@ export default {
 </script>
 
 <style lang="scss" scoped>
-/* NOTA: en tu CSS original tenías var(#xxxx). Eso es inválido.
-   Dejé colores directos para que compile bien. */
-
 .sidebar {
   width: 260px;
   height: 100vh;
