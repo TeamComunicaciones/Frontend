@@ -43,29 +43,44 @@
           <BCard no-body class="mb-4">
             <BCard-header>Paso 2: Procesar Datos</BCard-header>
             <BCard-body>
-              <div class="d-flex justify-content-center gap-2 mb-3">
+              <div class="d-flex flex-wrap justify-content-center gap-2 mb-3">
                 <BButton
                   variant="danger"
                   @click="traducir"
-                  :disabled="pasoTraduccionCompleto"
+                  :disabled="isLoading || !rawItemsMatrix.length"
                 >
-                  <i class="bi bi-translate me-2"></i>Traducir Nombres
+                  <i class="bi bi-translate me-2"></i>
+                  {{ pasoTraduccionCompleto ? 'Recalcular' : 'Traducir Nombres' }}
                 </BButton>
+
                 <BButton
                   variant="danger"
                   @click="guardarPrecios"
-                  :disabled="!pasoTraduccionCompleto || pasoGuardadoCompleto"
+                  :disabled="!pasoTraduccionCompleto || !traduccionSincronizadaConExcepciones || pasoGuardadoCompleto"
+                  title="Si cambiaste excepciones, guarda excepciones y recalcula antes de guardar precios."
                 >
                   <i class="bi bi-save me-2"></i>Guardar en Sistema
                 </BButton>
+
                 <BButton
                   variant="dark"
                   @click="generarYDescargarExcel"
-                  :disabled="!pasoGuardadoCompleto"
+                  :disabled="!pasoGuardadoCompleto || !traduccionSincronizadaConExcepciones"
+                  title="Si cambiaste excepciones, guarda excepciones y recalcula antes de generar."
                 >
                   <i class="bi bi-file-earmark-excel me-2"></i>Generar y Descargar Excel
                 </BButton>
               </div>
+
+              <!-- Aviso si hay cambios de excepciones sin recalcular -->
+              <div
+                v-if="pasoTraduccionCompleto && !traduccionSincronizadaConExcepciones"
+                class="alert alert-warning py-2 small mb-3"
+              >
+                <strong>Atención:</strong> Cambiaste excepciones de IVA. Debes <strong>Guardar Excepciones</strong> y luego
+                <strong>Recalcular</strong> para que los valores reflejen el IVA correctamente.
+              </div>
+
               <input
                 type="text"
                 class="form-control"
@@ -82,15 +97,46 @@
             class="mb-4"
           >
             <BCard-header class="d-flex justify-content-between align-items-center">
-              <span>Paso 3: Excepciones de IVA</span>
-              <BButton
-                size="sm"
-                variant="outline-secondary"
-                @click="gestionExcepcionesAbierta = !gestionExcepcionesAbierta"
-              >
-                <i :class="['bi', gestionExcepcionesAbierta ? 'bi-chevron-up' : 'bi-chevron-down']"></i>
-                <span class="ms-1">Gestionar</span>
-              </BButton>
+              <div class="d-flex align-items-center gap-2">
+                <span>Paso 3: Excepciones de IVA</span>
+
+                <span
+                  v-if="excepcionesDirty"
+                  class="badge text-bg-warning"
+                  title="Tienes cambios sin guardar"
+                >
+                  Cambios sin guardar
+                </span>
+
+                <span
+                  v-else
+                  class="badge text-bg-success"
+                  title="Excepciones sincronizadas"
+                >
+                  Guardadas
+                </span>
+              </div>
+
+              <div class="d-flex gap-2">
+                <BButton
+                  size="sm"
+                  variant="outline-danger"
+                  @click="guardarExcepcionesIVA"
+                  :disabled="isLoading || !excepcionesDirty"
+                  title="Guarda excepciones en BD para que el recalculo las aplique."
+                >
+                  <i class="bi bi-cloud-arrow-up me-1"></i>Guardar Excepciones
+                </BButton>
+
+                <BButton
+                  size="sm"
+                  variant="outline-secondary"
+                  @click="gestionExcepcionesAbierta = !gestionExcepcionesAbierta"
+                >
+                  <i :class="['bi', gestionExcepcionesAbierta ? 'bi-chevron-up' : 'bi-chevron-down']"></i>
+                  <span class="ms-1">Gestionar</span>
+                </BButton>
+              </div>
             </BCard-header>
 
             <BCard-body v-if="gestionExcepcionesAbierta">
@@ -243,7 +289,6 @@
 import axios from 'axios';
 import readXlsFile from 'read-excel-file';
 import backendRouter from '@/components/BackendRouter/BackendRouter';
-import router from '@/router';
 import Loading from 'vue-loading-overlay';
 import Swal from 'sweetalert2';
 import { BButton, BCard, BCardBody, BCardHeader, BModal } from 'bootstrap-vue-next';
@@ -261,8 +306,14 @@ export default {
   data() {
     return {
       tituloMenu: 'Gestor de Precios',
+
       items: [],
       titulos: [],
+
+      // Guarda el input ORIGINAL del Excel para poder recalcular siempre
+      rawTitulos: [],
+      rawItemsMatrix: [],
+
       missing: [],
       cont: 0,
       form: {
@@ -271,25 +322,32 @@ export default {
         iva: true,
         active: true,
       },
+
       isLoading: false,
       fullPage: true,
+
       searchQuery: '',
       pasoTraduccionCompleto: false,
       pasoGuardadoCompleto: false,
+
       ultimoExcelDisponible: false,
       showMissingProductModal: false,
 
       // Gestión de excepciones de IVA
       gestionExcepcionesAbierta: false,
       searchProductoExcepcion: '',
-      ivaExcepciones: [], // nombres de productos que siempre llevan IVA
+      ivaExcepciones: [],
+      excepcionesDirty: false,
+
+      // Esto garantiza que no guardes/generes con datos “viejos”
+      traduccionSincronizadaConExcepciones: true,
+
+      tipoIvaExcepcion: 'prepago',
     };
   },
   computed: {
     filteredItems() {
-      if (!this.searchQuery) {
-        return this.items;
-      }
+      if (!this.searchQuery) return this.items;
       const query = this.searchQuery.toLowerCase();
       return this.items.filter(row =>
         Object.values(row).some(cell =>
@@ -298,7 +356,6 @@ export default {
       );
     },
 
-    // Lista única de productos (asumiendo que la primera columna es el nombre)
     productosUnicos() {
       if (!this.titulos.length) return [];
       const keyProducto = this.titulos[0];
@@ -310,7 +367,6 @@ export default {
       return Array.from(set);
     },
 
-    // Productos filtrados para el gestor de excepciones de IVA
     productosFiltradosExcepcion() {
       if (!this.searchProductoExcepcion) return this.productosUnicos;
       const q = this.searchProductoExcepcion.toLowerCase();
@@ -320,17 +376,60 @@ export default {
     },
   },
   methods: {
+    // Construye SIEMPRE matriz 4 columnas para backend translate
+    buildMatrixForTranslate() {
+      return this.rawItemsMatrix.map(r => ([
+        r?.[0] ?? null,
+        r?.[1] ?? null,
+        r?.[2] ?? null,
+        r?.[3] ?? null,
+      ]));
+    },
+
+    // ===== FIX: para evitar loop de "Producto No Encontrado" =====
+    normStr(v) {
+      return (v ?? '').toString().trim();
+    },
+    rawContainsEquipo(equipo) {
+      const e = this.normStr(equipo);
+      if (!e) return false;
+      return this.rawItemsMatrix.some(r => this.normStr(r?.[0]) === e);
+    },
+    removeFromRawByEquipo(equipo) {
+      const e = this.normStr(equipo);
+      if (!e) return;
+      // elimina TODAS las filas del excel original cuyo equipo (col 0) sea ese
+      this.rawItemsMatrix = this.rawItemsMatrix.filter(r => this.normStr(r?.[0]) !== e);
+    },
+
+    async cargarExcepcionesIVA() {
+      try {
+        const path = backendRouter.data + 'iva-excepciones';
+        const resp = await axios.get(path, { params: { tipo: this.tipoIvaExcepcion }});
+        this.ivaExcepciones = Array.isArray(resp.data?.productos) ? resp.data.productos : [];
+        this.excepcionesDirty = false;
+      } catch (e) {
+        console.warn('No se pudieron cargar excepciones de IVA:', e);
+      }
+    },
+
     subirExcel(event) {
       const file = event.target.files[0];
       if (!file) return;
 
       this.isLoading = true;
+
       readXlsFile(file).then((rows) => {
         this.resetState();
-        this.titulos = rows[0];
+
+        this.rawTitulos = rows[0] || [];
+        this.rawItemsMatrix = (rows.slice(1) || []);
+
+        // Construimos items iniciales como antes
+        this.titulos = this.rawTitulos;
         const headers = this.titulos;
 
-        this.items = rows.slice(1).map(row => {
+        this.items = this.rawItemsMatrix.map(row => {
           const item = {};
           headers.forEach((header, index) => {
             item[header] = row[index];
@@ -348,29 +447,40 @@ export default {
     },
 
     traducir() {
+      if (!this.rawItemsMatrix.length) {
+        Swal.fire('Atención', 'Primero carga un Excel válido.', 'info');
+        return;
+      }
+
       this.isLoading = true;
-      const dataForBackend = this.items.map(item => this.titulos.map(h => item[h]));
+      const dataForBackend = this.buildMatrixForTranslate();
       const path = backendRouter.data + 'translate-prepago';
 
       axios.post(path, dataForBackend).then((response) => {
         this.isLoading = false;
+
         if (!response.data.validate) {
-          this.missing = response.data.data;
+          this.missing = response.data.data || [];
           this.cont = 0;
           this.procesarSiguienteFaltante();
-        } else {
-          this.titulos = response.data.cabecera.map(item => item.text);
-          this.items = response.data.data.map(rowArray => {
-            const item = {};
-            this.titulos.forEach((header, index) => {
-              item[header] = rowArray[index];
-            });
-            item.editing = false;
-            return item;
-          });
-          this.pasoTraduccionCompleto = true;
-          Swal.fire('Éxito', 'Todos los productos han sido traducidos.', 'success');
+          return;
         }
+
+        this.titulos = (response.data.cabecera || []).map(item => item.text);
+        this.items = (response.data.data || []).map(rowArray => {
+          const item = {};
+          this.titulos.forEach((header, index) => {
+            item[header] = rowArray[index];
+          });
+          item.editing = false;
+          return item;
+        });
+
+        this.pasoTraduccionCompleto = true;
+        this.traduccionSincronizadaConExcepciones = true;
+
+        Swal.fire('Éxito', 'Datos traducidos/recalculados correctamente.', 'success');
+
       }).catch(error => {
         this.isLoading = false;
         Swal.fire('Error', 'Ocurrió un error durante la traducción.', 'error');
@@ -379,12 +489,19 @@ export default {
     },
 
     procesarSiguienteFaltante() {
+      // ===== FIX: saltar faltantes que ya eliminamos del rawItemsMatrix =====
+      while (this.cont < this.missing.length && !this.rawContainsEquipo(this.missing[this.cont])) {
+        this.cont++;
+      }
+
       if (this.cont >= this.missing.length) {
         this.showMissingProductModal = false;
         Swal.fire('Completado', 'Se han procesado todos los productos pendientes.', 'info');
+        // Reintenta traducir con el input original YA depurado (sin los omitidos)
         this.traducir();
         return;
       }
+
       this.form.product = this.missing[this.cont];
       this.form.stok = '';
       this.showMissingProductModal = true;
@@ -399,6 +516,7 @@ export default {
         active: this.form.active,
       };
       const path = backendRouter.data + 'translate-products-prepago';
+
       axios.post(path, data).then(() => {
         this.isLoading = false;
         this.cont++;
@@ -411,28 +529,72 @@ export default {
 
     omitirTranslate() {
       const productoOmitido = this.missing[this.cont];
-      this.items = this.items.filter(item => item[this.titulos[0]] !== productoOmitido);
+
+      // ===== FIX: quitar del RAW (lo que se reenvía al backend) para evitar el loop =====
+      this.removeFromRawByEquipo(productoOmitido);
+
+      // (Opcional) limpiar de la tabla actual si coincide con la primera columna
+      // Nota: antes de traducir, la primera columna suele ser el "equipo" original.
+      // Después de traducir, la primera columna suele ser "stok", así que puede no coincidir (no pasa nada).
+      if (this.titulos?.length) {
+        const key0 = this.titulos[0];
+        this.items = this.items.filter(item => this.normStr(item?.[key0]) !== this.normStr(productoOmitido));
+      }
+
       this.cont++;
       this.procesarSiguienteFaltante();
     },
 
     async addToBlacklist() {
       const productoOmitido = this.missing[this.cont];
-      this.items = this.items.filter(item => item[this.titulos[0]] !== productoOmitido);
+
+      // ===== FIX: quitar del RAW para evitar que vuelva a aparecer en el translate =====
+      this.removeFromRawByEquipo(productoOmitido);
+
+      if (this.titulos?.length) {
+        const key0 = this.titulos[0];
+        this.items = this.items.filter(item => this.normStr(item?.[key0]) !== this.normStr(productoOmitido));
+      }
+
       this.cont++;
       this.showMissingProductModal = false;
       setTimeout(() => this.procesarSiguienteFaltante(), 100);
     },
 
+    // ---- Excepciones IVA: guardar independiente ----
+    async guardarExcepcionesIVA() {
+      if (!this.excepcionesDirty) return;
+
+      try {
+        this.isLoading = true;
+        const path = backendRouter.data + 'iva-excepciones';
+        await axios.post(path, {
+          tipo: this.tipoIvaExcepcion,
+          productos: this.ivaExcepciones,
+        });
+
+        this.excepcionesDirty = false;
+        this.traduccionSincronizadaConExcepciones = false;
+        this.isLoading = false;
+
+        Swal.fire('Guardadas', 'Excepciones de IVA guardadas. Ahora presiona "Recalcular".', 'success');
+      } catch (e) {
+        this.isLoading = false;
+        Swal.fire('Error', 'No se pudieron guardar las excepciones de IVA.', 'error');
+        console.error(e);
+      }
+    },
+
     guardarPrecios() {
       this.isLoading = true;
+
       const cabecera = this.titulos.map((text, index) => ({ text, value: index }));
       const itemsParaGuardar = this.items.map(item => this.titulos.map(h => item[h]));
 
       const data = {
         cabecera,
         items: itemsParaGuardar,
-        iva_excepciones: this.ivaExcepciones, // envío de productos que siempre llevan IVA
+        iva_excepciones: this.ivaExcepciones,
       };
 
       const path = backendRouter.data + 'guardar-precios';
@@ -441,7 +603,7 @@ export default {
         this.isLoading = false;
         this.pasoGuardadoCompleto = true;
         Swal.fire('Guardado', 'Los precios se han guardado exitosamente en el sistema.', 'success');
-      }).catch(error => {
+      }).catch(() => {
         this.isLoading = false;
         Swal.fire('Error', 'No se pudieron guardar los precios.', 'error');
       });
@@ -475,11 +637,7 @@ export default {
             `precios_${new Date().toISOString().split('T')[0]}.xlsx`
           );
           this.ultimoExcelDisponible = true;
-          Swal.fire(
-            'Generado',
-            'El archivo Excel está listo y se ha guardado para futuras descargas.',
-            'success'
-          );
+          Swal.fire('Generado', 'El Excel está listo y guardado para futuras descargas.', 'success');
         } catch (e) {
           console.error('Error guardando en localStorage:', e);
           Swal.fire('Advertencia', 'No se pudo guardar el archivo para futuras descargas.', 'warning');
@@ -501,7 +659,7 @@ export default {
         try {
           const data = JSON.parse(dataJSON);
           this.descargarDesdeJSON(data, fileName);
-        } catch (e) {
+        } catch {
           Swal.fire('Error', 'El archivo guardado parece estar corrupto.', 'error');
         }
       } else {
@@ -524,33 +682,39 @@ export default {
       this.items.splice(index, 1);
     },
 
-    // Excepciones de IVA
+    // Excepciones de IVA (front)
     isProductoExcepcion(nombreProducto) {
       return this.ivaExcepciones.includes(nombreProducto);
     },
 
     toggleExcepcionIVA(nombreProducto) {
       const idx = this.ivaExcepciones.indexOf(nombreProducto);
-      if (idx === -1) {
-        this.ivaExcepciones.push(nombreProducto);
-      } else {
-        this.ivaExcepciones.splice(idx, 1);
-      }
+      if (idx === -1) this.ivaExcepciones.push(nombreProducto);
+      else this.ivaExcepciones.splice(idx, 1);
+
+      this.excepcionesDirty = true;
+      this.traduccionSincronizadaConExcepciones = false;
     },
 
     resetState() {
       this.items = [];
       this.titulos = [];
+
+      this.rawTitulos = [];
+      this.rawItemsMatrix = [];
+
       this.missing = [];
       this.cont = 0;
+
       this.pasoTraduccionCompleto = false;
       this.pasoGuardadoCompleto = false;
       this.searchQuery = '';
 
-      // limpiar gestión de excepciones
-      this.ivaExcepciones = [];
+      // Excepciones
       this.searchProductoExcepcion = '';
       this.gestionExcepcionesAbierta = false;
+      this.excepcionesDirty = false;
+      this.traduccionSincronizadaConExcepciones = true;
     },
 
     verificarUltimoExcel() {
@@ -559,8 +723,10 @@ export default {
       }
     },
   },
-  mounted() {
+
+  async mounted() {
     this.verificarUltimoExcel();
+    await this.cargarExcepcionesIVA();
   },
 };
 </script>
@@ -581,7 +747,6 @@ th {
   z-index: 1;
 }
 
-/* Resaltado visual para filas con excepción de IVA */
 .iva-excepcion-row {
   background-color: rgba(223, 17, 21, 0.08);
 }
