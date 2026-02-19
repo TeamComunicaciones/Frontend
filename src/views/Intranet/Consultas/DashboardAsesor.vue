@@ -4,7 +4,7 @@
       <div class="d-flex justify-content-between align-items-center mb-4">
         <h1 class="mb-0">Dashboard de Asesor</h1>
       </div>
-      
+
       <div class="card border-0 shadow-sm mb-4">
         <div class="card-body">
           <fieldset :disabled="isLoadingReport">
@@ -49,7 +49,7 @@
 
               <div class="col-md-6">
                 <label for="filtroMes" class="form-label fw-bold">Mes Pago</label>
-                <input type="month" id="filtroMes" class="form-control" v-model="filters.mes">
+                <input type="month" id="filtroMes" class="form-control" v-model="filters.mes" />
               </div>
               <div class="col-md-2 d-grid">
                 <button class="btn btn-danger" @click="generarReporte(1)" :disabled="isLoadingReport">
@@ -61,7 +61,7 @@
           </fieldset>
         </div>
       </div>
-      
+
       <div v-if="isLoadingReport" class="text-center p-5">
         <div class="spinner-border text-danger" role="status" style="width: 3rem; height: 3rem;"></div>
         <p class="mt-2">Generando reporte...</p>
@@ -93,7 +93,7 @@
                         class="form-check-input"
                         @change="toggleSelectAll"
                         :checked="isAllSelected"
-                      >
+                      />
                     </th>
                     <th>Mes Pago</th>
                     <th>Asesor</th>
@@ -112,12 +112,13 @@
                         :value="item.id"
                         v-model="selectedComisiones"
                         :disabled="item.estado !== 'Pendiente' && item.estado !== 'Acumulada'"
-                      >
+                      />
                     </td>
                     <td>{{ formatMonthYear(item.mes_pago) }}</td>
                     <td>{{ item.asesor_identificador }}</td>
                     <td>{{ item.producto }}</td>
                     <td class="text-end fw-bold">{{ formatCurrency(item.comision_final) }}</td>
+
                     <!-- Columna soporte / comprobante -->
                     <td class="text-center">
                       <button
@@ -130,6 +131,7 @@
                       </button>
                       <span v-else class="text-muted">—</span>
                     </td>
+
                     <td class="text-center">
                       <span :class="['badge', getStatusClass(item.estado)]">{{ item.estado }}</span>
                     </td>
@@ -137,19 +139,11 @@
                 </tbody>
               </table>
             </div>
+
             <nav v-if="totalPages > 1" class="d-flex justify-content-center mt-3">
               <ul class="pagination">
-                <li
-                  class="page-item"
-                  :class="{ disabled: !reportData.detalle.previous }"
-                >
-                  <a
-                    class="page-link"
-                    href="#"
-                    @click.prevent="generarReporte(currentPage - 1)"
-                  >
-                    Anterior
-                  </a>
+                <li class="page-item" :class="{ disabled: !reportData.detalle.previous }">
+                  <a class="page-link" href="#" @click.prevent="generarReporte(currentPage - 1)">Anterior</a>
                 </li>
                 <li
                   v-for="page in pagesToShow"
@@ -157,25 +151,10 @@
                   class="page-item"
                   :class="{ active: page === currentPage, disabled: page === '...' }"
                 >
-                  <a
-                    class="page-link"
-                    href="#"
-                    @click.prevent="generarReporte(page)"
-                  >
-                    {{ page }}
-                  </a>
+                  <a class="page-link" href="#" @click.prevent="generarReporte(page)">{{ page }}</a>
                 </li>
-                <li
-                  class="page-item"
-                  :class="{ disabled: !reportData.detalle.next }"
-                >
-                  <a
-                    class="page-link"
-                    href="#"
-                    @click.prevent="generarReporte(currentPage + 1)"
-                  >
-                    Siguiente
-                  </a>
+                <li class="page-item" :class="{ disabled: !reportData.detalle.next }">
+                  <a class="page-link" href="#" @click.prevent="generarReporte(currentPage + 1)">Siguiente</a>
                 </li>
               </ul>
             </nav>
@@ -209,7 +188,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="row g-4 mb-4">
           <div class="col-lg-12">
             <div class="card border-0 shadow-sm h-100">
@@ -222,7 +201,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="row g-4 mb-4">
           <div class="col-lg-7">
             <div class="card border-0 shadow-sm h-100">
@@ -245,7 +224,7 @@
             </div>
           </div>
         </div>
-        
+
         <div class="row mb-4">
           <div class="col-12">
             <div class="card border-0 shadow-sm">
@@ -267,11 +246,7 @@
                     </v-select>
                   </div>
                   <div class="col-md-2 d-grid">
-                    <button
-                      class="btn btn-secondary"
-                      @click="fetchComparativeData"
-                      :disabled="isLoadingComparative"
-                    >
+                    <button class="btn btn-secondary" @click="fetchComparativeData" :disabled="isLoadingComparative">
                       <span v-if="isLoadingComparative" class="spinner-border spinner-border-sm"></span>
                       <span v-else>Actualizar</span>
                     </button>
@@ -289,10 +264,7 @@
         </div>
       </div>
 
-      <div
-        v-else-if="reportData && reportData.detalle.count === 0"
-        class="text-center p-5 border rounded bg-white mt-4"
-      >
+      <div v-else-if="reportData && reportData.detalle.count === 0" class="text-center p-5 border rounded bg-white mt-4">
         <p class="fs-4 mb-1">Sin Resultados</p>
         <p>No hay registros para este mes con los filtros seleccionados.</p>
       </div>
@@ -309,13 +281,9 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="paymentModalLabel">Confirmar Pago de Comisiones</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
+
           <div class="modal-body">
             <div class="card bg-light border-0 mb-4">
               <div class="card-body p-2 p-md-3">
@@ -338,14 +306,10 @@
                 </ul>
               </div>
             </div>
-            
+
             <h6 class="mb-3">Desglose del Pago</h6>
             <div class="row">
-              <div
-                v-for="(value, key) in paymentMethods"
-                :key="key"
-                class="col-12 mb-3"
-              >
+              <div v-for="(value, key) in paymentMethods" :key="key" class="col-12 mb-3">
                 <div class="input-group">
                   <div class="input-group-text">
                     <div class="form-check form-switch">
@@ -356,7 +320,7 @@
                         :id="'switch-' + key"
                         v-model="paymentMethodsEnabled[key]"
                         @change="togglePaymentMethod(key)"
-                      >
+                      />
                     </div>
                   </div>
                   <label :for="'switch-' + key" class="input-group-text flex-grow-1">{{ key }}</label>
@@ -366,39 +330,79 @@
                     placeholder="0"
                     v-model.number="paymentMethods[key]"
                     :disabled="!paymentMethodsEnabled[key]"
-                  >
+                  />
                 </div>
               </div>
             </div>
 
-            <!-- IMAGEN DE SOPORTE (OPCIONAL) -->
+            <!-- IMAGEN DE SOPORTE (OPCIONAL) - OPCIÓN 2: CÁMARA EN APP + COMPRESIÓN -->
             <h6 class="mb-3 mt-2">Comprobante de Pago (opcional)</h6>
-            <div class="mb-2">
-              <input
-                id="soporteFileInput"
-                type="file"
-                class="form-control"
-                accept="image/*"
-                @change="onSoporteChange"
-              >
+
+            <div class="d-flex gap-2 mb-2 align-items-center">
+              <button type="button" class="btn btn-outline-danger" @click="openCamera">
+                <i class="bi bi-camera"></i> Tomar foto
+              </button>
+
+              <div class="flex-grow-1">
+                <input
+                  id="soporteFileInput"
+                  type="file"
+                  class="form-control"
+                  accept="image/*"
+                  capture="environment"
+                  @change="onSoporteChange"
+                />
+              </div>
             </div>
+
+            <small v-if="soporteInfo" class="text-muted d-block">
+              {{ soporteInfo }}
+            </small>
           </div>
+
           <div class="modal-footer">
-            <button
-              type="button"
-              class="btn btn-secondary"
-              data-bs-dismiss="modal"
-            >
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
               Cancelar
             </button>
-            <button
-              type="button"
-              class="btn btn-success"
-              @click="handlePayment"
-              :disabled="isPaying"
-            >
+            <button type="button" class="btn btn-success" @click="handlePayment" :disabled="isPaying">
               <span v-if="isPaying" class="spinner-border spinner-border-sm"></span>
               <span v-else>Confirmar y Pagar</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODAL CÁMARA -->
+    <div class="modal fade" id="cameraModal" tabindex="-1" aria-labelledby="cameraModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="cameraModalLabel">Tomar comprobante</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" @click="closeCamera"></button>
+          </div>
+
+          <div class="modal-body">
+            <div v-if="cameraError" class="alert alert-warning mb-3">
+              {{ cameraError }}
+            </div>
+
+            <div class="ratio ratio-16x9 bg-dark rounded overflow-hidden">
+              <video ref="videoRef" autoplay playsinline class="w-100 h-100"></video>
+            </div>
+
+            <small class="text-muted d-block mt-2">
+              Tip: toma la foto con buena luz. La app la comprimirá automáticamente antes de subirla.
+            </small>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" @click="closeCamera">
+              Cancelar
+            </button>
+            <button type="button" class="btn btn-danger" @click="capturePhoto" :disabled="isCapturing">
+              <span v-if="isCapturing" class="spinner-border spinner-border-sm"></span>
+              <span v-else>Capturar</span>
             </button>
           </div>
         </div>
@@ -411,12 +415,7 @@
         <div class="modal-content">
           <div class="modal-header">
             <h5 class="modal-title" id="imageModalLabel">Comprobante de Pago</h5>
-            <button
-              type="button"
-              class="btn-close"
-              data-bs-dismiss="modal"
-              aria-label="Close"
-            ></button>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </div>
           <div class="modal-body text-center">
             <div v-if="isLoadingImage" class="p-4">
@@ -429,7 +428,7 @@
                 :src="comprobanteActual"
                 alt="Comprobante de pago"
                 class="img-fluid rounded shadow-sm"
-              >
+              />
               <p v-else class="mb-0">No hay comprobante para mostrar.</p>
             </div>
           </div>
@@ -462,8 +461,8 @@ if (!cookies.get('jwt')) {
   router.push('/login');
 }
 
-const filters = reactive({ 
-  idpos: 'todos', 
+const filters = reactive({
+  idpos: 'todos',
   mes: new Date().toISOString().slice(0, 7)
 });
 
@@ -506,12 +505,156 @@ const paymentMethodsEnabled = reactive({
   'Acumulado': false
 });
 
+// ===== NUEVO: CÁMARA + COMPRESIÓN =====
+const videoRef = ref(null);
+const cameraStream = ref(null);
+const isCapturing = ref(false);
+const cameraError = ref('');
+const soporteInfo = ref('');
+
+// helper: canvas -> blob
+const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.9) =>
+  new Promise((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('No se pudo generar el blob'))), type, quality);
+  });
+
+// compresión: resize + quality adaptativo
+const compressImage = async (
+  fileOrBlob,
+  {
+    maxDim = 1600,             // 1600 = buena calidad, liviana; baja a 1280 si quieres más compresión
+    mimeType = 'image/jpeg',   // máxima compatibilidad
+    quality = 0.82,            // balance calidad/peso
+    targetBytes = 600 * 1024,  // intenta quedar ~600KB
+    minQuality = 0.55
+  } = {}
+) => {
+  // decode imagen
+  let bitmap;
+  try {
+    // algunos navegadores respetan EXIF orientation con from-image
+    bitmap = await createImageBitmap(fileOrBlob, { imageOrientation: 'from-image' });
+  } catch (e) {
+    bitmap = await createImageBitmap(fileOrBlob);
+  }
+
+  const { width, height } = bitmap;
+  const scale = Math.min(1, maxDim / Math.max(width, height));
+  const newW = Math.round(width * scale);
+  const newH = Math.round(height * scale);
+
+  const canvas = document.createElement('canvas');
+  canvas.width = newW;
+  canvas.height = newH;
+
+  const ctx = canvas.getContext('2d', { alpha: false });
+  ctx.drawImage(bitmap, 0, 0, newW, newH);
+
+  // primera compresión
+  let q = quality;
+  let out = await canvasToBlob(canvas, mimeType, q);
+
+  // si aún pesa mucho, baja calidad en pasos pequeños
+  while (out.size > targetBytes && q > minQuality) {
+    q = Math.max(minQuality, q - 0.08);
+    out = await canvasToBlob(canvas, mimeType, q);
+  }
+
+  return out;
+};
+
+const setSoporteFromBlob = async (blob, filenameBase = 'comprobante') => {
+  const compressedBlob = await compressImage(blob, {
+    maxDim: 1600,
+    mimeType: 'image/jpeg',
+    quality: 0.82,
+    targetBytes: 600 * 1024
+  });
+
+  const file = new File([compressedBlob], `${filenameBase}_${Date.now()}.jpg`, { type: compressedBlob.type });
+  soporteFile.value = file;
+
+  const kb = Math.round(file.size / 1024);
+  soporteInfo.value = `Comprobante listo: ${kb} KB (${file.type})`;
+};
+
+const openCamera = async () => {
+  cameraError.value = '';
+
+  // abre modal
+  const modalEl = document.getElementById('cameraModal');
+  let modal = bootstrap.Modal.getInstance(modalEl);
+  if (!modal) modal = new bootstrap.Modal(modalEl);
+  modal.show();
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+
+    cameraStream.value = stream;
+
+    if (videoRef.value) {
+      videoRef.value.srcObject = stream;
+      await videoRef.value.play();
+    }
+  } catch (err) {
+    cameraError.value = 'No se pudo abrir la cámara. Verifica permisos del navegador.';
+  }
+};
+
+const closeCamera = () => {
+  if (cameraStream.value) {
+    cameraStream.value.getTracks().forEach((t) => t.stop());
+    cameraStream.value = null;
+  }
+  if (videoRef.value) {
+    videoRef.value.srcObject = null;
+  }
+};
+
+const capturePhoto = async () => {
+  if (!videoRef.value) return;
+
+  try {
+    isCapturing.value = true;
+
+    const video = videoRef.value;
+    const w = video.videoWidth || 1280;
+    const h = video.videoHeight || 720;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+
+    const ctx = canvas.getContext('2d', { alpha: false });
+    ctx.drawImage(video, 0, 0, w, h);
+
+    // captura en alta, luego comprimimos
+    const rawBlob = await canvasToBlob(canvas, 'image/jpeg', 0.95);
+    await setSoporteFromBlob(rawBlob, 'comprobante');
+
+    // cerrar modal
+    const modalEl = document.getElementById('cameraModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+
+    closeCamera();
+  } catch (e) {
+    Swal.fire('Error', 'No se pudo capturar la foto.', 'error');
+  } finally {
+    isCapturing.value = false;
+  }
+};
+
 const resetPaymentForm = () => {
   for (const key in paymentMethods) {
     paymentMethods[key] = 0;
     paymentMethodsEnabled[key] = false;
   }
   soporteFile.value = null;
+  soporteInfo.value = '';
   const fileInput = document.getElementById('soporteFileInput');
   if (fileInput) {
     fileInput.value = '';
@@ -561,7 +704,7 @@ const toggleSelectAll = (event) => {
   const selectableIds = reportData.value.detalle.results
     .filter(item => item.estado === 'Pendiente' || item.estado === 'Acumulada')
     .map(item => item.id);
-  
+
   if (event.target.checked) {
     selectedComisiones.value = [...new Set([...selectedComisiones.value, ...selectableIds])];
   } else {
@@ -640,7 +783,7 @@ const formatCurrency = (value) => {
 
 const formatMonthYear = (dateString) => {
   if (!dateString) return 'N/A';
-  const date = new Date(dateString + 'T00:00:00'); 
+  const date = new Date(dateString + 'T00:00:00');
   return date.toLocaleDateString('es-CO', {
     month: 'long',
     year: 'numeric',
@@ -886,10 +1029,22 @@ const fetchComparativeData = async () => {
   }
 };
 
-// cambio de archivo de soporte
-const onSoporteChange = (event) => {
+// cambio de archivo de soporte (SIEMPRE comprime)
+const onSoporteChange = async (event) => {
   const file = event.target.files ? event.target.files[0] : null;
-  soporteFile.value = file || null;
+  if (!file) {
+    soporteFile.value = null;
+    soporteInfo.value = '';
+    return;
+  }
+
+  try {
+    await setSoporteFromBlob(file, 'comprobante');
+  } catch (e) {
+    // fallback si falla procesamiento
+    soporteFile.value = file;
+    soporteInfo.value = 'Comprobante seleccionado (sin compresión por error de procesamiento).';
+  }
 };
 
 const handlePayment = async () => {
@@ -899,7 +1054,7 @@ const handlePayment = async () => {
   }
 
   isPaying.value = true;
-  
+
   const metodosPagoActivos = {};
   for (const key in paymentMethods) {
     if (paymentMethodsEnabled[key] && paymentMethods[key] > 0) {
@@ -910,7 +1065,7 @@ const handlePayment = async () => {
   const selectedGroupIds = new Set(selectedComisiones.value);
   const individualIdsToPay = reportData.value.detalle.results
     .filter(group => selectedGroupIds.has(group.id))
-    .flatMap(group => group.individual_ids || []) 
+    .flatMap(group => group.individual_ids || [])
     .filter(id => id !== null && id !== undefined);
 
   try {
@@ -936,7 +1091,7 @@ const handlePayment = async () => {
     await apiService.post(path, payload);
 
     Swal.fire('¡Éxito!', 'Las comisiones han sido pagadas.', 'success');
-    
+
     const modalEl = document.getElementById('paymentModal');
     const modal = bootstrap.Modal.getInstance(modalEl);
     if (modal) {
@@ -945,6 +1100,7 @@ const handlePayment = async () => {
 
     selectedComisiones.value = [];
     soporteFile.value = null;
+    soporteInfo.value = '';
     generarReporte(currentPage.value);
 
   } catch (error) {
@@ -995,6 +1151,12 @@ onMounted(() => {
   if (paymentModalEl) {
     paymentModalEl.addEventListener('hidden.bs.modal', resetPaymentForm);
   }
+
+  // si cierran el modal de cámara, detiene el stream
+  const cameraModalEl = document.getElementById('cameraModal');
+  if (cameraModalEl) {
+    cameraModalEl.addEventListener('hidden.bs.modal', closeCamera);
+  }
 });
 
 const pagesToShow = computed(() => {
@@ -1031,25 +1193,25 @@ body {
   font-family: 'Poppins', sans-serif;
 }
 
-.bg-light { 
+.bg-light {
   background-color: #f8f9fa;
 }
 
-.container { 
-  max-width: 1400px; 
+.container {
+  max-width: 1400px;
 }
 
-h1, h2, h3, h4, h5, h6, .form-label, .btn, p { 
-  font-family: 'Poppins', sans-serif; 
+h1, h2, h3, h4, h5, h6, .form-label, .btn, p {
+  font-family: 'Poppins', sans-serif;
   color: #343a40;
 }
 
-h1 { 
-  font-weight: 700; 
+h1 {
+  font-weight: 700;
 }
 
-.card { 
-  border-radius: 0.75rem; 
+.card {
+  border-radius: 0.75rem;
   transition: all 0.2s ease-in-out;
   border: none;
 }
@@ -1062,21 +1224,21 @@ h1 {
   padding-top: 0 !important;
 }
 
-.stat-value { 
-  font-size: 2.25rem; 
-  font-weight: 700; 
-  color: #DF1115; 
+.stat-value {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #DF1115;
 }
 .stat-value.text-success { color: #198754 !important; }
 .stat-value.text-warning { color: #ffc107 !important; }
 
-.table { 
-  font-size: 0.9rem; 
+.table {
+  font-size: 0.9rem;
   border-collapse: separate;
   border-spacing: 0 0.5rem;
 }
-.table th, .table td { 
-  vertical-align: middle; 
+.table th, .table td {
+  vertical-align: middle;
   padding: 0.9rem 1rem;
   background-color: #fff;
   border-bottom: 1px solid #f0f0f0;
@@ -1147,17 +1309,17 @@ h1 {
   font-family: 'Poppins', sans-serif;
 }
 
-.fade-enter-active, .fade-leave-active { 
-  transition: opacity 0.3s ease; 
+.fade-enter-active, .fade-leave-active {
+  transition: opacity 0.3s ease;
 }
-.fade-enter-from, .fade-leave-to { 
-  opacity: 0; 
+.fade-enter-from, .fade-leave-to {
+  opacity: 0;
 }
 
 .form-switch .form-check-input {
   cursor: pointer;
 }
-.btn-secondary, .btn-danger, .btn-success{
+.btn-secondary, .btn-danger, .btn-success {
   color: white !important;
 }
 </style>
