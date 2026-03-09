@@ -1,3 +1,4 @@
+<!-- src/views/TurnosDashboard.vue -->
 <template>
   <div class="bg-light">
     <div class="container my-4">
@@ -7,12 +8,12 @@
           <div class="card border-0 shadow-sm">
             <div class="card-body p-4 p-md-4">
 
-              <!-- Header -->
+              <!-- HEADER -->
               <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
                 <div>
-                  <h1 class="h3 mb-1">Turnos</h1>
+                  <h1 class="h3 mb-1">Planificador de Turnos</h1>
                   <p class="mb-0 text-muted">
-                    Planifica (mes) y genera reportes (rango) sin salir de la misma pantalla.
+                    Personas, grupos, plantillas, carga masiva en Excel y reportes — todo en una sola pantalla.
                   </p>
                 </div>
 
@@ -22,8 +23,37 @@
                     <input type="month" class="form-control" v-model="monthValue" :disabled="isLoading" />
                   </div>
 
-                  <button class="btn btn-outline-secondary" @click="openPersonas" :disabled="isLoading">
-                    Personas
+                  <div>
+                    <label class="form-label fw-bold mb-1">Grupo</label>
+                    <select class="form-select" v-model="filters.groupId" :disabled="isLoading">
+                      <option value="all">Todos</option>
+                      <option value="none">Sin grupo</option>
+                      <option v-for="g in grupos" :key="g.id" :value="String(g.id)">
+                        {{ g.nombre }}
+                      </option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label class="form-label fw-bold mb-1">Buscar</label>
+                    <input class="form-control" v-model="filters.search" placeholder="Nombre..." :disabled="isLoading" />
+                  </div>
+
+                  <button class="btn btn-outline-secondary" @click="openSettings" :disabled="isLoading">
+                    Configuración
+                  </button>
+
+                  <button class="btn btn-outline-secondary" @click="downloadExcelTemplate" :disabled="isLoading">
+                    Descargar Excel
+                  </button>
+
+                  <label class="btn btn-outline-secondary mb-0" :class="{ disabled: isLoading }">
+                    Cargar Excel
+                    <input type="file" class="d-none" accept=".xlsx" @change="onExcelSelected" :disabled="isLoading" />
+                  </label>
+
+                  <button class="btn btn-danger" @click="uploadExcel" :disabled="!excelFile || isLoading">
+                    Importar
                   </button>
 
                   <button class="btn btn-danger" @click="reloadAll" :disabled="isLoading">
@@ -33,7 +63,7 @@
                 </div>
               </div>
 
-              <!-- Tabs -->
+              <!-- TABS -->
               <ul class="nav nav-pills mb-3">
                 <li class="nav-item">
                   <button class="nav-link" :class="{ active: activeTab === 'plan' }" @click="activeTab = 'plan'">
@@ -47,7 +77,7 @@
                 </li>
               </ul>
 
-              <!-- Common bar: foco + config -->
+              <!-- TOP BAR: FOCO + CONFIG + MODO RAPIDO -->
               <div class="row g-2 align-items-end bg-white p-3 rounded border mb-3">
                 <div class="col-12 col-md-3">
                   <label class="form-label fw-bold mb-1">Fecha foco</label>
@@ -71,12 +101,30 @@
                   </select>
                 </div>
 
-                <div class="col-6 col-md-3 d-flex gap-2">
-                  <button class="btn btn-outline-secondary w-100" @click="openDayDetail(focusDateISO)" :disabled="isLoading">
-                    Detalle día
+                <div class="col-12 col-md-3">
+                  <label class="form-label fw-bold mb-1">Modo rápido (plantilla)</label>
+                  <div class="d-flex gap-2">
+                    <select class="form-select" v-model="quickApply.plantillaId" :disabled="isLoading">
+                      <option :value="null">—</option>
+                      <option v-for="t in plantillasActivas" :key="t.id" :value="t.id">
+                        {{ t.codigo }} - {{ t.nombre }}
+                      </option>
+                    </select>
+                    <button class="btn btn-outline-secondary" @click="toggleQuickApply" :disabled="!quickApply.plantillaId || isLoading">
+                      {{ quickApply.enabled ? 'ON' : 'OFF' }}
+                    </button>
+                  </div>
+                  <div class="small text-muted mt-1">
+                    Si está ON: click en celda = asigna y guarda sin modal.
+                  </div>
+                </div>
+
+                <div class="col-12 d-flex gap-2 justify-content-end mt-2">
+                  <button class="btn btn-outline-secondary" @click="openDayDetail(focusDateISO)" :disabled="isLoading">
+                    Detalle día (foco)
                   </button>
-                  <button class="btn btn-outline-secondary w-100" @click="openWeekSummary(focusDateISO)" :disabled="isLoading">
-                    Semana foco
+                  <button class="btn btn-outline-secondary" @click="openWeekSummary(focusDateISO)" :disabled="isLoading">
+                    Semana (foco)
                   </button>
                 </div>
               </div>
@@ -90,10 +138,10 @@
               <div v-else-if="activeTab === 'plan'">
                 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                   <div class="small text-muted">
-                    Click en una celda para crear/editar el turno del día.
+                    Click en una celda para crear/editar turno. Si “Modo rápido” está ON, aplica plantilla y guarda.
                   </div>
                   <div class="small text-muted">
-                    Tip: el botón “Detalle día” usa la Fecha foco.
+                    Turnos cargados (mes): <span class="fw-semibold">{{ monthTurnosCount }}</span>
                   </div>
                 </div>
 
@@ -115,46 +163,46 @@
                       <tr>
                         <th class="sticky-col sticky-head name-col small text-muted">—</th>
                         <th v-for="d in monthDays" :key="d.iso + '-sub'" class="sticky-head text-center small">
-                          Entrada / Salida
+                          Turno
                         </th>
                       </tr>
                     </thead>
 
                     <tbody>
-                      <tr v-if="personas.length === 0">
+                      <tr v-if="filteredPersonas.length === 0">
                         <td class="sticky-col name-col">
-                          <div class="fw-semibold">Sin personas</div>
-                          <div class="small text-muted">Dale en “Personas” para agregarlas.</div>
+                          <div class="fw-semibold">Sin resultados</div>
+                          <div class="small text-muted">Cambia filtros o agrega personas en “Configuración”.</div>
                         </td>
                         <td v-for="d in monthDays" :key="'empty-'+d.iso" class="turno-cell text-muted small text-center">—</td>
                       </tr>
 
-                      <tr v-for="p in personas" :key="p.id">
+                      <tr v-for="p in filteredPersonas" :key="p.id">
                         <td class="sticky-col name-col">
                           <div class="fw-semibold">{{ p.nombre }}</div>
-                          <div class="small text-muted">ID: {{ p.id }}</div>
+                          <div class="d-flex gap-2 align-items-center mt-1 flex-wrap">
+                            <span v-if="p.grupo_nombre" class="badge text-white" :style="{ background: p.grupo_color || '#6c757d' }">
+                              {{ p.grupo_nombre }}
+                            </span>
+                            <span class="badge bg-light text-dark border">ID: {{ p.id }}</span>
+                          </div>
                         </td>
 
                         <td
                           v-for="d in monthDays"
                           :key="p.id + '-' + d.iso"
                           class="turno-cell"
-                          @click="openEdit(p, d.iso)"
+                          @click="onCellClick(p, d.iso)"
                         >
                           <template v-if="getTurno(p.id, d.iso)">
                             <div class="fw-semibold">
                               {{ hhmm(getTurno(p.id, d.iso).entrada_1) }} - {{ hhmm(getTurno(p.id, d.iso).salida_1) }}
                             </div>
 
-                            <div v-if="getTurno(p.id, d.iso).entrada_2 && getTurno(p.id, d.iso).salida_2" class="small">
-                              {{ hhmm(getTurno(p.id, d.iso).entrada_2) }} - {{ hhmm(getTurno(p.id, d.iso).salida_2) }}
-                            </div>
-
-                            <div v-if="getTurno(p.id, d.iso).almuerzo_inicio && getTurno(p.id, d.iso).almuerzo_fin" class="small text-muted">
-                              Alm: {{ hhmm(getTurno(p.id, d.iso).almuerzo_inicio) }} - {{ hhmm(getTurno(p.id, d.iso).almuerzo_fin) }}
-                            </div>
-
-                            <div class="small mt-1">
+                            <div class="small mt-1 d-flex gap-2 flex-wrap">
+                              <span v-if="guessPlantillaCode(getTurno(p.id, d.iso))" class="badge bg-primary">
+                                {{ guessPlantillaCode(getTurno(p.id, d.iso)) }}
+                              </span>
                               <span class="badge bg-light text-dark border">
                                 {{ round2(getTurno(p.id, d.iso).total_horas ?? 0) }}h
                               </span>
@@ -163,6 +211,9 @@
 
                           <template v-else>
                             <div class="text-muted small">—</div>
+                            <div v-if="quickApply.enabled && quickApply.plantillaId" class="small text-muted">
+                              click = aplicar
+                            </div>
                           </template>
                         </td>
                       </tr>
@@ -173,29 +224,29 @@
 
               <!-- ================= TAB: REPORTES ================= -->
               <div v-else>
-                <!-- Report filters -->
                 <div class="row g-2 align-items-end bg-white p-3 rounded border mb-3">
                   <div class="col-12 col-md-3">
                     <label class="form-label fw-bold mb-1">Inicio</label>
-                    <input type="date" class="form-control" v-model="report.start" />
+                    <input type="date" class="form-control" v-model="report.start" :disabled="reportsLoading" />
                   </div>
                   <div class="col-12 col-md-3">
                     <label class="form-label fw-bold mb-1">Fin</label>
-                    <input type="date" class="form-control" v-model="report.end" />
+                    <input type="date" class="form-control" v-model="report.end" :disabled="reportsLoading" />
                   </div>
 
                   <div class="col-12 col-md-2 d-grid">
-                    <button class="btn btn-outline-secondary" @click="setReportWeekFromFocus">
+                    <button class="btn btn-outline-secondary" @click="setReportWeekFromFocus" :disabled="reportsLoading">
                       Semana (foco)
                     </button>
                   </div>
                   <div class="col-12 col-md-2 d-grid">
-                    <button class="btn btn-outline-secondary" @click="setReportMonthFromFocus">
+                    <button class="btn btn-outline-secondary" @click="setReportMonthFromFocus" :disabled="reportsLoading">
                       Mes (foco)
                     </button>
                   </div>
+
                   <div class="col-12 col-md-2 d-grid">
-                    <button class="btn btn-danger" @click="loadReports">
+                    <button class="btn btn-danger" @click="loadReports" :disabled="reportsLoading">
                       <span v-if="reportsLoading" class="spinner-border spinner-border-sm me-2"></span>
                       Generar
                     </button>
@@ -203,7 +254,7 @@
 
                   <div class="col-12 col-md-4">
                     <label class="form-label fw-bold mb-1">Vista</label>
-                    <select class="form-select" v-model="report.view">
+                    <select class="form-select" v-model="report.view" :disabled="reportsLoading">
                       <option value="matrix">Matriz (día) tipo Excel</option>
                       <option value="coverage">Cobertura (rango) heatmap</option>
                       <option value="hours">Horas por persona (rango)</option>
@@ -212,7 +263,7 @@
 
                   <div class="col-12 col-md-4" v-if="report.view === 'matrix'">
                     <label class="form-label fw-bold mb-1">Día a visualizar</label>
-                    <select class="form-select" v-model="report.selectedDay">
+                    <select class="form-select" v-model="report.selectedDay" :disabled="reportsLoading">
                       <option v-for="d in reportDays" :key="d" :value="d">
                         {{ formatDateLabel(d) }}
                       </option>
@@ -220,30 +271,27 @@
                   </div>
 
                   <div class="col-12 col-md-4 d-flex gap-2 justify-content-md-end">
-                    <button class="btn btn-outline-secondary w-100" @click="openDayDetail(report.selectedDay)" :disabled="!report.selectedDay">
+                    <button class="btn btn-outline-secondary w-100" @click="openDayDetail(report.selectedDay)" :disabled="!report.selectedDay || reportsLoading">
                       Detalle del día
                     </button>
-                    <button class="btn btn-outline-secondary w-100" @click="exportTurnosCsv" :disabled="!reportsLoaded">
+                    <button class="btn btn-outline-secondary w-100" @click="exportTurnosCsv" :disabled="!reportsLoaded || reportsLoading">
                       Export CSV
                     </button>
                   </div>
                 </div>
 
-                <!-- Reports loading -->
                 <div v-if="reportsLoading" class="text-center p-4">
                   <div class="spinner-border text-danger" role="status"></div>
                 </div>
 
-                <!-- ============ Report: Matrix ============ -->
+                <!-- Report: Matrix -->
                 <div v-else-if="report.view === 'matrix'">
                   <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                     <div class="small text-muted">
                       Día: <span class="fw-semibold">{{ report.selectedDay }}</span>
                       | {{ gridConfig.dayStart }}–{{ gridConfig.dayEnd }} ({{ gridConfig.step }}m)
                     </div>
-                    <div class="small text-muted">
-                      Click en celda: info + botón “Editar”.
-                    </div>
+                    <div class="small text-muted">Click en celda: info + “Editar”.</div>
                   </div>
 
                   <div class="table-responsive planner-scroll">
@@ -259,10 +307,14 @@
                       </thead>
 
                       <tbody>
-                        <tr v-for="p in personas" :key="'mx-'+p.id">
+                        <tr v-for="p in filteredPersonas" :key="'mx-'+p.id">
                           <td class="sticky-col name-col">
                             <div class="fw-semibold">{{ p.nombre }}</div>
-                            <div class="small text-muted">ID: {{ p.id }}</div>
+                            <div class="small mt-1">
+                              <span v-if="p.grupo_nombre" class="badge text-white" :style="{ background: p.grupo_color || '#6c757d' }">
+                                {{ p.grupo_nombre }}
+                              </span>
+                            </div>
                           </td>
 
                           <td
@@ -282,7 +334,12 @@
 
                         <tr>
                           <td class="sticky-col name-col fw-bold bg-light">Disponibles</td>
-                          <td v-for="s in slots" :key="'disp-'+s.label" class="text-center fw-bold bg-light">
+                          <td
+                            v-for="s in slots"
+                            :key="'disp-'+s.label"
+                            class="text-center fw-bold bg-light"
+                            :class="projectionWarnClass(s.label)"
+                          >
                             {{ mxDisponiblesBySlot[s.label] ?? 0 }}
                           </td>
                           <td class="text-center fw-bold bg-light total-col">{{ mxTotalHorasDia }}</td>
@@ -306,19 +363,17 @@
                   </div>
 
                   <div class="small text-muted mt-2">
-                    Colores: verde = trabajando, rosado = libre. Bordes rojos si “Disponibles” &lt; “Proyección”.
+                    Bordes rojos en “Disponibles” cuando Disponibles &lt; Proyección (si la proyección está definida).
                   </div>
                 </div>
 
-                <!-- ============ Report: Coverage heatmap (backend) ============ -->
+                <!-- Report: Coverage -->
                 <div v-else-if="report.view === 'coverage'">
                   <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                     <div class="small text-muted">
                       Rango: <span class="fw-semibold">{{ report.start }}</span> → <span class="fw-semibold">{{ report.end }}</span>
                     </div>
-                    <div class="small text-muted">
-                      Click en una celda para abrir matriz del día.
-                    </div>
+                    <div class="small text-muted">Click en celda: abre matriz del día.</div>
                   </div>
 
                   <div class="table-responsive planner-scroll">
@@ -349,14 +404,11 @@
                   </div>
                 </div>
 
-                <!-- ============ Report: Hours per person ============ -->
+                <!-- Report: Hours -->
                 <div v-else>
                   <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                     <div class="small text-muted">
-                      Rango: <span class="fw-semibold">{{ report.start }}</span> → <span class="fw-semibold">{{ report.end }}</span>
-                    </div>
-                    <div class="small text-muted">
-                      Total: <span class="fw-semibold">{{ reportTotalHorasRango }}</span> horas
+                      Total rango: <span class="fw-semibold">{{ reportTotalHorasRango }}</span> horas
                     </div>
                   </div>
 
@@ -369,7 +421,7 @@
                         </tr>
                       </thead>
                       <tbody>
-                        <tr v-for="p in personas" :key="'hrs-'+p.id">
+                        <tr v-for="p in filteredPersonas" :key="'hrs-'+p.id">
                           <td>{{ p.nombre }}</td>
                           <td class="text-end fw-semibold">{{ reportHoursByPersona[p.id] ?? 0 }}</td>
                         </tr>
@@ -403,6 +455,28 @@
             </div>
 
             <fieldset :disabled="editModal.saving">
+              <!-- Plantilla -->
+              <div class="row g-2 mb-3">
+                <div class="col-12 d-flex align-items-end gap-2">
+                  <div class="flex-grow-1">
+                    <label class="form-label mb-1 fw-bold">Aplicar plantilla</label>
+                    <select class="form-select" v-model="selectedPlantillaId">
+                      <option :value="null">—</option>
+                      <option v-for="t in plantillasActivas" :key="t.id" :value="t.id">
+                        {{ t.codigo }} - {{ t.nombre }}
+                      </option>
+                    </select>
+                  </div>
+                  <button class="btn btn-outline-secondary" @click="applyPlantillaToForm" :disabled="!selectedPlantillaId">
+                    Aplicar
+                  </button>
+                </div>
+                <div class="small text-muted">
+                  Tip: usa plantillas para asignar T1/T2 en 1 click.
+                </div>
+              </div>
+
+              <!-- Tramo 1 -->
               <div class="row g-2 mb-2">
                 <div class="col-12"><div class="fw-bold">Tramo 1</div></div>
                 <div class="col-6">
@@ -415,6 +489,7 @@
                 </div>
               </div>
 
+              <!-- Tramo 2 -->
               <div class="row g-2 mb-2">
                 <div class="col-12 d-flex align-items-center justify-content-between">
                   <div class="fw-bold">Tramo 2 (opcional)</div>
@@ -432,6 +507,7 @@
                 </div>
               </div>
 
+              <!-- Almuerzo -->
               <div class="row g-2 mb-2">
                 <div class="col-12 d-flex align-items-center justify-content-between">
                   <div class="fw-bold">Almuerzo (opcional)</div>
@@ -471,60 +547,233 @@
       </div>
     </div>
 
-    <!-- ================= MODAL: PERSONAS CRUD ================= -->
-    <div v-if="personasModal.open" class="modal-backdrop-custom">
-      <div class="modal-dialog-custom">
+    <!-- ================= MODAL: SETTINGS ================= -->
+    <div v-if="settingsModal.open" class="modal-backdrop-custom">
+      <div class="modal-dialog-custom modal-lg">
         <div class="card border-0 shadow">
           <div class="card-body p-4">
             <div class="d-flex justify-content-between align-items-start mb-3">
               <div>
-                <h5 class="mb-1">Personas</h5>
-                <div class="text-muted small">Agrega/edita las personas del planificador.</div>
+                <h5 class="mb-1">Configuración</h5>
+                <div class="text-muted small">Administra Personas, Grupos y Plantillas.</div>
               </div>
-              <button class="btn btn-sm btn-outline-secondary" @click="closePersonas">Cerrar</button>
+              <button class="btn btn-sm btn-outline-secondary" @click="closeSettings">Cerrar</button>
             </div>
 
-            <div class="row g-2 mb-3">
-              <div class="col-12 col-md-6">
-                <label class="form-label mb-1">Nombre</label>
-                <input class="form-control" v-model="personForm.nombre" placeholder="Ej: Laura, Andrés..." />
-              </div>
-              <div class="col-6 col-md-3">
-                <label class="form-label mb-1">Orden</label>
-                <input type="number" class="form-control" v-model.number="personForm.orden" />
-              </div>
-              <div class="col-6 col-md-3 d-flex align-items-end">
-                <button class="btn btn-danger w-100" @click="savePersona" :disabled="personasModal.saving">
-                  <span v-if="personasModal.saving" class="spinner-border spinner-border-sm me-2"></span>
-                  {{ personForm.id ? 'Actualizar' : 'Agregar' }}
+            <ul class="nav nav-pills mb-3">
+              <li class="nav-item">
+                <button class="nav-link" :class="{ active: settingsModal.tab === 'personas' }" @click="settingsModal.tab = 'personas'">
+                  Personas
                 </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" :class="{ active: settingsModal.tab === 'grupos' }" @click="settingsModal.tab = 'grupos'">
+                  Grupos
+                </button>
+              </li>
+              <li class="nav-item">
+                <button class="nav-link" :class="{ active: settingsModal.tab === 'plantillas' }" @click="settingsModal.tab = 'plantillas'">
+                  Plantillas
+                </button>
+              </li>
+            </ul>
+
+            <!-- PERSONAS -->
+            <div v-if="settingsModal.tab === 'personas'">
+              <div class="row g-2 mb-3">
+                <div class="col-12 col-md-5">
+                  <label class="form-label mb-1">Nombre</label>
+                  <input class="form-control" v-model="personForm.nombre" placeholder="Ej: Laura, Andrés..." />
+                </div>
+                <div class="col-6 col-md-2">
+                  <label class="form-label mb-1">Orden</label>
+                  <input type="number" class="form-control" v-model.number="personForm.orden" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label mb-1">Grupo</label>
+                  <select class="form-select" v-model="personForm.grupo">
+                    <option :value="null">Sin grupo</option>
+                    <option v-for="g in grupos" :key="g.id" :value="g.id">{{ g.nombre }}</option>
+                  </select>
+                </div>
+                <div class="col-12 col-md-2 d-flex align-items-end">
+                  <button class="btn btn-danger w-100" @click="savePersona" :disabled="settingsModal.saving">
+                    <span v-if="settingsModal.saving" class="spinner-border spinner-border-sm me-2"></span>
+                    {{ personForm.id ? 'Actualizar' : 'Agregar' }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Grupo</th>
+                      <th>Orden</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="p in personas" :key="'sp-'+p.id">
+                      <td>{{ p.nombre }}</td>
+                      <td>
+                        <span v-if="p.grupo_nombre" class="badge text-white" :style="{ background: p.grupo_color || '#6c757d' }">
+                          {{ p.grupo_nombre }}
+                        </span>
+                        <span v-else class="text-muted">—</span>
+                      </td>
+                      <td>{{ p.orden }}</td>
+                      <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary me-2" @click="editPersona(p)">Editar</button>
+                        <button class="btn btn-sm btn-outline-danger" @click="deletePersona(p)">Eliminar</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="small text-muted mt-2">
+                Nota: eliminar una persona elimina sus turnos (cascade).
               </div>
             </div>
 
-            <div class="table-responsive">
-              <table class="table table-sm table-hover align-middle">
-                <thead>
-                  <tr>
-                    <th>Nombre</th>
-                    <th>Orden</th>
-                    <th class="text-end">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="p in personas" :key="'p-'+p.id">
-                    <td>{{ p.nombre }}</td>
-                    <td>{{ p.orden }}</td>
-                    <td class="text-end">
-                      <button class="btn btn-sm btn-outline-secondary me-2" @click="editPersona(p)">Editar</button>
-                      <button class="btn btn-sm btn-outline-danger" @click="deletePersona(p)">Eliminar</button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <!-- GRUPOS -->
+            <div v-else-if="settingsModal.tab === 'grupos'">
+              <div class="row g-2 mb-3">
+                <div class="col-12 col-md-5">
+                  <label class="form-label mb-1">Nombre</label>
+                  <input class="form-control" v-model="groupForm.nombre" placeholder="Ej: Back Office, Financiación..." />
+                </div>
+                <div class="col-6 col-md-2">
+                  <label class="form-label mb-1">Orden</label>
+                  <input type="number" class="form-control" v-model.number="groupForm.orden" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label mb-1">Color</label>
+                  <input type="color" class="form-control form-control-color w-100" v-model="groupForm.color" />
+                </div>
+                <div class="col-12 col-md-2 d-flex align-items-end">
+                  <button class="btn btn-danger w-100" @click="saveGrupo" :disabled="settingsModal.saving">
+                    <span v-if="settingsModal.saving" class="spinner-border spinner-border-sm me-2"></span>
+                    {{ groupForm.id ? 'Actualizar' : 'Agregar' }}
+                  </button>
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Nombre</th>
+                      <th>Color</th>
+                      <th>Orden</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="g in grupos" :key="'sg-'+g.id">
+                      <td>{{ g.nombre }}</td>
+                      <td>
+                        <span class="badge text-white" :style="{ background: g.color || '#6c757d' }">
+                          {{ g.color || '#6c757d' }}
+                        </span>
+                      </td>
+                      <td>{{ g.orden }}</td>
+                      <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary me-2" @click="editGrupo(g)">Editar</button>
+                        <button class="btn btn-sm btn-outline-danger" @click="deleteGrupo(g)">Eliminar</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="small text-muted mt-2">
+                Tip: Los grupos sirven para filtrar y separar Back Office vs Financiación.
+              </div>
             </div>
 
-            <div class="small text-muted mt-2">
-              Nota: eliminar una persona elimina también sus turnos (cascade).
+            <!-- PLANTILLAS -->
+            <div v-else>
+              <div class="row g-2 mb-3">
+                <div class="col-12 col-md-2">
+                  <label class="form-label mb-1">Código</label>
+                  <input class="form-control" v-model="tplForm.codigo" placeholder="T1" />
+                </div>
+                <div class="col-12 col-md-4">
+                  <label class="form-label mb-1">Nombre</label>
+                  <input class="form-control" v-model="tplForm.nombre" placeholder="Turno mañana" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label mb-1">Color</label>
+                  <input type="color" class="form-control form-control-color w-100" v-model="tplForm.color" />
+                </div>
+                <div class="col-6 col-md-3 d-flex align-items-end">
+                  <button class="btn btn-danger w-100" @click="savePlantilla" :disabled="settingsModal.saving">
+                    <span v-if="settingsModal.saving" class="spinner-border spinner-border-sm me-2"></span>
+                    {{ tplForm.id ? 'Actualizar' : 'Agregar' }}
+                  </button>
+                </div>
+
+                <div class="col-6 col-md-3">
+                  <label class="form-label mb-1">Entrada 1</label>
+                  <input type="time" class="form-control" v-model="tplForm.entrada_1" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label mb-1">Salida 1</label>
+                  <input type="time" class="form-control" v-model="tplForm.salida_1" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label mb-1">Entrada 2</label>
+                  <input type="time" class="form-control" v-model="tplForm.entrada_2" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label mb-1">Salida 2</label>
+                  <input type="time" class="form-control" v-model="tplForm.salida_2" />
+                </div>
+
+                <div class="col-6 col-md-3">
+                  <label class="form-label mb-1">Almuerzo ini</label>
+                  <input type="time" class="form-control" v-model="tplForm.almuerzo_inicio" />
+                </div>
+                <div class="col-6 col-md-3">
+                  <label class="form-label mb-1">Almuerzo fin</label>
+                  <input type="time" class="form-control" v-model="tplForm.almuerzo_fin" />
+                </div>
+              </div>
+
+              <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th>Código</th>
+                      <th>Nombre</th>
+                      <th>Horario</th>
+                      <th class="text-end">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="t in plantillas" :key="'st-'+t.id">
+                      <td><span class="badge bg-primary">{{ t.codigo }}</span></td>
+                      <td>{{ t.nombre }}</td>
+                      <td class="small">
+                        {{ t.entrada_1?.slice(0,5) }}-{{ t.salida_1?.slice(0,5) }}
+                        <span v-if="t.entrada_2 && t.salida_2"> | {{ t.entrada_2.slice(0,5) }}-{{ t.salida_2.slice(0,5) }}</span>
+                        <span v-if="t.almuerzo_inicio && t.almuerzo_fin"> | Alm {{ t.almuerzo_inicio.slice(0,5) }}-{{ t.almuerzo_fin.slice(0,5) }}</span>
+                      </td>
+                      <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary me-2" @click="editPlantilla(t)">Editar</button>
+                        <button class="btn btn-sm btn-outline-danger" @click="deletePlantilla(t)">Eliminar</button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="small text-muted mt-2">
+                Tip: Las plantillas son las que usas como T1/T2 en Excel y en modo rápido.
+              </div>
             </div>
 
           </div>
@@ -540,29 +789,63 @@ import { ref, reactive, computed, watch } from 'vue';
 import Swal from 'sweetalert2';
 import api from '@/services/apiService';
 
+// Endpoints (relativos a tu baseURL en BackendRouter)
 const PERSONAS_ENDPOINT = 'turnos/personas/';
+const GRUPOS_ENDPOINT = 'turnos/grupos/';
+const PLANTILLAS_ENDPOINT = 'turnos/plantillas/';
 const TURNOS_ENDPOINT = 'turnos/';
 const TURNOS_RESUMEN_ENDPOINT = 'turnos/resumen/';
 const TURNOS_COBERTURA_ENDPOINT = 'turnos/cobertura/';
+const EXCEL_TEMPLATE_ENDPOINT = 'turnos/excel/template/';
+const EXCEL_IMPORT_ENDPOINT = 'turnos/excel/import/';
 
+// UI state
 const activeTab = ref('plan');
 const isLoading = ref(false);
+const reportsLoading = ref(false);
+const reportsLoaded = ref(false);
 
+// Main data
 const personas = ref([]);
+const grupos = ref([]);
+const plantillas = ref([]);
+
+// Month/focus
 const monthValue = ref(new Date().toISOString().slice(0, 7));
 const focusDateISO = ref(new Date().toISOString().slice(0, 10));
 
-// Config para matriz/coverage
+// Filters
+const filters = reactive({
+  groupId: 'all', // 'all' | 'none' | '<id>'
+  search: ''
+});
+
+// Config for slots + coverage endpoint
 const gridConfig = reactive({
   dayStart: '08:00',
   dayEnd: '20:00',
-  step: 60,
+  step: 60
 });
 
-// Cache unificado de turnos: key = `${personaId}-${fechaISO}`
+// Quick apply mode
+const quickApply = reactive({
+  plantillaId: null,
+  enabled: false
+});
+function toggleQuickApply(){
+  quickApply.enabled = !quickApply.enabled;
+}
+
+// Excel
+const excelFile = ref(null);
+function onExcelSelected(e){
+  excelFile.value = e.target.files?.[0] || null;
+}
+
+// Turnos cache map (personaId-fecha -> turno)
 const turnosCache = reactive(new Map());
 
-// -------- Helpers fecha/hora --------
+// Helpers
 function pad2(n){ return String(n).padStart(2,'0'); }
 function hhmm(t){ return t ? String(t).slice(0,5) : ''; }
 function round2(n){ return Math.round((Number(n)+Number.EPSILON)*100)/100; }
@@ -580,10 +863,9 @@ const monthDays = computed(() => {
   const d = new Date(Date.UTC(y, m - 1, 1));
   const res = [];
   const monthShort = d.toLocaleDateString('es-CO', { month: 'short', timeZone: 'UTC' });
-
   while (d.getUTCMonth() === (m - 1)) {
     const iso = `${d.getUTCFullYear()}-${pad2(d.getUTCMonth()+1)}-${pad2(d.getUTCDate())}`;
-    const weekdayShort = d.toLocaleDateString('es-CO', { weekday: 'short', timeZone: 'UTC' }).replace('.', '');
+    const weekdayShort = d.toLocaleDateString('es-CO', { weekday:'short', timeZone:'UTC' }).replace('.', '');
     res.push({ iso, day: d.getUTCDate(), weekdayShort, monthShort });
     d.setUTCDate(d.getUTCDate() + 1);
   }
@@ -593,31 +875,51 @@ const monthDays = computed(() => {
 function keyTurno(personaId, fechaISO){ return `${personaId}-${fechaISO}`; }
 function getTurno(personaId, fechaISO){ return turnosCache.get(keyTurno(personaId, fechaISO)) || null; }
 
-// Slots (para matriz Excel)
-function hhmmToMin(hhmmStr){
-  const [h, m] = hhmmStr.split(':').map(Number);
-  return h*60 + m;
-}
-function minToHHMM(min){
-  const h = Math.floor(min/60);
-  const m = min%60;
-  return `${pad2(h)}:${pad2(m)}`;
-}
-const slots = computed(() => {
-  const start = hhmmToMin(gridConfig.dayStart);
-  const end = hhmmToMin(gridConfig.dayEnd);
-  const step = Number(gridConfig.step);
-  const res = [];
-  for (let t = start; t < end; t += step){
-    res.push({ startMin: t, endMin: t + step, label: minToHHMM(t) });
+const plantillasActivas = computed(() => (plantillas.value || []).filter(t => t.activo !== false));
+
+const filteredPersonas = computed(() => {
+  let arr = [...(personas.value || [])];
+
+  if (filters.groupId === 'none') {
+    arr = arr.filter(p => !p.grupo);
+  } else if (filters.groupId !== 'all') {
+    arr = arr.filter(p => String(p.grupo) === String(filters.groupId));
   }
-  return res;
+
+  const q = (filters.search || '').trim().toLowerCase();
+  if (q) {
+    arr = arr.filter(p => (p.nombre || '').toLowerCase().includes(q));
+  }
+
+  arr.sort((a,b) => (a.orden ?? 0) - (b.orden ?? 0) || (a.nombre || '').localeCompare(b.nombre || ''));
+  return arr;
 });
 
-// -------- API loaders --------
+// Month count (approx)
+const monthTurnosCount = computed(() => {
+  let c = 0;
+  for (const d of monthDays.value){
+    for (const p of personas.value){
+      if (getTurno(p.id, d.iso)) c += 1;
+    }
+  }
+  return c;
+});
+
+// ---------------- API ----------------
 async function fetchPersonas(){
   const res = await api.get(PERSONAS_ENDPOINT);
   personas.value = Array.isArray(res.data) ? res.data : (res.data.results || []);
+}
+
+async function fetchGrupos(){
+  const res = await api.get(GRUPOS_ENDPOINT);
+  grupos.value = Array.isArray(res.data) ? res.data : (res.data.results || []);
+}
+
+async function fetchPlantillas(){
+  const res = await api.get(PLANTILLAS_ENDPOINT);
+  plantillas.value = Array.isArray(res.data) ? res.data : (res.data.results || []);
 }
 
 async function fetchTurnosRange(startISO, endISO){
@@ -630,64 +932,200 @@ async function fetchTurnosRange(startISO, endISO){
   return arr;
 }
 
-async function loadPlannerMonth(){
-  const { startISO, endISO } = monthStartEnd(monthValue.value);
-  await fetchTurnosRange(startISO, endISO);
-}
-
-// Reload all
 async function reloadAll(){
   try{
     isLoading.value = true;
-    await fetchPersonas();
-    await loadPlannerMonth();
-    // Ajuste fecha foco al 1er día del mes si no cae en el mes actual
-    const { startISO } = monthStartEnd(monthValue.value);
+
+    await Promise.all([fetchGrupos(), fetchPlantillas(), fetchPersonas()]);
+
+    const { startISO, endISO } = monthStartEnd(monthValue.value);
+    await fetchTurnosRange(startISO, endISO);
+
     if (!focusDateISO.value || focusDateISO.value.slice(0,7) !== monthValue.value){
       focusDateISO.value = startISO;
     }
+
   }catch(err){
     console.error(err);
-    Swal.fire('Error', 'No se pudo cargar la información.', 'error');
+    Swal.fire('Error','No se pudo cargar la información.','error');
   }finally{
     isLoading.value = false;
   }
 }
 
-// Al cambiar mes: recarga turnos del mes y ajusta foco al 1er día
 watch(monthValue, async () => {
   const { startISO } = monthStartEnd(monthValue.value);
   focusDateISO.value = startISO;
   await reloadAll();
 }, { immediate: true });
 
-// -------- Edit Turno modal --------
+// ---------------- Excel ----------------
+async function downloadExcelTemplate(){
+  try{
+    const month = monthValue.value;
+    // requiere api.getBlob() en apiService
+    const res = await api.getBlob(`${EXCEL_TEMPLATE_ENDPOINT}?month=${month}`);
+    const blob = new Blob([res.data], { type: res.headers['content-type'] || 'application/octet-stream' });
+    const url = window.URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `turnos_template_${month}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  }catch(err){
+    console.error(err);
+    Swal.fire('Error','No se pudo descargar la plantilla.','error');
+  }
+}
+
+async function uploadExcel(){
+  if (!excelFile.value) return;
+
+  const confirm = await Swal.fire({
+    title: 'Importar Excel',
+    text: 'Esto creará/actualizará turnos masivamente según la matriz (T1, T2...). ¿Continuar?',
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, importar',
+    cancelButtonText: 'Cancelar'
+  });
+  if (!confirm.isConfirmed) return;
+
+  try{
+    isLoading.value = true;
+
+    const fd = new FormData();
+    fd.append('file', excelFile.value);
+
+    // requiere api.postForm() en apiService
+    const res = await api.postForm(EXCEL_IMPORT_ENDPOINT, fd);
+    const { created, updated, errors } = res.data || {};
+
+    await reloadAll();
+
+    Swal.fire({
+      icon: (errors?.length ? 'warning' : 'success'),
+      title: 'Importación completa',
+      html: `
+        <div style="text-align:left">
+          <div><b>Creados:</b> ${created ?? 0}</div>
+          <div><b>Actualizados:</b> ${updated ?? 0}</div>
+          <div><b>Errores:</b> ${errors?.length ?? 0}</div>
+          ${errors?.length ? `<div class="mt-2 small text-muted">Primeros errores:<br>${errors.slice(0, 10).join('<br>')}</div>` : ''}
+        </div>
+      `
+    });
+
+    excelFile.value = null;
+  }catch(err){
+    console.error(err);
+    const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo importar.';
+    Swal.fire('Error', msg, 'error');
+  }finally{
+    isLoading.value = false;
+  }
+}
+
+// ---------------- Quick apply & cell click ----------------
+async function onCellClick(personaObj, fechaISO){
+  focusDateISO.value = fechaISO;
+
+  if (quickApply.enabled && quickApply.plantillaId){
+    await quickApplyPlantilla(personaObj, fechaISO, quickApply.plantillaId);
+    return;
+  }
+
+  openEdit(personaObj, fechaISO);
+}
+
+function getPlantillaById(id){
+  return plantillas.value.find(p => p.id === id) || null;
+}
+
+async function quickApplyPlantilla(personaObj, fechaISO, plantillaId){
+  const tpl = getPlantillaById(plantillaId);
+  if (!tpl) return;
+
+  try{
+    isLoading.value = true;
+
+    const payload = {
+      persona: personaObj.id,
+      fecha: fechaISO,
+      entrada_1: (tpl.entrada_1 || '').slice(0,5),
+      salida_1: (tpl.salida_1 || '').slice(0,5),
+      entrada_2: tpl.entrada_2 ? tpl.entrada_2.slice(0,5) : null,
+      salida_2: tpl.salida_2 ? tpl.salida_2.slice(0,5) : null,
+      almuerzo_inicio: tpl.almuerzo_inicio ? tpl.almuerzo_inicio.slice(0,5) : null,
+      almuerzo_fin: tpl.almuerzo_fin ? tpl.almuerzo_fin.slice(0,5) : null,
+      nota: `Plantilla rápida: ${tpl.codigo}`
+    };
+
+    const res = await api.post(TURNOS_ENDPOINT, payload);
+    const t = res.data;
+    turnosCache.set(keyTurno(t.persona, t.fecha), t);
+
+    // si estás en reportes y coincide en el rango, refresca
+    if (activeTab.value === 'reports' && reportsLoaded.value) {
+      // solo recalcula UI (la cobertura se recalcula en loadReports)
+      await fetchTurnosRange(report.selectedDay || fechaISO, report.selectedDay || fechaISO);
+    }
+
+  }catch(err){
+    console.error(err);
+    const msg = err?.response?.data?.detail || 'No se pudo aplicar la plantilla.';
+    Swal.fire('Error', msg, 'error');
+  }finally{
+    isLoading.value = false;
+  }
+}
+
+// ---------------- Guess plantilla label (UX) ----------------
+function guessPlantillaCode(turno){
+  if (!turno) return null;
+  for (const tpl of plantillasActivas.value){
+    const same =
+      hhmm(turno.entrada_1) === (tpl.entrada_1 || '').slice(0,5) &&
+      hhmm(turno.salida_1) === (tpl.salida_1 || '').slice(0,5) &&
+      hhmm(turno.entrada_2) === (tpl.entrada_2 || '').slice(0,5) &&
+      hhmm(turno.salida_2) === (tpl.salida_2 || '').slice(0,5) &&
+      hhmm(turno.almuerzo_inicio) === (tpl.almuerzo_inicio || '').slice(0,5) &&
+      hhmm(turno.almuerzo_fin) === (tpl.almuerzo_fin || '').slice(0,5);
+    if (same) return tpl.codigo;
+  }
+  return null;
+}
+
+// ---------------- Edit turnos modal ----------------
 const editModal = reactive({
-  open: false,
-  saving: false,
-  persona: null,
-  fecha: null,
-  turnoId: null,
+  open:false,
+  saving:false,
+  persona:null,
+  fecha:null,
+  turnoId:null
 });
 
 const editForm = reactive({
-  persona: null,
-  fecha: null,
-  entrada_1: '',
-  salida_1: '',
-  entrada_2: '',
-  salida_2: '',
-  almuerzo_inicio: '',
-  almuerzo_fin: '',
-  nota: '',
+  persona:null,
+  fecha:null,
+  entrada_1:'',
+  salida_1:'',
+  entrada_2:'',
+  salida_2:'',
+  almuerzo_inicio:'',
+  almuerzo_fin:'',
+  nota:''
 });
+
+const selectedPlantillaId = ref(null);
 
 const tramo2Enabled = computed(() => !!(editForm.entrada_2 || editForm.salida_2));
 const almuerzoEnabled = computed(() => !!(editForm.almuerzo_inicio || editForm.almuerzo_fin));
 
 function openEdit(personaObj, fechaISO){
-  focusDateISO.value = fechaISO;
-
   const existing = getTurno(personaObj.id, fechaISO);
 
   editModal.open = true;
@@ -705,14 +1143,17 @@ function openEdit(personaObj, fechaISO){
   editForm.almuerzo_inicio = hhmm(existing?.almuerzo_inicio) || '';
   editForm.almuerzo_fin = hhmm(existing?.almuerzo_fin) || '';
   editForm.nota = existing?.nota || '';
+
+  selectedPlantillaId.value = null;
 }
 
 function closeEdit(){
-  editModal.open = false;
-  editModal.saving = false;
-  editModal.persona = null;
-  editModal.fecha = null;
-  editModal.turnoId = null;
+  editModal.open=false;
+  editModal.saving=false;
+  editModal.persona=null;
+  editModal.fecha=null;
+  editModal.turnoId=null;
+  selectedPlantillaId.value = null;
 }
 
 function toggleTramo2(){
@@ -735,8 +1176,21 @@ function toggleAlmuerzo(){
   }
 }
 
+function applyPlantillaToForm(){
+  const tpl = getPlantillaById(selectedPlantillaId.value);
+  if (!tpl) return;
+
+  editForm.entrada_1 = (tpl.entrada_1 || '').slice(0,5);
+  editForm.salida_1 = (tpl.salida_1 || '').slice(0,5);
+  editForm.entrada_2 = tpl.entrada_2 ? tpl.entrada_2.slice(0,5) : '';
+  editForm.salida_2 = tpl.salida_2 ? tpl.salida_2.slice(0,5) : '';
+  editForm.almuerzo_inicio = tpl.almuerzo_inicio ? tpl.almuerzo_inicio.slice(0,5) : '';
+  editForm.almuerzo_fin = tpl.almuerzo_fin ? tpl.almuerzo_fin.slice(0,5) : '';
+  editForm.nota = editForm.nota || `Plantilla: ${tpl.codigo}`;
+}
+
 function buildPayload(){
-  const toNull = (v) => (v && v.trim() ? v : null);
+  const toNull = (v) => (v && String(v).trim() ? v : null);
   return {
     persona: editForm.persona,
     fecha: editForm.fecha,
@@ -755,7 +1209,7 @@ async function saveTurno(){
     editModal.saving = true;
 
     if (!editForm.entrada_1 || !editForm.salida_1){
-      Swal.fire('Faltan datos', 'Debes diligenciar Entrada 1 y Salida 1.', 'warning');
+      Swal.fire('Faltan datos','Debes diligenciar Entrada 1 y Salida 1.','warning');
       return;
     }
 
@@ -766,9 +1220,9 @@ async function saveTurno(){
     Swal.fire({ icon:'success', title:'Guardado', timer:850, showConfirmButton:false });
     closeEdit();
 
-    // si estamos en reportes y el día coincide, refresca reporte del día
-    if (activeTab.value === 'reports' && report.selectedDay === t.fecha){
-      await loadReportsDayOnly();
+    if (activeTab.value === 'reports') {
+      // refresca el día seleccionado (rápido) y recalc si quieres:
+      await fetchTurnosRange(report.selectedDay || t.fecha, report.selectedDay || t.fecha);
     }
 
   }catch(err){
@@ -784,12 +1238,12 @@ async function deleteTurno(){
   if (!editModal.turnoId) return;
 
   const confirm = await Swal.fire({
-    title: '¿Eliminar turno?',
-    text: 'Esto no se puede deshacer.',
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonText: 'Sí, eliminar',
-    cancelButtonText: 'Cancelar'
+    title:'¿Eliminar turno?',
+    text:'Esto no se puede deshacer.',
+    icon:'warning',
+    showCancelButton:true,
+    confirmButtonText:'Sí, eliminar',
+    cancelButtonText:'Cancelar'
   });
   if (!confirm.isConfirmed) return;
 
@@ -801,69 +1255,85 @@ async function deleteTurno(){
     Swal.fire({ icon:'success', title:'Eliminado', timer:850, showConfirmButton:false });
     closeEdit();
 
-    if (activeTab.value === 'reports'){
-      await loadReports(); // para recalcular coverage/resumen
+    if (activeTab.value === 'reports') {
+      await fetchTurnosRange(report.selectedDay || editForm.fecha, report.selectedDay || editForm.fecha);
     }
+
   }catch(err){
     console.error(err);
-    Swal.fire('Error', 'No se pudo eliminar.', 'error');
+    Swal.fire('Error','No se pudo eliminar.','error');
   }finally{
     editModal.saving = false;
   }
 }
 
-// -------- Personas modal CRUD --------
-const personasModal = reactive({ open:false, saving:false });
-const personForm = reactive({ id:null, nombre:'', orden:0 });
+// ---------------- Settings modal (Personas/Grupos/Plantillas) ----------------
+const settingsModal = reactive({
+  open:false,
+  tab:'personas',
+  saving:false
+});
 
-function openPersonas(){
-  personasModal.open = true;
+function openSettings(){
+  settingsModal.open = true;
+  settingsModal.tab = 'personas';
+  resetPersonForm();
+  resetGroupForm();
+  resetTplForm();
+}
+
+function closeSettings(){
+  settingsModal.open = false;
+  settingsModal.saving = false;
+}
+
+const personForm = reactive({ id:null, nombre:'', orden:0, grupo:null });
+
+function resetPersonForm(){
   personForm.id = null;
   personForm.nombre = '';
   personForm.orden = 0;
-}
-
-function closePersonas(){
-  personasModal.open = false;
+  personForm.grupo = null;
 }
 
 function editPersona(p){
   personForm.id = p.id;
   personForm.nombre = p.nombre;
   personForm.orden = p.orden ?? 0;
+  personForm.grupo = p.grupo ?? null;
 }
 
 async function savePersona(){
   if (!personForm.nombre.trim()){
-    Swal.fire('Campo requerido', 'Escribe el nombre.', 'warning');
+    Swal.fire('Campo requerido','Escribe el nombre.','warning');
     return;
   }
   try{
-    personasModal.saving = true;
+    settingsModal.saving = true;
+
+    const payload = {
+      nombre: personForm.nombre,
+      orden: personForm.orden,
+      grupo: personForm.grupo,
+      activo: true
+    };
 
     if (personForm.id){
-      await api.put(`${PERSONAS_ENDPOINT}${personForm.id}/`, {
-        nombre: personForm.nombre,
-        orden: personForm.orden,
-        activo: true
-      });
+      await api.put(`${PERSONAS_ENDPOINT}${personForm.id}/`, payload);
     } else {
-      await api.post(PERSONAS_ENDPOINT, {
-        nombre: personForm.nombre,
-        orden: personForm.orden,
-        activo: true
-      });
+      await api.post(PERSONAS_ENDPOINT, payload);
     }
 
     await fetchPersonas();
-    personForm.id = null; personForm.nombre=''; personForm.orden=0;
+    resetPersonForm();
     Swal.fire({ icon:'success', title:'OK', timer:650, showConfirmButton:false });
+
   }catch(err){
     console.error(err);
     const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo guardar.';
     Swal.fire('Error', msg, 'error');
   }finally{
-    personasModal.saving = false;
+    settingsModal.saving = false;
   }
 }
 
@@ -882,7 +1352,6 @@ async function deletePersona(p){
     await api.delete(`${PERSONAS_ENDPOINT}${p.id}/`);
     await fetchPersonas();
 
-    // limpia cache de ese mes para esa persona
     for (const d of monthDays.value){
       turnosCache.delete(keyTurno(p.id, d.iso));
     }
@@ -894,12 +1363,191 @@ async function deletePersona(p){
   }
 }
 
-// -------- Detalle día / Semana foco (mantengo simple: usa endpoints existentes en tu proyecto) --------
+const groupForm = reactive({ id:null, nombre:'', orden:0, color:'#198754' });
+
+function resetGroupForm(){
+  groupForm.id = null;
+  groupForm.nombre = '';
+  groupForm.orden = 0;
+  groupForm.color = '#198754';
+}
+
+function editGrupo(g){
+  groupForm.id = g.id;
+  groupForm.nombre = g.nombre;
+  groupForm.orden = g.orden ?? 0;
+  groupForm.color = g.color || '#198754';
+}
+
+async function saveGrupo(){
+  if (!groupForm.nombre.trim()){
+    Swal.fire('Campo requerido','Escribe el nombre del grupo.','warning');
+    return;
+  }
+  try{
+    settingsModal.saving = true;
+
+    const payload = {
+      nombre: groupForm.nombre,
+      orden: groupForm.orden,
+      color: groupForm.color,
+      activo: true
+    };
+
+    if (groupForm.id){
+      await api.put(`${GRUPOS_ENDPOINT}${groupForm.id}/`, payload);
+    } else {
+      await api.post(GRUPOS_ENDPOINT, payload);
+    }
+
+    await fetchGrupos();
+    await fetchPersonas();
+    resetGroupForm();
+
+    Swal.fire({ icon:'success', title:'OK', timer:650, showConfirmButton:false });
+  }catch(err){
+    console.error(err);
+    const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo guardar.';
+    Swal.fire('Error', msg, 'error');
+  }finally{
+    settingsModal.saving = false;
+  }
+}
+
+async function deleteGrupo(g){
+  const confirm = await Swal.fire({
+    title:'¿Eliminar grupo?',
+    text:'Las personas quedarán sin grupo.',
+    icon:'warning',
+    showCancelButton:true,
+    confirmButtonText:'Sí, eliminar',
+    cancelButtonText:'Cancelar'
+  });
+  if (!confirm.isConfirmed) return;
+
+  try{
+    await api.delete(`${GRUPOS_ENDPOINT}${g.id}/`);
+    await fetchGrupos();
+    await fetchPersonas();
+    Swal.fire({ icon:'success', title:'Eliminado', timer:650, showConfirmButton:false });
+  }catch(err){
+    console.error(err);
+    Swal.fire('Error','No se pudo eliminar.','error');
+  }
+}
+
+const tplForm = reactive({
+  id:null,
+  codigo:'T1',
+  nombre:'',
+  entrada_1:'08:00',
+  salida_1:'17:00',
+  entrada_2:'',
+  salida_2:'',
+  almuerzo_inicio:'',
+  almuerzo_fin:'',
+  color:'#0d6efd'
+});
+
+function resetTplForm(){
+  tplForm.id = null;
+  tplForm.codigo = 'T1';
+  tplForm.nombre = '';
+  tplForm.entrada_1 = '08:00';
+  tplForm.salida_1 = '17:00';
+  tplForm.entrada_2 = '';
+  tplForm.salida_2 = '';
+  tplForm.almuerzo_inicio = '';
+  tplForm.almuerzo_fin = '';
+  tplForm.color = '#0d6efd';
+}
+
+function editPlantilla(t){
+  tplForm.id = t.id;
+  tplForm.codigo = t.codigo;
+  tplForm.nombre = t.nombre;
+  tplForm.entrada_1 = t.entrada_1?.slice(0,5) || '08:00';
+  tplForm.salida_1 = t.salida_1?.slice(0,5) || '17:00';
+  tplForm.entrada_2 = t.entrada_2?.slice(0,5) || '';
+  tplForm.salida_2 = t.salida_2?.slice(0,5) || '';
+  tplForm.almuerzo_inicio = t.almuerzo_inicio?.slice(0,5) || '';
+  tplForm.almuerzo_fin = t.almuerzo_fin?.slice(0,5) || '';
+  tplForm.color = t.color || '#0d6efd';
+}
+
+async function savePlantilla(){
+  if (!tplForm.codigo.trim() || !tplForm.nombre.trim()){
+    Swal.fire('Campos requeridos', 'Código y nombre son obligatorios.', 'warning');
+    return;
+  }
+  if (!tplForm.entrada_1 || !tplForm.salida_1){
+    Swal.fire('Campos requeridos', 'Entrada 1 y Salida 1 son obligatorios.', 'warning');
+    return;
+  }
+
+  try{
+    settingsModal.saving = true;
+
+    const toNull = (v) => (v && String(v).trim() ? v : null);
+
+    const payload = {
+      codigo: tplForm.codigo.trim().toUpperCase(),
+      nombre: tplForm.nombre.trim(),
+      entrada_1: tplForm.entrada_1,
+      salida_1: tplForm.salida_1,
+      entrada_2: toNull(tplForm.entrada_2),
+      salida_2: toNull(tplForm.salida_2),
+      almuerzo_inicio: toNull(tplForm.almuerzo_inicio),
+      almuerzo_fin: toNull(tplForm.almuerzo_fin),
+      color: tplForm.color,
+      activo: true
+    };
+
+    if (tplForm.id){
+      await api.put(`${PLANTILLAS_ENDPOINT}${tplForm.id}/`, payload);
+    } else {
+      await api.post(PLANTILLAS_ENDPOINT, payload);
+    }
+
+    await fetchPlantillas();
+    resetTplForm();
+    Swal.fire({ icon:'success', title:'OK', timer:650, showConfirmButton:false });
+  }catch(err){
+    console.error(err);
+    const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo guardar.';
+    Swal.fire('Error', msg, 'error');
+  }finally{
+    settingsModal.saving = false;
+  }
+}
+
+async function deletePlantilla(t){
+  const confirm = await Swal.fire({
+    title:'¿Eliminar plantilla?',
+    text:'Ya no podrás usarla en Excel ni modo rápido.',
+    icon:'warning',
+    showCancelButton:true,
+    confirmButtonText:'Sí, eliminar',
+    cancelButtonText:'Cancelar'
+  });
+  if (!confirm.isConfirmed) return;
+
+  try{
+    await api.delete(`${PLANTILLAS_ENDPOINT}${t.id}/`);
+    await fetchPlantillas();
+    Swal.fire({ icon:'success', title:'Eliminado', timer:650, showConfirmButton:false });
+  }catch(err){
+    console.error(err);
+    Swal.fire('Error','No se pudo eliminar.','error');
+  }
+}
+
+// ---------------- Day/Week quick info ----------------
 async function openDayDetail(fechaISO){
-  // UX: en vez de un drawer grande, damos un resumen rápido con Swal
+  if (!fechaISO) return;
   try{
     const arr = await fetchTurnosRange(fechaISO, fechaISO);
-    const dayTurnos = arr.filter(t => t.fecha === fechaISO);
+    const dayTurnos = (arr || []).filter(t => t.fecha === fechaISO);
 
     if (!dayTurnos.length){
       Swal.fire('Detalle día', `No hay turnos para ${fechaISO}.`, 'info');
@@ -909,7 +1557,7 @@ async function openDayDetail(fechaISO){
     const lines = dayTurnos
       .sort((a,b) => String(a.persona_nombre||'').localeCompare(String(b.persona_nombre||'')))
       .map(t => `• ${t.persona_nombre || 'Persona'}: ${hhmm(t.entrada_1)}-${hhmm(t.salida_1)}${t.entrada_2 ? ` | ${hhmm(t.entrada_2)}-${hhmm(t.salida_2)}` : ''}`)
-      .slice(0, 25);
+      .slice(0, 35);
 
     Swal.fire({
       title: `Detalle ${fechaISO}`,
@@ -925,15 +1573,10 @@ async function openDayDetail(fechaISO){
 function getWeekRangeFromISO(iso){
   const [y,m,d] = iso.split('-').map(Number);
   const date = new Date(Date.UTC(y, m-1, d));
-  const day = date.getUTCDay(); // 0 domingo
+  const day = date.getUTCDay();
   const diffToMonday = (day === 0 ? -6 : 1 - day);
-
-  const monday = new Date(date);
-  monday.setUTCDate(monday.getUTCDate() + diffToMonday);
-
-  const sunday = new Date(monday);
-  sunday.setUTCDate(sunday.getUTCDate() + 6);
-
+  const monday = new Date(date); monday.setUTCDate(monday.getUTCDate() + diffToMonday);
+  const sunday = new Date(monday); sunday.setUTCDate(sunday.getUTCDate() + 6);
   const start = `${monday.getUTCFullYear()}-${pad2(monday.getUTCMonth()+1)}-${pad2(monday.getUTCDate())}`;
   const end = `${sunday.getUTCFullYear()}-${pad2(sunday.getUTCMonth()+1)}-${pad2(sunday.getUTCDate())}`;
   return { start, end };
@@ -944,7 +1587,7 @@ async function openWeekSummary(focusISO){
   try{
     const res = await api.get(`${TURNOS_RESUMEN_ENDPOINT}?start=${start}&end=${end}`);
     const items = res.data?.items || [];
-    const top = items.slice(0, 20).map(i => `• ${i.nombre}: ${i.horas}h`);
+    const top = items.slice(0, 30).map(i => `• ${i.nombre}: ${i.horas}h`);
 
     Swal.fire({
       title: `Resumen semana (${start} → ${end})`,
@@ -958,28 +1601,25 @@ async function openWeekSummary(focusISO){
 }
 
 // ===================== REPORTES =====================
-const reportsLoading = ref(false);
-const reportsLoaded = ref(false);
-
 const report = reactive({
-  start: '',
-  end: '',
-  view: 'matrix',
-  selectedDay: '',
+  start:'',
+  end:'',
+  view:'matrix',
+  selectedDay:''
 });
 
-// days in report range
 function addDaysISO(iso, delta){
   const [y,m,d] = iso.split('-').map(Number);
   const dt = new Date(Date.UTC(y, m-1, d));
   dt.setUTCDate(dt.getUTCDate() + delta);
   return `${dt.getUTCFullYear()}-${pad2(dt.getUTCMonth()+1)}-${pad2(dt.getUTCDate())}`;
 }
+
 const reportDays = computed(() => {
   if (!report.start || !report.end) return [];
   const res = [];
   let cur = report.start;
-  while (cur <= report.end) { res.push(cur); cur = addDaysISO(cur, 1); }
+  while (cur <= report.end){ res.push(cur); cur = addDaysISO(cur, 1); }
   return res;
 });
 
@@ -987,6 +1627,7 @@ function formatDateLabel(iso){
   const d = new Date(iso + 'T00:00:00Z');
   return d.toLocaleDateString('es-CO', { weekday:'long', year:'numeric', month:'2-digit', day:'2-digit', timeZone:'UTC' });
 }
+
 function shortDay(iso){
   const d = new Date(iso + 'T00:00:00Z');
   const wd = d.toLocaleDateString('es-CO', { weekday:'short', timeZone:'UTC' }).replace('.', '');
@@ -999,6 +1640,7 @@ function setReportWeekFromFocus(){
   report.end = end;
   report.selectedDay = focusDateISO.value;
 }
+
 function setReportMonthFromFocus(){
   const y = Number(focusDateISO.value.slice(0,4));
   const m = Number(focusDateISO.value.slice(5,7));
@@ -1010,20 +1652,46 @@ function setReportMonthFromFocus(){
   report.selectedDay = focusDateISO.value;
 }
 
-// coverage map from backend: day -> slotLabel -> count
 const reportCoverageMap = ref({});
-
-// hours range: personaId -> horas
 const reportHoursByPersona = ref({});
+
 const reportTotalHorasRango = computed(() => {
   let s = 0;
-  for (const p of personas.value){
+  for (const p of filteredPersonas.value){
     s += Number(reportHoursByPersona.value[p.id] || 0);
   }
   return round2(s);
 });
 
-// ----- Matrix computations (día) -----
+function goReports(){
+  activeTab.value = 'reports';
+  if (!report.start || !report.end) setReportWeekFromFocus();
+  if (!report.selectedDay) report.selectedDay = focusDateISO.value;
+  loadReports();
+}
+
+// Build slots
+function hhmmToMin(hhmmStr){
+  const [h,m] = hhmmStr.split(':').map(Number);
+  return h*60 + m;
+}
+function minToHHMM(min){
+  const h = Math.floor(min/60);
+  const m = min%60;
+  return `${pad2(h)}:${pad2(m)}`;
+}
+const slots = computed(() => {
+  const start = hhmmToMin(gridConfig.dayStart);
+  const end = hhmmToMin(gridConfig.dayEnd);
+  const step = Number(gridConfig.step);
+  const res = [];
+  for (let t = start; t < end; t += step){
+    res.push({ startMin: t, endMin: t + step, label: minToHHMM(t) });
+  }
+  return res;
+});
+
+// Work intervals
 function tToMin(t){
   if (!t) return null;
   const hh = String(t).slice(0,5);
@@ -1071,16 +1739,14 @@ function mxIsActive(personaId, slot){
   return false;
 }
 function mxCellClass(personaId, slot){
-  const active = mxIsActive(personaId, slot);
-  // Warning if projection > available -> border on header row via separate logic
-  return active ? 'mx-on' : 'mx-off';
+  return mxIsActive(personaId, slot) ? 'mx-on' : 'mx-off';
 }
 
 const mxDisponiblesBySlot = computed(() => {
   const obj = {};
   for (const s of slots.value){
     let c = 0;
-    for (const p of personas.value){
+    for (const p of filteredPersonas.value){
       if (mxIsActive(p.id, s)) c += 1;
     }
     obj[s.label] = c;
@@ -1090,7 +1756,7 @@ const mxDisponiblesBySlot = computed(() => {
 
 const mxHoursByPersona = computed(() => {
   const obj = {};
-  for (const p of personas.value){
+  for (const p of filteredPersonas.value){
     const t = mxTurno(p.id);
     obj[p.id] = round2(Number(t?.total_horas || 0));
   }
@@ -1099,14 +1765,15 @@ const mxHoursByPersona = computed(() => {
 
 const mxTotalHorasDia = computed(() => {
   let sum = 0;
-  for (const p of personas.value){
+  for (const p of filteredPersonas.value){
     sum += Number(mxHoursByPersona.value[p.id] || 0);
   }
   return round2(sum);
 });
 
-// Projection (localStorage por día/config)
+// Projection (localStorage)
 const mxProjection = ref({});
+
 function projectionKey(dayISO){
   return `turnos_projection_${dayISO}_${gridConfig.dayStart}_${gridConfig.dayEnd}_${gridConfig.step}`;
 }
@@ -1126,8 +1793,13 @@ function onProjectionInput(slotLabel, value){
   mxProjection.value = next;
   localStorage.setItem(projectionKey(report.selectedDay), JSON.stringify(next));
 }
+function projectionWarnClass(slotLabel){
+  const proj = mxProjection.value?.[slotLabel];
+  if (proj == null || proj === '') return '';
+  const disp = mxDisponiblesBySlot.value?.[slotLabel] ?? 0;
+  return (disp < Number(proj)) ? 'proj-warn' : 'proj-ok';
+}
 
-// click cell => info + quick edit
 async function mxCellClick(personaObj, slot){
   const t = mxTurno(personaObj.id);
   if (!t){
@@ -1170,59 +1842,45 @@ async function mxCellClick(personaObj, slot){
   }
 }
 
-// Coverage heat classes
 function heatClass(count){
   if (count >= 10) return 'heat-strong';
   if (count >= 7) return 'heat-mid';
   if (count >= 4) return 'heat-low';
   return 'heat-zero';
 }
-
 function openMatrixFromCoverage(dayISO){
   report.view = 'matrix';
   report.selectedDay = dayISO;
   loadProjection(dayISO);
 }
 
-function goReports(){
-  activeTab.value = 'reports';
-  if (!report.start || !report.end){
-    setReportWeekFromFocus();
-  }
-  if (!report.selectedDay) report.selectedDay = focusDateISO.value;
-  loadReports(); // auto
-}
-
-async function loadReportsDayOnly(){
-  // Asegura turnos del día en cache
-  await fetchTurnosRange(report.selectedDay, report.selectedDay);
-  loadProjection(report.selectedDay);
-}
+watch(() => report.selectedDay, async (d) => {
+  if (!d) return;
+  loadProjection(d);
+  await fetchTurnosRange(d, d);
+});
 
 async function loadReports(){
-  if (!report.start || !report.end){
-    setReportWeekFromFocus();
-  }
+  if (!report.start || !report.end) setReportWeekFromFocus();
   if (!report.selectedDay) report.selectedDay = focusDateISO.value;
 
   try{
     reportsLoading.value = true;
 
-    // 1) traer turnos del rango y llenar cache
-    const arr = await fetchTurnosRange(report.start, report.end);
+    // Ensure turnos in cache
+    await fetchTurnosRange(report.start, report.end);
 
-    // 2) resumen horas por persona (backend)
+    // Hours summary by persona
     const resumen = await api.get(`${TURNOS_RESUMEN_ENDPOINT}?start=${report.start}&end=${report.end}`);
     const items = resumen.data?.items || [];
     const map = {};
     for (const p of personas.value) map[p.id] = 0;
     for (const it of items){
-      // backend: persona_id
       map[it.persona_id] = round2(it.horas);
     }
     reportHoursByPersona.value = map;
 
-    // 3) cobertura (backend) — se dibuja más rápido que calcular todo en front
+    // Coverage from backend
     const qs = new URLSearchParams({
       start: report.start,
       end: report.end,
@@ -1242,8 +1900,9 @@ async function loadReports(){
     }
     reportCoverageMap.value = covMap;
 
-    // 4) Asegura día seleccionado en cache + projection local
-    await loadReportsDayOnly();
+    // Ensure selected day in cache + projection
+    await fetchTurnosRange(report.selectedDay, report.selectedDay);
+    loadProjection(report.selectedDay);
 
     reportsLoaded.value = true;
 
@@ -1256,16 +1915,7 @@ async function loadReports(){
   }
 }
 
-// cuando cambie selectedDay en reportes, carga projection y asegura cache del día
-watch(() => report.selectedDay, async (d) => {
-  if (!d) return;
-  loadProjection(d);
-  if (activeTab.value === 'reports'){
-    await fetchTurnosRange(d, d);
-  }
-});
-
-// export CSV del rango de reportes (desde cache: reconstruimos con GET para asegurar)
+// ---------------- CSV export ----------------
 async function exportTurnosCsv(){
   if (!report.start || !report.end){
     Swal.fire('Rango requerido', 'Selecciona inicio y fin.', 'warning');
@@ -1323,25 +1973,26 @@ h1,h2,h3,h4,h5,h6,.form-label,.btn,p,td,th { font-family: 'Poppins', sans-serif;
 
 .planner-scroll { overflow: auto; max-height: 70vh; }
 
-/* Planner month table */
-.planner-table { border-collapse: separate; border-spacing: 0; min-width: 1100px; }
-.name-col { min-width: 260px; background: #fff; }
-.day-head { min-width: 140px; }
+/* Planner month */
+.planner-table { border-collapse: separate; border-spacing: 0; min-width: 1200px; }
+.name-col { min-width: 280px; background: #fff; }
+.day-head { min-width: 150px; }
 
 .sticky-col { position: sticky; left: 0; z-index: 3; background: #fff; }
 .sticky-head { position: sticky; top: 0; z-index: 4; background: #f8f9fa; }
 
-.turno-cell { cursor: pointer; background: #fff; transition: background .12s ease-in-out; }
+.turno-cell { cursor: pointer; background: #fff; transition: background .12s ease-in-out; padding: 0.6rem; }
 .turno-cell:hover { background: #fbf3f3; }
 
-/* Modal */
+/* Modals */
 .modal-backdrop-custom{
   position: fixed; inset: 0;
   background: rgba(0,0,0,.35);
   display:flex; align-items:center; justify-content:center;
   padding: 14px; z-index:1050;
 }
-.modal-dialog-custom{ width: min(760px, 100%); }
+.modal-dialog-custom{ width: min(820px, 100%); }
+.modal-lg{ width: min(1050px, 100%); }
 
 /* Matrix (Excel-like) */
 .matrix-table { min-width: 1200px; border-collapse: separate; border-spacing: 0; }
@@ -1359,12 +2010,9 @@ h1,h2,h3,h4,h5,h6,.form-label,.btn,p,td,th { font-family: 'Poppins', sans-serif;
   letter-spacing: 0.3px;
 }
 
-.mx-cell{
-  cursor:pointer;
-  padding: 0.25rem;
-}
-.mx-on{ background: #d9f2d9; }   /* verde */
-.mx-off{ background: #f7d6d6; }  /* rosado */
+.mx-cell{ cursor:pointer; padding: 0.25rem; }
+.mx-on{ background: #d9f2d9; }  /* verde */
+.mx-off{ background: #f7d6d6; } /* rosado */
 
 .dot{
   display:inline-block;
@@ -1384,4 +2032,14 @@ h1,h2,h3,h4,h5,h6,.form-label,.btn,p,td,th { font-family: 'Poppins', sans-serif;
 .heat-mid { background: #e8f7e8; font-weight: 600; }
 .heat-low { background: #fff3cd; font-weight: 600; }
 .heat-zero { background: #f7d6d6; font-weight: 600; }
+
+/* Projection warn */
+.proj-warn{
+  outline: 2px solid #dc3545;
+  outline-offset: -2px;
+}
+.proj-ok{
+  outline: 2px solid #198754;
+  outline-offset: -2px;
+}
 </style>
