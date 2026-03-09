@@ -37,7 +37,7 @@ import PanelAdmin from '@/views/Intranet/Consultas/PanelAdmin.vue';
 import TransparencyLinePage from '@/views/Intranet/Informes/TransparencyLinePage.vue';
 import EncuestaDev from '@/views/Intranet/Informes/EncuestaWizardDI.vue';
 import EncuestaDevDash from '@/views/Intranet/Informes/EncuestaDIDashboard.vue';
-
+import TurnosPlanner from '@/views/Intranet/Administrador/TurnosPlanner.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -48,6 +48,11 @@ const router = createRouter({
     name: 'Tesoreria',
     component: Tesoreria
      },
+     {
+      path: '/turnos',
+      name: 'TurnosPlanner',
+      component: TurnosPlanner
+    },
     {
       path: '/',
       name: 'Landing',
