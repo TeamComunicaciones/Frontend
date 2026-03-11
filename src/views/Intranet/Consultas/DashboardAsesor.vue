@@ -328,12 +328,19 @@
                     type="number"
                     class="form-control"
                     placeholder="0"
+                    min="0"
+                    :max="getMaxForMethod(key)"
                     v-model.number="paymentMethods[key]"
                     :disabled="!paymentMethodsEnabled[key]"
+                    @input="normalizePaymentMethod(key)"
                   />
                 </div>
               </div>
             </div>
+
+            <small v-if="excedeDisponible" class="text-danger d-block mb-2">
+              El total ingresado no puede ser mayor al disponible.
+            </small>
 
             <!-- IMAGEN DE SOPORTE (OPCIONAL) - OPCIÓN 2: CÁMARA EN APP + COMPRESIÓN -->
             <h6 class="mb-3 mt-2">Comprobante de Pago (opcional)</h6>
@@ -364,7 +371,12 @@
             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
               Cancelar
             </button>
-            <button type="button" class="btn btn-success" @click="handlePayment" :disabled="isPaying">
+            <button
+              type="button"
+              class="btn btn-success"
+              @click="handlePayment"
+              :disabled="isPaying || excedeDisponible"
+            >
               <span v-if="isPaying" class="spinner-border spinner-border-sm"></span>
               <span v-else>Confirmar y Pagar</span>
             </button>
@@ -522,17 +534,15 @@ const canvasToBlob = (canvas, type = 'image/jpeg', quality = 0.9) =>
 const compressImage = async (
   fileOrBlob,
   {
-    maxDim = 1600,             // 1600 = buena calidad, liviana; baja a 1280 si quieres más compresión
-    mimeType = 'image/jpeg',   // máxima compatibilidad
-    quality = 0.82,            // balance calidad/peso
-    targetBytes = 600 * 1024,  // intenta quedar ~600KB
+    maxDim = 1600,
+    mimeType = 'image/jpeg',
+    quality = 0.82,
+    targetBytes = 600 * 1024,
     minQuality = 0.55
   } = {}
 ) => {
-  // decode imagen
   let bitmap;
   try {
-    // algunos navegadores respetan EXIF orientation con from-image
     bitmap = await createImageBitmap(fileOrBlob, { imageOrientation: 'from-image' });
   } catch (e) {
     bitmap = await createImageBitmap(fileOrBlob);
@@ -550,11 +560,9 @@ const compressImage = async (
   const ctx = canvas.getContext('2d', { alpha: false });
   ctx.drawImage(bitmap, 0, 0, newW, newH);
 
-  // primera compresión
   let q = quality;
   let out = await canvasToBlob(canvas, mimeType, q);
 
-  // si aún pesa mucho, baja calidad en pasos pequeños
   while (out.size > targetBytes && q > minQuality) {
     q = Math.max(minQuality, q - 0.08);
     out = await canvasToBlob(canvas, mimeType, q);
@@ -581,7 +589,6 @@ const setSoporteFromBlob = async (blob, filenameBase = 'comprobante') => {
 const openCamera = async () => {
   cameraError.value = '';
 
-  // abre modal
   const modalEl = document.getElementById('cameraModal');
   let modal = bootstrap.Modal.getInstance(modalEl);
   if (!modal) modal = new bootstrap.Modal(modalEl);
@@ -631,11 +638,9 @@ const capturePhoto = async () => {
     const ctx = canvas.getContext('2d', { alpha: false });
     ctx.drawImage(video, 0, 0, w, h);
 
-    // captura en alta, luego comprimimos
     const rawBlob = await canvasToBlob(canvas, 'image/jpeg', 0.95);
     await setSoporteFromBlob(rawBlob, 'comprobante');
 
-    // cerrar modal
     const modalEl = document.getElementById('cameraModal');
     const modal = bootstrap.Modal.getInstance(modalEl);
     if (modal) modal.hide();
@@ -664,6 +669,8 @@ const resetPaymentForm = () => {
 const togglePaymentMethod = (key) => {
   if (!paymentMethodsEnabled[key]) {
     paymentMethods[key] = 0;
+  } else {
+    normalizePaymentMethod(key);
   }
 };
 
@@ -690,6 +697,41 @@ const restanteClass = computed(() => {
   if (restante.value > 0) return 'text-warning';
   return 'text-success';
 });
+
+const excedeDisponible = computed(() => totalIngresado.value > subtotalSeleccionado.value);
+
+const getTotalWithoutKey = (key) => {
+  return Object.entries(paymentMethods).reduce((sum, [k, val]) => {
+    if (k === key) return sum;
+    return sum + (Number(val) || 0);
+  }, 0);
+};
+
+const getMaxForMethod = (key) => {
+  return Math.max(0, subtotalSeleccionado.value - getTotalWithoutKey(key));
+};
+
+const normalizePaymentMethod = (key) => {
+  let value = Number(paymentMethods[key]) || 0;
+
+  if (value < 0) value = 0;
+
+  const maxAllowed = getMaxForMethod(key);
+
+  if (value > maxAllowed) {
+    value = maxAllowed;
+
+    Swal.fire({
+      icon: 'warning',
+      title: 'Monto excedido',
+      text: 'No puedes ingresar un valor mayor al disponible.',
+      timer: 1800,
+      showConfirmButton: false
+    });
+  }
+
+  paymentMethods[key] = value;
+};
 
 const isAllSelected = computed(() => {
   if (!reportData.value || !reportData.value.detalle.results || reportData.value.detalle.results.length === 0) return false;
@@ -1041,7 +1083,6 @@ const onSoporteChange = async (event) => {
   try {
     await setSoporteFromBlob(file, 'comprobante');
   } catch (e) {
-    // fallback si falla procesamiento
     soporteFile.value = file;
     soporteInfo.value = 'Comprobante seleccionado (sin compresión por error de procesamiento).';
   }
@@ -1054,6 +1095,12 @@ const handlePayment = async () => {
   }
 
   isPaying.value = true;
+
+  if (totalIngresado.value > subtotalSeleccionado.value) {
+    Swal.fire('Atención', 'El total ingresado no puede ser mayor al disponible.', 'warning');
+    isPaying.value = false;
+    return;
+  }
 
   const metodosPagoActivos = {};
   for (const key in paymentMethods) {
@@ -1069,7 +1116,6 @@ const handlePayment = async () => {
     .filter(id => id !== null && id !== undefined);
 
   try {
-    // subir comprobante si existe
     let soporteFilename = null;
     if (soporteFile.value) {
       const formData = new FormData();
@@ -1152,7 +1198,6 @@ onMounted(() => {
     paymentModalEl.addEventListener('hidden.bs.modal', resetPaymentForm);
   }
 
-  // si cierran el modal de cámara, detiene el stream
   const cameraModalEl = document.getElementById('cameraModal');
   if (cameraModalEl) {
     cameraModalEl.addEventListener('hidden.bs.modal', closeCamera);

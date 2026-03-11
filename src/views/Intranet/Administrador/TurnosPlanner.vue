@@ -1,13 +1,18 @@
-<!-- src/views/TurnosDashboard.vue -->
+<!-- src/views/TurnosPlanner.vue  (o TurnosDashboard.vue si así lo tienes en tu router)
+     ✅ Incluye:
+     - Grupos (UI sin mostrar #HEX como texto)
+     - Plantillas T1/T2 + modo rápido
+     - Excel: descargar plantilla + importar
+     - Planificar (MES) separado en tablas por grupo
+     - Reportes (matriz/coverage/horas) con matriz separada en tablas por grupo
+-->
 <template>
   <div class="bg-light">
     <div class="container my-4">
       <div class="row justify-content-center">
         <div class="col-12">
-
           <div class="card border-0 shadow-sm">
             <div class="card-body p-4 p-md-4">
-
               <!-- HEADER -->
               <div class="d-flex align-items-start justify-content-between flex-wrap gap-3 mb-3">
                 <div>
@@ -28,9 +33,7 @@
                     <select class="form-select" v-model="filters.groupId" :disabled="isLoading">
                       <option value="all">Todos</option>
                       <option value="none">Sin grupo</option>
-                      <option v-for="g in grupos" :key="g.id" :value="String(g.id)">
-                        {{ g.nombre }}
-                      </option>
+                      <option v-for="g in grupos" :key="g.id" :value="String(g.id)">{{ g.nombre }}</option>
                     </select>
                   </div>
 
@@ -138,87 +141,84 @@
               <div v-else-if="activeTab === 'plan'">
                 <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                   <div class="small text-muted">
-                    Click en una celda para crear/editar turno. Si “Modo rápido” está ON, aplica plantilla y guarda.
+                    Separado por grupos. Click en celda para crear/editar. Si “Modo rápido” está ON, aplica plantilla y guarda.
                   </div>
                   <div class="small text-muted">
                     Turnos cargados (mes): <span class="fw-semibold">{{ monthTurnosCount }}</span>
                   </div>
                 </div>
 
-                <div class="table-responsive planner-scroll">
-                  <table class="table table-bordered align-middle planner-table">
-                    <thead>
-                      <tr>
-                        <th class="sticky-col sticky-head name-col">Persona</th>
-                        <th v-for="d in monthDays" :key="d.iso" class="sticky-head day-head text-center">
-                          <div class="d-flex flex-column align-items-center">
-                            <div class="fw-bold">{{ d.weekdayShort }} {{ d.day }}</div>
-                            <div class="small text-muted">{{ d.monthShort }}</div>
-                            <button class="btn btn-sm btn-outline-secondary mt-2" @click="openDayDetail(d.iso)">
-                              Detalle
-                            </button>
-                          </div>
-                        </th>
-                      </tr>
-                      <tr>
-                        <th class="sticky-col sticky-head name-col small text-muted">—</th>
-                        <th v-for="d in monthDays" :key="d.iso + '-sub'" class="sticky-head text-center small">
-                          Turno
-                        </th>
-                      </tr>
-                    </thead>
+                <div v-for="g in personasPorGrupo" :key="'plan-group-'+g.id" class="group-section mb-4">
+                  <div class="d-flex align-items-center justify-content-between mb-2">
+                    <div class="d-flex align-items-center gap-2">
+                      <div class="color-swatch" :style="{ backgroundColor: g.color }" />
+                      <div class="fw-bold">{{ g.nombre }}</div>
+                      <span class="badge bg-light text-dark border">{{ g.personas.length }} personas</span>
+                    </div>
+                  </div>
 
-                    <tbody>
-                      <tr v-if="filteredPersonas.length === 0">
-                        <td class="sticky-col name-col">
-                          <div class="fw-semibold">Sin resultados</div>
-                          <div class="small text-muted">Cambia filtros o agrega personas en “Configuración”.</div>
-                        </td>
-                        <td v-for="d in monthDays" :key="'empty-'+d.iso" class="turno-cell text-muted small text-center">—</td>
-                      </tr>
-
-                      <tr v-for="p in filteredPersonas" :key="p.id">
-                        <td class="sticky-col name-col">
-                          <div class="fw-semibold">{{ p.nombre }}</div>
-                          <div class="d-flex gap-2 align-items-center mt-1 flex-wrap">
-                            <span v-if="p.grupo_nombre" class="badge text-white" :style="{ background: p.grupo_color || '#6c757d' }">
-                              {{ p.grupo_nombre }}
-                            </span>
-                            <span class="badge bg-light text-dark border">ID: {{ p.id }}</span>
-                          </div>
-                        </td>
-
-                        <td
-                          v-for="d in monthDays"
-                          :key="p.id + '-' + d.iso"
-                          class="turno-cell"
-                          @click="onCellClick(p, d.iso)"
-                        >
-                          <template v-if="getTurno(p.id, d.iso)">
-                            <div class="fw-semibold">
-                              {{ hhmm(getTurno(p.id, d.iso).entrada_1) }} - {{ hhmm(getTurno(p.id, d.iso).salida_1) }}
+                  <div class="table-responsive planner-scroll">
+                    <table class="table table-bordered align-middle planner-table">
+                      <thead>
+                        <tr>
+                          <th class="sticky-col sticky-head name-col">Persona</th>
+                          <th v-for="d in monthDays" :key="g.id + '-' + d.iso" class="sticky-head day-head text-center">
+                            <div class="d-flex flex-column align-items-center">
+                              <div class="fw-bold">{{ d.weekdayShort }} {{ d.day }}</div>
+                              <div class="small text-muted">{{ d.monthShort }}</div>
+                              <button class="btn btn-sm btn-outline-secondary mt-2" @click="openDayDetail(d.iso)">
+                                Detalle
+                              </button>
                             </div>
+                          </th>
+                        </tr>
+                        <tr>
+                          <th class="sticky-col sticky-head name-col small text-muted">—</th>
+                          <th v-for="d in monthDays" :key="g.id + '-' + d.iso + '-sub'" class="sticky-head text-center small">
+                            Turno
+                          </th>
+                        </tr>
+                      </thead>
 
-                            <div class="small mt-1 d-flex gap-2 flex-wrap">
-                              <span v-if="guessPlantillaCode(getTurno(p.id, d.iso))" class="badge bg-primary">
-                                {{ guessPlantillaCode(getTurno(p.id, d.iso)) }}
-                              </span>
-                              <span class="badge bg-light text-dark border">
-                                {{ round2(getTurno(p.id, d.iso).total_horas ?? 0) }}h
-                              </span>
-                            </div>
-                          </template>
+                      <tbody>
+                        <tr v-for="p in g.personas" :key="'plan-row-' + g.id + '-' + p.id">
+                          <td class="sticky-col name-col">
+                            <div class="fw-semibold">{{ p.nombre }}</div>
+                            <div class="small text-muted">ID: {{ p.id }}</div>
+                          </td>
 
-                          <template v-else>
-                            <div class="text-muted small">—</div>
-                            <div v-if="quickApply.enabled && quickApply.plantillaId" class="small text-muted">
-                              click = aplicar
-                            </div>
-                          </template>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
+                          <td
+                            v-for="d in monthDays"
+                            :key="'plan-cell-' + g.id + '-' + p.id + '-' + d.iso"
+                            class="turno-cell"
+                            @click="onCellClick(p, d.iso)"
+                          >
+                            <template v-if="getTurno(p.id, d.iso)">
+                              <div class="fw-semibold">
+                                {{ hhmm(getTurno(p.id, d.iso).entrada_1) }} - {{ hhmm(getTurno(p.id, d.iso).salida_1) }}
+                              </div>
+
+                              <div class="small mt-1 d-flex gap-2 flex-wrap">
+                                <span v-if="guessPlantillaCode(getTurno(p.id, d.iso))" class="badge bg-primary">
+                                  {{ guessPlantillaCode(getTurno(p.id, d.iso)) }}
+                                </span>
+                                <span class="badge bg-light text-dark border">
+                                  {{ round2(getTurno(p.id, d.iso).total_horas ?? 0) }}h
+                                </span>
+                              </div>
+                            </template>
+
+                            <template v-else>
+                              <div class="text-muted small">—</div>
+                              <div v-if="quickApply.enabled && quickApply.plantillaId" class="small text-muted">
+                                click = aplicar
+                              </div>
+                            </template>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               </div>
 
@@ -284,70 +284,44 @@
                   <div class="spinner-border text-danger" role="status"></div>
                 </div>
 
-                <!-- Report: Matrix -->
+                <!-- Report: Matrix (separada por grupo) -->
                 <div v-else-if="report.view === 'matrix'">
                   <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
                     <div class="small text-muted">
                       Día: <span class="fw-semibold">{{ report.selectedDay }}</span>
                       | {{ gridConfig.dayStart }}–{{ gridConfig.dayEnd }} ({{ gridConfig.step }}m)
                     </div>
-                    <div class="small text-muted">Click en celda: info + “Editar”.</div>
+                    <div class="small text-muted">
+                      Separado por grupos. Verde = trabajando, rosado = libre.
+                    </div>
                   </div>
 
-                  <div class="table-responsive planner-scroll">
-                    <table class="table table-bordered align-middle matrix-table">
+                  <!-- Resumen general (Proyección global) -->
+                  <div class="table-responsive mb-3">
+                    <table class="table table-bordered align-middle matrix-summary">
                       <thead>
                         <tr>
-                          <th class="sticky-col sticky-head name-col">Persona</th>
-                          <th v-for="s in slots" :key="'h-'+s.label" class="sticky-head text-center slot-head">
-                            <div class="rot">{{ s.label }}</div>
+                          <th class="summary-label">Resumen general</th>
+                          <th v-for="s in slots" :key="'sum-h-'+s.label" class="text-center small">
+                            {{ s.label }}
                           </th>
-                          <th class="sticky-head text-center total-col">Horas</th>
                         </tr>
                       </thead>
-
                       <tbody>
-                        <tr v-for="p in filteredPersonas" :key="'mx-'+p.id">
-                          <td class="sticky-col name-col">
-                            <div class="fw-semibold">{{ p.nombre }}</div>
-                            <div class="small mt-1">
-                              <span v-if="p.grupo_nombre" class="badge text-white" :style="{ background: p.grupo_color || '#6c757d' }">
-                                {{ p.grupo_nombre }}
-                              </span>
-                            </div>
-                          </td>
-
-                          <td
-                            v-for="s in slots"
-                            :key="`c-${p.id}-${s.label}`"
-                            class="mx-cell text-center"
-                            :class="mxCellClass(p.id, s)"
-                            @click="mxCellClick(p, s)"
-                          >
-                            <span v-if="mxIsActive(p.id, s)" class="dot"></span>
-                          </td>
-
-                          <td class="text-center fw-semibold total-col">
-                            {{ mxHoursByPersona[p.id] ?? 0 }}
-                          </td>
-                        </tr>
-
                         <tr>
-                          <td class="sticky-col name-col fw-bold bg-light">Disponibles</td>
+                          <td class="summary-label fw-bold bg-light">Disponibles</td>
                           <td
                             v-for="s in slots"
-                            :key="'disp-'+s.label"
+                            :key="'sum-disp-'+s.label"
                             class="text-center fw-bold bg-light"
                             :class="projectionWarnClass(s.label)"
                           >
                             {{ mxDisponiblesBySlot[s.label] ?? 0 }}
                           </td>
-                          <td class="text-center fw-bold bg-light total-col">{{ mxTotalHorasDia }}</td>
                         </tr>
-
                         <tr>
-                          <td class="sticky-col name-col fw-bold bg-light">Proyección</td>
-                          <td v-for="s in slots" :key="'proj-'+s.label" class="bg-light">
+                          <td class="summary-label fw-bold bg-light">Proyección</td>
+                          <td v-for="s in slots" :key="'sum-proj-'+s.label" class="bg-light">
                             <input
                               class="form-control form-control-sm text-center"
                               type="number"
@@ -356,14 +330,69 @@
                               @input="onProjectionInput(s.label, $event.target.value)"
                             />
                           </td>
-                          <td class="bg-light total-col"></td>
                         </tr>
                       </tbody>
                     </table>
                   </div>
 
+                  <div v-for="g in personasPorGrupo" :key="'rep-mx-group-'+g.id" class="mb-4">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                      <div class="d-flex align-items-center gap-2">
+                        <div class="color-swatch" :style="{ backgroundColor: g.color }" />
+                        <div class="fw-bold">{{ g.nombre }}</div>
+                        <span class="badge bg-light text-dark border">{{ g.personas.length }} personas</span>
+                      </div>
+                      <div class="small text-muted">Horas grupo: <span class="fw-semibold">{{ mxTotalHorasDiaForGroup(g) }}</span></div>
+                    </div>
+
+                    <div class="table-responsive planner-scroll">
+                      <table class="table table-bordered align-middle matrix-table">
+                        <thead>
+                          <tr>
+                            <th class="sticky-col sticky-head name-col">Persona</th>
+                            <th v-for="s in slots" :key="'h-'+g.id+'-'+s.label" class="sticky-head text-center slot-head">
+                              <div class="rot">{{ s.label }}</div>
+                            </th>
+                            <th class="sticky-head text-center total-col">Horas</th>
+                          </tr>
+                        </thead>
+
+                        <tbody>
+                          <tr v-for="p in g.personas" :key="'mx-'+g.id+'-'+p.id">
+                            <td class="sticky-col name-col">
+                              <div class="fw-semibold">{{ p.nombre }}</div>
+                            </td>
+
+                            <td
+                              v-for="s in slots"
+                              :key="`c-${g.id}-${p.id}-${s.label}`"
+                              class="mx-cell text-center"
+                              :class="mxCellClass(p.id, s)"
+                              @click="mxCellClick(p, s)"
+                            >
+                              <span v-if="mxIsActive(p.id, s)" class="dot"></span>
+                            </td>
+
+                            <td class="text-center fw-semibold total-col">
+                              {{ mxHoursByPersona[p.id] ?? 0 }}
+                            </td>
+                          </tr>
+
+                          <!-- Totales por grupo (solo informativo) -->
+                          <tr>
+                            <td class="sticky-col name-col fw-bold bg-light">Disponibles (grupo)</td>
+                            <td v-for="s in slots" :key="'grp-disp-'+g.id+'-'+s.label" class="text-center fw-bold bg-light">
+                              {{ mxDisponiblesBySlotForGroup(g, s) }}
+                            </td>
+                            <td class="text-center fw-bold bg-light total-col">{{ mxTotalHorasDiaForGroup(g) }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
                   <div class="small text-muted mt-2">
-                    Bordes rojos en “Disponibles” cuando Disponibles &lt; Proyección (si la proyección está definida).
+                    Bordes rojos en “Resumen general → Disponibles” cuando Disponibles &lt; Proyección (si la proyección está definida).
                   </div>
                 </div>
 
@@ -373,7 +402,7 @@
                     <div class="small text-muted">
                       Rango: <span class="fw-semibold">{{ report.start }}</span> → <span class="fw-semibold">{{ report.end }}</span>
                     </div>
-                    <div class="small text-muted">Click en celda: abre matriz del día.</div>
+                    <div class="small text-muted">Click en celda: cambia a Matriz del día.</div>
                   </div>
 
                   <div class="table-responsive planner-scroll">
@@ -412,29 +441,35 @@
                     </div>
                   </div>
 
-                  <div class="table-responsive">
-                    <table class="table table-hover align-middle">
-                      <thead>
-                        <tr>
-                          <th>Persona</th>
-                          <th class="text-end">Horas</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        <tr v-for="p in filteredPersonas" :key="'hrs-'+p.id">
-                          <td>{{ p.nombre }}</td>
-                          <td class="text-end fw-semibold">{{ reportHoursByPersona[p.id] ?? 0 }}</td>
-                        </tr>
-                      </tbody>
-                    </table>
+                  <div v-for="g in personasPorGrupo" :key="'hrs-group-'+g.id" class="mb-4">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                      <div class="color-swatch" :style="{ backgroundColor: g.color }" />
+                      <div class="fw-bold">{{ g.nombre }}</div>
+                      <span class="badge bg-light text-dark border">{{ g.personas.length }} personas</span>
+                    </div>
+
+                    <div class="table-responsive">
+                      <table class="table table-hover align-middle">
+                        <thead>
+                          <tr>
+                            <th>Persona</th>
+                            <th class="text-end">Horas</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr v-for="p in g.personas" :key="'hrs-'+g.id+'-'+p.id">
+                            <td>{{ p.nombre }}</td>
+                            <td class="text-end fw-semibold">{{ reportHoursByPersona[p.id] ?? 0 }}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
                 </div>
 
               </div>
-
             </div>
           </div>
-
         </div>
       </div>
     </div>
@@ -471,9 +506,7 @@
                     Aplicar
                   </button>
                 </div>
-                <div class="small text-muted">
-                  Tip: usa plantillas para asignar T1/T2 en 1 click.
-                </div>
+                <div class="small text-muted">Tip: usa plantillas para asignar T1/T2 en 1 click.</div>
               </div>
 
               <!-- Tramo 1 -->
@@ -531,10 +564,7 @@
               </div>
 
               <div class="d-flex gap-2 justify-content-end">
-                <button v-if="editModal.turnoId" class="btn btn-outline-danger" @click="deleteTurno">
-                  Eliminar
-                </button>
-
+                <button v-if="editModal.turnoId" class="btn btn-outline-danger" @click="deleteTurno">Eliminar</button>
                 <button class="btn btn-danger" @click="saveTurno">
                   <span v-if="editModal.saving" class="spinner-border spinner-border-sm me-2"></span>
                   Guardar
@@ -674,11 +704,8 @@
                   <tbody>
                     <tr v-for="g in grupos" :key="'sg-'+g.id">
                       <td>{{ g.nombre }}</td>
-                      <td>
-                        <span class="badge text-white" :style="{ background: g.color || '#6c757d' }">
-                          {{ g.color || '#6c757d' }}
-                        </span>
-                      </td>
+                      <!-- ✅ SIN TEXTO #HEX -->
+                      <td><div class="color-swatch" :style="{ backgroundColor: g.color || '#6c757d' }" /></td>
                       <td>{{ g.orden }}</td>
                       <td class="text-end">
                         <button class="btn btn-sm btn-outline-secondary me-2" @click="editGrupo(g)">Editar</button>
@@ -895,6 +922,52 @@ const filteredPersonas = computed(() => {
   return arr;
 });
 
+// ✅ Personas agrupadas (para tablas separadas por grupo)
+const personasPorGrupo = computed(() => {
+  const map = new Map();
+
+  // grupos existentes
+  for (const g of (grupos.value || [])) {
+    map.set(String(g.id), {
+      id: String(g.id),
+      nombre: g.nombre,
+      color: g.color || '#6c757d',
+      personas: []
+    });
+  }
+
+  // grupo "sin grupo"
+  map.set('none', { id: 'none', nombre: 'Sin grupo', color: '#6c757d', personas: [] });
+
+  // asigna personas
+  for (const p of (filteredPersonas.value || [])) {
+    const gid = p.grupo ? String(p.grupo) : 'none';
+    if (!map.has(gid)) {
+      map.set(gid, { id: gid, nombre: 'Grupo', color: '#6c757d', personas: [] });
+    }
+    map.get(gid).personas.push(p);
+  }
+
+  // solo grupos con personas
+  const result = Array.from(map.values()).filter(g => g.personas.length > 0);
+
+  // orden: según orden del grupo, y "Sin grupo" al final
+  result.sort((a, b) => {
+    if (a.id === 'none') return 1;
+    if (b.id === 'none') return -1;
+    const ga = (grupos.value || []).find(x => String(x.id) === a.id);
+    const gb = (grupos.value || []).find(x => String(x.id) === b.id);
+    return (ga?.orden ?? 9999) - (gb?.orden ?? 9999);
+  });
+
+  // orden interno personas
+  for (const g of result) {
+    g.personas.sort((x,y) => (x.orden ?? 0) - (y.orden ?? 0) || (x.nombre||'').localeCompare(y.nombre||''));
+  }
+
+  return result;
+});
+
 // Month count (approx)
 const monthTurnosCount = computed(() => {
   let c = 0;
@@ -963,9 +1036,16 @@ watch(monthValue, async () => {
 async function downloadExcelTemplate(){
   try{
     const month = monthValue.value;
-    // requiere api.getBlob() en apiService
     const res = await api.getBlob(`${EXCEL_TEMPLATE_ENDPOINT}?month=${month}`);
-    const blob = new Blob([res.data], { type: res.headers['content-type'] || 'application/octet-stream' });
+    const contentType = res.headers?.['content-type'] || 'application/octet-stream';
+
+    // si el backend responde error en HTML/JSON, esto ayuda a detectarlo
+    if (!contentType.includes('spreadsheetml') && !contentType.includes('application/vnd')) {
+      const text = await res.data.text();
+      throw new Error(`Respuesta inesperada (${contentType}): ${text.slice(0, 300)}`);
+    }
+
+    const blob = new Blob([res.data], { type: contentType });
     const url = window.URL.createObjectURL(blob);
 
     const a = document.createElement('a');
@@ -977,7 +1057,7 @@ async function downloadExcelTemplate(){
     window.URL.revokeObjectURL(url);
   }catch(err){
     console.error(err);
-    Swal.fire('Error','No se pudo descargar la plantilla.','error');
+    Swal.fire('Error', `No se pudo descargar la plantilla. ${err?.message || ''}`.trim(), 'error');
   }
 }
 
@@ -1000,7 +1080,6 @@ async function uploadExcel(){
     const fd = new FormData();
     fd.append('file', excelFile.value);
 
-    // requiere api.postForm() en apiService
     const res = await api.postForm(EXCEL_IMPORT_ENDPOINT, fd);
     const { created, updated, errors } = res.data || {};
 
@@ -1022,7 +1101,7 @@ async function uploadExcel(){
     excelFile.value = null;
   }catch(err){
     console.error(err);
-    const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo importar.';
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo importar.';
     Swal.fire('Error', msg, 'error');
   }finally{
     isLoading.value = false;
@@ -1068,15 +1147,14 @@ async function quickApplyPlantilla(personaObj, fechaISO, plantillaId){
     const t = res.data;
     turnosCache.set(keyTurno(t.persona, t.fecha), t);
 
-    // si estás en reportes y coincide en el rango, refresca
-    if (activeTab.value === 'reports' && reportsLoaded.value) {
-      // solo recalcula UI (la cobertura se recalcula en loadReports)
-      await fetchTurnosRange(report.selectedDay || fechaISO, report.selectedDay || fechaISO);
+    // si estás en reportes y ya generaste, refresca rápido
+    if (activeTab.value === 'reports' && reportsLoaded.value && report.selectedDay) {
+      await fetchTurnosRange(report.selectedDay, report.selectedDay);
     }
 
   }catch(err){
     console.error(err);
-    const msg = err?.response?.data?.detail || 'No se pudo aplicar la plantilla.';
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo aplicar la plantilla.';
     Swal.fire('Error', msg, 'error');
   }finally{
     isLoading.value = false;
@@ -1220,14 +1298,13 @@ async function saveTurno(){
     Swal.fire({ icon:'success', title:'Guardado', timer:850, showConfirmButton:false });
     closeEdit();
 
-    if (activeTab.value === 'reports') {
-      // refresca el día seleccionado (rápido) y recalc si quieres:
-      await fetchTurnosRange(report.selectedDay || t.fecha, report.selectedDay || t.fecha);
+    if (activeTab.value === 'reports' && report.selectedDay) {
+      await fetchTurnosRange(report.selectedDay, report.selectedDay);
     }
 
   }catch(err){
     console.error(err);
-    const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo guardar.';
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo guardar.';
     Swal.fire('Error', msg, 'error');
   }finally{
     editModal.saving = false;
@@ -1255,13 +1332,14 @@ async function deleteTurno(){
     Swal.fire({ icon:'success', title:'Eliminado', timer:850, showConfirmButton:false });
     closeEdit();
 
-    if (activeTab.value === 'reports') {
-      await fetchTurnosRange(report.selectedDay || editForm.fecha, report.selectedDay || editForm.fecha);
+    if (activeTab.value === 'reports' && report.selectedDay) {
+      await fetchTurnosRange(report.selectedDay, report.selectedDay);
     }
 
   }catch(err){
     console.error(err);
-    Swal.fire('Error','No se pudo eliminar.','error');
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo eliminar.';
+    Swal.fire('Error', msg, 'error');
   }finally{
     editModal.saving = false;
   }
@@ -1330,7 +1408,7 @@ async function savePersona(){
 
   }catch(err){
     console.error(err);
-    const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo guardar.';
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo guardar.';
     Swal.fire('Error', msg, 'error');
   }finally{
     settingsModal.saving = false;
@@ -1359,7 +1437,8 @@ async function deletePersona(p){
     Swal.fire({ icon:'success', title:'Eliminado', timer:650, showConfirmButton:false });
   }catch(err){
     console.error(err);
-    Swal.fire('Error','No se pudo eliminar.','error');
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo eliminar.';
+    Swal.fire('Error', msg, 'error');
   }
 }
 
@@ -1407,7 +1486,7 @@ async function saveGrupo(){
     Swal.fire({ icon:'success', title:'OK', timer:650, showConfirmButton:false });
   }catch(err){
     console.error(err);
-    const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo guardar.';
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo guardar.';
     Swal.fire('Error', msg, 'error');
   }finally{
     settingsModal.saving = false;
@@ -1432,7 +1511,8 @@ async function deleteGrupo(g){
     Swal.fire({ icon:'success', title:'Eliminado', timer:650, showConfirmButton:false });
   }catch(err){
     console.error(err);
-    Swal.fire('Error','No se pudo eliminar.','error');
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo eliminar.';
+    Swal.fire('Error', msg, 'error');
   }
 }
 
@@ -1514,7 +1594,7 @@ async function savePlantilla(){
     Swal.fire({ icon:'success', title:'OK', timer:650, showConfirmButton:false });
   }catch(err){
     console.error(err);
-    const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo guardar.';
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo guardar.';
     Swal.fire('Error', msg, 'error');
   }finally{
     settingsModal.saving = false;
@@ -1538,7 +1618,8 @@ async function deletePlantilla(t){
     Swal.fire({ icon:'success', title:'Eliminado', timer:650, showConfirmButton:false });
   }catch(err){
     console.error(err);
-    Swal.fire('Error','No se pudo eliminar.','error');
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo eliminar.';
+    Swal.fire('Error', msg, 'error');
   }
 }
 
@@ -1557,7 +1638,7 @@ async function openDayDetail(fechaISO){
     const lines = dayTurnos
       .sort((a,b) => String(a.persona_nombre||'').localeCompare(String(b.persona_nombre||'')))
       .map(t => `• ${t.persona_nombre || 'Persona'}: ${hhmm(t.entrada_1)}-${hhmm(t.salida_1)}${t.entrada_2 ? ` | ${hhmm(t.entrada_2)}-${hhmm(t.salida_2)}` : ''}`)
-      .slice(0, 35);
+      .slice(0, 40);
 
     Swal.fire({
       title: `Detalle ${fechaISO}`,
@@ -1566,16 +1647,16 @@ async function openDayDetail(fechaISO){
     });
   }catch(err){
     console.error(err);
-    Swal.fire('Error','No se pudo cargar el detalle.','error');
+    Swal.fire('Error', err?.message || 'No se pudo cargar el detalle.', 'error');
   }
 }
 
 function getWeekRangeFromISO(iso){
   const [y,m,d] = iso.split('-').map(Number);
-  const date = new Date(Date.UTC(y, m-1, d));
-  const day = date.getUTCDay();
+  const dateObj = new Date(Date.UTC(y, m-1, d));
+  const day = dateObj.getUTCDay();
   const diffToMonday = (day === 0 ? -6 : 1 - day);
-  const monday = new Date(date); monday.setUTCDate(monday.getUTCDate() + diffToMonday);
+  const monday = new Date(dateObj); monday.setUTCDate(monday.getUTCDate() + diffToMonday);
   const sunday = new Date(monday); sunday.setUTCDate(sunday.getUTCDate() + 6);
   const start = `${monday.getUTCFullYear()}-${pad2(monday.getUTCMonth()+1)}-${pad2(monday.getUTCDate())}`;
   const end = `${sunday.getUTCFullYear()}-${pad2(sunday.getUTCMonth()+1)}-${pad2(sunday.getUTCDate())}`;
@@ -1587,7 +1668,7 @@ async function openWeekSummary(focusISO){
   try{
     const res = await api.get(`${TURNOS_RESUMEN_ENDPOINT}?start=${start}&end=${end}`);
     const items = res.data?.items || [];
-    const top = items.slice(0, 30).map(i => `• ${i.nombre}: ${i.horas}h`);
+    const top = items.slice(0, 40).map(i => `• ${i.nombre}: ${i.horas}h`);
 
     Swal.fire({
       title: `Resumen semana (${start} → ${end})`,
@@ -1596,7 +1677,7 @@ async function openWeekSummary(focusISO){
     });
   }catch(err){
     console.error(err);
-    Swal.fire('Error','No se pudo cargar resumen.','error');
+    Swal.fire('Error', err?.message || 'No se pudo cargar resumen.', 'error');
   }
 }
 
@@ -1754,6 +1835,14 @@ const mxDisponiblesBySlot = computed(() => {
   return obj;
 });
 
+function mxDisponiblesBySlotForGroup(grupo, slot){
+  let c = 0;
+  for (const p of grupo.personas){
+    if (mxIsActive(p.id, slot)) c += 1;
+  }
+  return c;
+}
+
 const mxHoursByPersona = computed(() => {
   const obj = {};
   for (const p of filteredPersonas.value){
@@ -1763,13 +1852,14 @@ const mxHoursByPersona = computed(() => {
   return obj;
 });
 
-const mxTotalHorasDia = computed(() => {
+function mxTotalHorasDiaForGroup(grupo){
   let sum = 0;
-  for (const p of filteredPersonas.value){
-    sum += Number(mxHoursByPersona.value[p.id] || 0);
+  for (const p of grupo.personas){
+    const t = mxTurno(p.id);
+    sum += Number(t?.total_horas || 0);
   }
   return round2(sum);
-});
+}
 
 // Projection (localStorage)
 const mxProjection = ref({});
@@ -1908,7 +1998,7 @@ async function loadReports(){
 
   }catch(err){
     console.error(err);
-    const msg = err?.response?.data?.detail || JSON.stringify(err?.response?.data || {}) || 'No se pudo generar el reporte.';
+    const msg = err?.response?.data?.detail || err?.message || 'No se pudo generar el reporte.';
     Swal.fire('Error', msg, 'error');
   }finally{
     reportsLoading.value = false;
@@ -1960,7 +2050,7 @@ async function exportTurnosCsv(){
 
   }catch(err){
     console.error(err);
-    Swal.fire('Error','No se pudo exportar.','error');
+    Swal.fire('Error', err?.message || 'No se pudo exportar.', 'error');
   }
 }
 </script>
@@ -1972,6 +2062,19 @@ async function exportTurnosCsv(){
 h1,h2,h3,h4,h5,h6,.form-label,.btn,p,td,th { font-family: 'Poppins', sans-serif; }
 
 .planner-scroll { overflow: auto; max-height: 70vh; }
+
+/* Color swatch (✅ sin texto hex) */
+.color-swatch{
+  width: 28px;
+  height: 18px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,.15);
+  display: inline-block;
+}
+
+.group-section{
+  padding-top: 8px;
+}
 
 /* Planner month */
 .planner-table { border-collapse: separate; border-spacing: 0; min-width: 1200px; }
@@ -1993,6 +2096,15 @@ h1,h2,h3,h4,h5,h6,.form-label,.btn,p,td,th { font-family: 'Poppins', sans-serif;
 }
 .modal-dialog-custom{ width: min(820px, 100%); }
 .modal-lg{ width: min(1050px, 100%); }
+
+/* Matrix summary */
+.matrix-summary{
+  min-width: 1100px;
+}
+.matrix-summary .summary-label{
+  min-width: 160px;
+  background: #fff;
+}
 
 /* Matrix (Excel-like) */
 .matrix-table { min-width: 1200px; border-collapse: separate; border-spacing: 0; }
