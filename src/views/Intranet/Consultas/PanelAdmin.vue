@@ -199,6 +199,87 @@
                   </div>
                 </div>
               </div>
+
+              <!-- Actualizar rutas desde Excel -->
+              <div class="card shadow-sm mt-5">
+                <div class="card-body">
+                  <h5 class="mb-1">Actualizar rutas desde Excel</h5>
+                  <p class="text-muted mb-3">
+                    Sube el Excel de comisiones con las rutas corregidas. Solo cambia la ruta de los IDPOS en el mes de
+                    pago del archivo: no crea comisiones ni toca los pagos registrados.
+                  </p>
+
+                  <div class="d-flex flex-wrap gap-2 align-items-center">
+                    <input
+                      type="file"
+                      class="form-control w-auto"
+                      accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                      ref="rutasFileInput"
+                      @change="onRutasFileChange"
+                    />
+                    <button
+                      class="btn btn-outline-danger"
+                      type="button"
+                      @click="previewRutas"
+                      :disabled="!rutasFile || isPreviewingRutas || isAplicandoRutas"
+                    >
+                      <span v-if="isPreviewingRutas" class="spinner-border spinner-border-sm me-2"></span>
+                      Revisar cambios
+                    </button>
+                  </div>
+
+                  <div v-if="rutasPreview" class="mt-4">
+                    <div v-if="rutasPreview.conflictos.length" class="alert alert-warning">
+                      <strong>IDPOS con más de una ruta en el archivo (no se cambian):</strong>
+                      <ul class="mb-0 ps-4">
+                        <li v-for="c in rutasPreview.conflictos" :key="c.idpos">{{ c.idpos }}: {{ c.rutas.join(', ') }}</li>
+                      </ul>
+                    </div>
+
+                    <div v-if="rutasPreview.rutas_sin_asesor.length" class="alert alert-warning">
+                      <strong>Rutas que ningún asesor ni supervisor tiene asignadas:</strong>
+                      {{ rutasPreview.rutas_sin_asesor.join(', ') }}. Nadie verá esos puntos de venta hasta que se asignen.
+                    </div>
+
+                    <div v-if="!rutasPreview.cambios.length" class="alert alert-info mb-0">
+                      No hay rutas por cambiar en {{ formatMesPago(rutasPreview.mes_pago) }}.
+                    </div>
+
+                    <template v-else>
+                      <p class="mb-2">
+                        {{ rutasPreview.cambios.length }} IDPOS cambian de ruta en
+                        <strong>{{ formatMesPago(rutasPreview.mes_pago) }}</strong>.
+                      </p>
+                      <div class="table-responsive mb-3" style="max-height: 400px">
+                        <table class="table table-sm table-hover align-middle mb-0">
+                          <thead class="bg-light">
+                            <tr>
+                              <th scope="col">ID POS</th>
+                              <th scope="col">Punto de venta</th>
+                              <th scope="col">Ruta actual</th>
+                              <th scope="col">Ruta nueva</th>
+                              <th scope="col" class="text-end">Filas</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            <tr v-for="c in rutasPreview.cambios" :key="c.idpos">
+                              <td>{{ c.idpos }}</td>
+                              <td>{{ c.punto_de_venta }}</td>
+                              <td>{{ c.rutas_actuales.map((r) => r || '(sin ruta)').join(', ') }}</td>
+                              <td><strong>{{ c.ruta_nueva }}</strong></td>
+                              <td class="text-end">{{ c.filas }}</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+                      <button class="btn btn-danger" type="button" @click="aplicarRutas" :disabled="isAplicandoRutas">
+                        <span v-if="isAplicandoRutas" class="spinner-border spinner-border-sm me-2"></span>
+                        Aplicar {{ rutasPreview.cambios.length }} cambios
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <!-- 2. Pestaña de Gestión de Asesores -->
@@ -1150,6 +1231,85 @@ const uploadFile = async () => {
     }
   } finally {
     isLoading.value = false;
+  }
+};
+
+/* ------------- ACTUALIZAR RUTAS DESDE EXCEL ------------- */
+const rutasFile = ref(null);
+const rutasFileInput = ref(null);
+const rutasPreview = ref(null);
+const isPreviewingRutas = ref(false);
+const isAplicandoRutas = ref(false);
+
+const formatMesPago = (mes) => {
+  const [anio, numeroMes] = mes.split('-').map(Number);
+  const texto = new Date(anio, numeroMes - 1, 1).toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+  return texto.charAt(0).toUpperCase() + texto.slice(1);
+};
+
+const onRutasFileChange = (event) => {
+  rutasFile.value = event.target.files[0] || null;
+  rutasPreview.value = null;
+};
+
+const limpiarRutas = () => {
+  rutasFile.value = null;
+  rutasPreview.value = null;
+  if (rutasFileInput.value) rutasFileInput.value.value = '';
+};
+
+const previewRutas = async () => {
+  if (!rutasFile.value) return;
+  isPreviewingRutas.value = true;
+  rutasPreview.value = null;
+  const formData = new FormData();
+  formData.append('file', rutasFile.value);
+
+  try {
+    const { data } = await axios.post(`${backendRouter.data}admin/comisiones/rutas/preview/`, formData, {
+      headers: { ...authHeaders, 'Content-Type': 'multipart/form-data' },
+    });
+    rutasPreview.value = data;
+  } catch (error) {
+    const data = error.response?.data || {};
+    const mensaje = data.errores?.join(' ') || data.error || data.detail || 'No se pudo revisar el archivo.';
+    Swal.fire('Error', mensaje, 'error');
+  } finally {
+    isPreviewingRutas.value = false;
+  }
+};
+
+const aplicarRutas = async () => {
+  const { mes_pago, cambios } = rutasPreview.value;
+  const result = await Swal.fire({
+    title: '¿Aplicar cambios de ruta?',
+    text: `Se cambiará la ruta de ${cambios.length} IDPOS en ${formatMesPago(mes_pago)}.`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, aplicar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#dc3545',
+  });
+  if (!result.isConfirmed) return;
+
+  isAplicandoRutas.value = true;
+  try {
+    const { data } = await axios.post(
+      `${backendRouter.data}admin/comisiones/rutas/aplicar/`,
+      { mes_pago, cambios: cambios.map(({ idpos, ruta_nueva }) => ({ idpos, ruta_nueva })) },
+      { headers: authHeaders }
+    );
+    Swal.fire(
+      'Rutas actualizadas',
+      `${data.idpos_actualizados} IDPOS actualizados (${data.filas_actualizadas} registros).`,
+      'success'
+    );
+    limpiarRutas();
+  } catch (error) {
+    const data = error.response?.data || {};
+    Swal.fire('Error', data.error || data.detail || 'No se pudieron aplicar los cambios.', 'error');
+  } finally {
+    isAplicandoRutas.value = false;
   }
 };
 
